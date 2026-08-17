@@ -35,7 +35,7 @@ export default function TopBar({ profile, userId, onLogout }) {
           {profile?.nombre || "Usuario"} · {profile?.rol === "admin" ? "Administrador" : "Asesor comercial"}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
         {pushSoportado() && (
           <IconBtn
             icon={activas ? Bell : BellOff}
@@ -45,7 +45,28 @@ export default function TopBar({ profile, userId, onLogout }) {
             onClick={toggleNotificaciones}
           />
         )}
-        <IconBtn icon={LogOut} label="Cerrar sesión" tone="line" onClick={() => { if (confirm("¿Cerrar sesión?")) onLogout(); }} />
+        <button
+          onClick={() => { if (confirm("¿Seguro que deseas cerrar sesión?")) onLogout(); }}
+          style={{
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            color: "#fff",
+            padding: "6px 12px",
+            borderRadius: "6px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "12px",
+            fontFamily: "'IBM Plex Mono', monospace",
+            transition: "background 0.2s"
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)"}
+          onMouseOut={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)"}
+        >
+          <LogOut size={14} color={C.coral} />
+          <span>Salir</span>
+        </button>
       </div>
     </div>
   );
