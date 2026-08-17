@@ -26,16 +26,16 @@ export default function TopBar({ profile, userId, onLogout }) {
   };
 
   return (
-    <div style={{ background: C.ink, padding: "16px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div>
+    <div style={{ background: C.ink, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", boxSizing: "border-box" }}>
+      <div style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff" }}>
           RUTA<span style={{ color: C.coral }}>·</span>CRM
         </div>
-        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "rgba(255,255,255,0.5)", letterSpacing: "0.04em" }}>
+        <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10.5, color: "rgba(255,255,255,0.5)", letterSpacing: "0.04em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {profile?.nombre || "Usuario"} · {profile?.rol === "admin" ? "Administrador" : "Asesor comercial"}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
         {pushSoportado() && (
           <IconBtn
             icon={activas ? Bell : BellOff}
