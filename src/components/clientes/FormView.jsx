@@ -3,12 +3,13 @@ import { ChevronLeft, Camera, Save, Check, Navigation } from "lucide-react";
 import { C, ESTADOS, TIPOS, inputStyle, todayISO } from "../../styles/tokens";
 import { Field, TextInput, Select, SectionLabel, IconBtn } from "../ui/UIKit";
 import { uploadFotoVisita } from "../../services/storageService";
+import imageCompression from 'browser-image-compression';
 
 export default function FormView({ initial, currentUser, onSave, onCancel }) {
   const blank = {
     id: "", nombres: "", apellidos: "", telefono: "", whatsapp: "", correo: "",
     direccion: "", barrio: "", ciudad: "", lat: "", lng: "", tipo_negocio: "",
-    estado: "Pendiente", fecha_ultima_visita: "", fecha_seguimiento: "", observaciones: "",
+    otro_tipo_negocio: "", estado: "Pendiente", fecha_ultima_visita: "", fecha_seguimiento: "", observaciones: "",
     asesor_id: currentUser.id, asesor_nombre: currentUser.nombre, foto_url: null,
   };
   const [f, setF] = useState(initial || blank);
@@ -38,16 +39,28 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
   const onPhoto = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!f.id.trim()) {
+
+    if (!f.id || !f.id.trim()) {
       setErrors((prev) => ({ ...prev, foto: "Ingresa primero la cédula/NIT para poder subir la foto." }));
       return;
     }
-    setUploading(true);
+
     try {
-      const url = await uploadFotoVisita(file, f.id.trim());
-      set("foto_url", url);
+      setUploading(true);
       setErrors((prev) => ({ ...prev, foto: undefined }));
+
+      const options = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      };
+
+      const compressedFile = await imageCompression(file, options);
+      const url = await uploadFotoVisita(compressedFile, f.id.trim());
+      
+      set('foto_url', url);
     } catch (err) {
+      console.error("Error al comprimir o subir foto:", err);
       setErrors((prev) => ({ ...prev, foto: "No se pudo subir la foto. Intenta de nuevo." }));
     } finally {
       setUploading(false);
@@ -71,6 +84,12 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
     if (record.lat === "") record.lat = null;
     if (record.lng === "") record.lng = null;
     if (record.fecha_seguimiento === "") record.fecha_seguimiento = null;
+    
+    // Si selecciona "Otro", unimos el texto para guardarlo correctamente en la base de datos si lo deseas
+    if (record.tipo_negocio === "Otro" && record.otro_tipo_negocio) {
+      record.tipo_negocio = `Otro: ${record.otro_tipo_negocio}`;
+    }
+
     if (record.estado !== "Pendiente" && !record.fecha_ultima_visita) {
       record.fecha_ultima_visita = todayISO();
     }
@@ -164,7 +183,19 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
           </Field>
         </div>
       </div>
-      <div style={{ display: "flex", gap: 10 }}>
+
+      {/* Campo dinámico que aparece únicamente si selecciona "Otro" en el tipo de negocio */}
+      {f.tipo_negocio === "Otro" && (
+        <Field label="Especifique el tipo de negocio" required>
+          <TextInput 
+            value={f.otro_tipo_negocio || ""} 
+            onChange={(e) => set("otro_tipo_negocio", e.target.value)} 
+            placeholder="Ej. Papelería, Panadería, etc." 
+          />
+        </Field>
+      )}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
         <div style={{ flex: 1 }}>
           <Field label="Última visita (auto)">
             <TextInput value={f.fecha_ultima_visita || ""} disabled placeholder="Se registra al guardar" style={{ ...inputStyle(false), opacity: 0.6 }} />
