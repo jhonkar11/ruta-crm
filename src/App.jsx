@@ -138,7 +138,7 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "'Inter', sans-serif" }}>
       {/* Contenedor principal adaptable: en PC se expande holgadamente hasta 850px para aprovechar la pantalla */}
       <div style={{ 
-        maxWidth: "850px", 
+        maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
         background: C.paper, 
