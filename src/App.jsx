@@ -50,7 +50,7 @@ export default function App() {
     if (!records) return [];
     return records
       .filter((r) => showArchived || r.estado !== "Archivado")
-      .filter((r) => !soloPendientes || r.estado === "Pendiente")
+      .filter((r) => !soloPendientes || (r.fecha_seguimiento && r.estado !== "Visitado" && r.estado !== "Cancelado"))
       .sort((a, b) => (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""));
   }, [records, showArchived, soloPendientes]);
 
