@@ -14,7 +14,7 @@ import CitasView from "./components/citas/CitasView";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput } from "./components/ui/UIKit";
 
 export default function App() {
-  const { user, profile, loading: authLoading, logout } = useAuth();
+  const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
   const { records, loading: recordsLoading, error, saveCliente, archivar, eliminar } = useClientes();
 
   const [view, setView] = useState("mapa");
@@ -23,6 +23,25 @@ export default function App() {
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
+
+  // Perfil normalizado: traduce correos de la BD a nombres completos reales para toda la app
+  const profile = useMemo(() => {
+    if (!rawProfile) return null;
+    const correo = (rawProfile.nombre || rawProfile.email || "").toLowerCase();
+    
+    let nombreReal = rawProfile.nombre_completo || rawProfile.nombre;
+    if (correo.includes("jhonka001")) {
+      nombreReal = "Jhon Alexander Vasquez Revelo";
+    } else if (correo.includes("sanloren1210")) {
+      nombreReal = "Sandra Lorena Vásquez";
+    }
+
+    return {
+      ...rawProfile,
+      nombre: nombreReal,
+      nombre_completo: nombreReal
+    };
+  }, [rawProfile]);
 
   // Transformamos los clientes que tienen fecha de seguimiento en "citas" virtuales
   const citas = useMemo(() => {
