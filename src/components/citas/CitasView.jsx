@@ -3,7 +3,7 @@ import { C } from "../../styles/tokens";
 import { Stamp, IconBtn, EmptyState } from "../ui/UIKit";
 import { Phone, MessageCircle, Calendar, CheckCircle2, Clock } from "lucide-react";
 
-export default function CitasView({ citas = [], clientes = [], onAgendar, onPosponer, onCompletar }) {
+export default function CitasView({ citas = [], clientes = [], onAgendar, onPosponer, onCompletar, onCumplida }) {
   const [filtro, setFiltro] = useState("todos");
 
   const formatearFecha = (fechaStr) => {
@@ -24,6 +24,22 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
     if (filtro === "proximas") return fechaEval && new Date(fechaEval) >= new Date();
     return true;
   });
+
+  // Funciones puente por si App.jsx envía onCumplida o onCompletar
+  const handleCumplir = (cita, c) => {
+    const fn = onCumplida || onCompletar;
+    if (fn) {
+      // Si espera ID o objeto completo, le pasamos el ID del cliente o de la cita
+      fn(c.id || cita.clienteId || cita.id);
+    }
+  };
+
+  const handleReprogramar = (cita) => {
+    if (onPosponer) {
+      // Sugerimos por defecto una fecha de mañana o la actual para moverla
+      onPosponer(cita, new Date().toISOString());
+    }
+  };
 
   return (
     <div style={{ paddingBottom: 80 }}>
@@ -61,8 +77,6 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
         <EmptyState text="No hay citas o visitas registradas." />
       ) : (
         citasFiltradas.map((cita, index) => {
-          // CORRECCIÓN: Si cita.cliente es un objeto, usamos cita.cliente directamente.
-          // Si no, buscamos en el array de clientes usando el ID
           const c = (typeof cita.cliente === 'object' && cita.cliente !== null) 
             ? cita.cliente 
             : clientes.find(cl => String(cl.id).trim() === String(cita.clienteId || cita.cliente_id || "").trim()) || {};
@@ -104,6 +118,9 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <Calendar size={13} color={C.coral} /> {fechaFormateada}
                 </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Clock size={13} color={C.coral} /> 09:00 a. m.
+                </span>
               </div>
               <div style={{ fontSize: 12.5, color: C.ink70, marginBottom: 14 }}>
                 📍 {direccionCliente}
@@ -122,8 +139,41 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                 </div>
 
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button type="button" onClick={() => onPosponer && onPosponer(cita)} style={{ background: "#FEF3C7", color: "#D97706", border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Reprogramar</button>
-                  <button type="button" onClick={() => onCompletar && onCompletar(cita)} style={{ background: "#D1FAE5", color: "#059669", border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => handleReprogramar(cita)}
+                    style={{
+                      background: "#FEF3C7",
+                      color: "#D97706",
+                      border: "none",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontFamily: "'IBM Plex Mono', monospace"
+                    }}
+                  >
+                    Reprogramar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCumplir(cita, c)}
+                    style={{
+                      background: "#D1FAE5",
+                      color: "#059669",
+                      border: "none",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      display: "flex",
+                      alignions: "center",
+                      gap: 4
+                    }}
+                  >
                     <CheckCircle2 size={13} /> Cumplida
                   </button>
                 </div>
