@@ -25,7 +25,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
   );
 
   const [saving, setSaving] = useState(false);
-  const [showModal, setShowModal] = useState(false); // Estado para controlar el zoom interno
+  const [showModal, setShowModal] = useState(false);
 
   const handleChange = (field, val) => {
     setForm((prev) => ({ ...prev, [field]: val }));
@@ -57,27 +57,44 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: C.paper, borderRadius: 16, padding: 20, position: "relative" }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>
+    <form onSubmit={handleSubmit} style={{ 
+      background: "#FFFFFF", 
+      borderRadius: 16, 
+      padding: 24, 
+      position: "relative",
+      border: "1px solid #E2E8F0",
+      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)"
+    }}>
+      <h2 style={{ 
+        fontFamily: "'Space Grotesk', sans-serif",
+        fontSize: 20, 
+        fontWeight: 700, 
+        color: "#0F172A", 
+        marginBottom: 20 
+      }}>
         {initial ? "Editar Prospecto / Cliente" : "Nuevo Prospecto"}
       </h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Cédula / NIT *</label>
-          <TextInput
-            value={form.id}
-            onChange={(e) => handleChange("id", e.target.value)}
-            placeholder="Número de cédula o NIT"
-            disabled={!!initial}
-            style={inputStyle(false)}
-          />
-        </div>
+      {/* Sección Cédula / NIT */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+          Cédula / NIT *
+        </label>
+        <TextInput
+          value={form.id}
+          onChange={(e) => handleChange("id", e.target.value)}
+          placeholder="Número de cédula o NIT"
+          disabled={!!initial}
+          style={inputStyle(false)}
+        />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      {/* Nombres y Apellidos */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Nombres *</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            Nombres *
+          </label>
           <TextInput
             value={form.nombres}
             onChange={(e) => handleChange("nombres", e.target.value)}
@@ -86,7 +103,9 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
           />
         </div>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Apellidos</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            Apellidos
+          </label>
           <TextInput
             value={form.apellidos}
             onChange={(e) => handleChange("apellidos", e.target.value)}
@@ -96,9 +115,12 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      {/* Teléfono y WhatsApp */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Teléfono *</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            Teléfono *
+          </label>
           <TextInput
             value={form.telefono}
             onChange={(e) => handleChange("telefono", e.target.value)}
@@ -107,7 +129,9 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
           />
         </div>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>WhatsApp</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            WhatsApp
+          </label>
           <TextInput
             value={form.whatsapp}
             onChange={(e) => handleChange("whatsapp", e.target.value)}
@@ -117,8 +141,25 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Dirección</label>
+      {/* Correo Electrónico (Recuperado) */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+          Correo Electrónico
+        </label>
+        <TextInput
+          type="email"
+          value={form.correo}
+          onChange={(e) => handleChange("correo", e.target.value)}
+          placeholder="correo@ejemplo.com"
+          style={inputStyle(false)}
+        />
+      </div>
+
+      {/* Dirección */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+          Dirección
+        </label>
         <TextInput
           value={form.direccion}
           onChange={(e) => handleChange("direccion", e.target.value)}
@@ -127,9 +168,12 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      {/* Segmentación Comercial */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Resultado de Visita / Categoría</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            Resultado / Categoría
+          </label>
           <select
             value={form.categoria_cliente}
             onChange={(e) => handleChange("categoria_cliente", e.target.value)}
@@ -141,7 +185,9 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
           </select>
         </div>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Tipo de Negocio</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            Tipo de Negocio
+          </label>
           <select
             value={form.tipo_negocio}
             onChange={(e) => handleChange("tipo_negocio", e.target.value)}
@@ -154,9 +200,12 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+      {/* Gestión de Visitas */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Estado</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            Estado
+          </label>
           <select
             value={form.estado}
             onChange={(e) => handleChange("estado", e.target.value)}
@@ -168,7 +217,9 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
           </select>
         </div>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Próximo Seguimiento</label>
+          <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            Próximo Seguimiento
+          </label>
           <TextInput
             type="date"
             value={form.fecha_seguimiento}
@@ -178,25 +229,29 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Observaciones / Notas de la visita</label>
+      {/* Observaciones */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+          Observaciones / Notas de la visita
+        </label>
         <textarea
           value={form.observaciones}
           onChange={(e) => handleChange("observaciones", e.target.value)}
           placeholder="Escribe notas relevantes de la visita..."
-          style={{ ...inputStyle(false), width: "100%", height: 80, background: "#fff", resize: "vertical", fontFamily: "inherit" }}
+          style={{ ...inputStyle(false), width: "100%", height: 85, background: "#fff", resize: "vertical", fontFamily: "inherit" }}
         />
       </div>
 
-      <div style={{ marginBottom: 20, borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 8 }}>
+      {/* Foto de la Visita */}
+      <div style={{ marginBottom: 24, borderTop: `1px solid #E2E8F0`, paddingTop: 16 }}>
+        <label style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: 8 }}>
           Foto de la Visita
         </label>
         
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <label style={{
-            background: "#f1f5f9", border: `1px solid ${C.line}`, padding: "8px 14px",
-            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: C.ink
+            background: "#F1F5F9", border: `1px solid #CBD5E1`, padding: "8px 14px",
+            borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: "#0F172A"
           }}>
             <Camera size={16} color={C.coral} />
             <span>{form.foto_url ? "Cambiar foto" : "Subir foto"}</span>
@@ -209,14 +264,14 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
                 src={form.foto_url}
                 alt="Vista previa"
                 onClick={() => setShowModal(true)}
-                style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.line}`, cursor: "zoom-in" }}
+                style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid #CBD5E1`, cursor: "zoom-in" }}
                 title="Haz clic para ampliar"
               />
               <button
                 type="button"
                 onClick={() => handleChange("foto_url", "")}
                 style={{
-                  position: "absolute", top: -6, right: -6, background: "#ef4444", color: "#fff",
+                  position: "absolute", top: -6, right: -6, background: "#EF4444", color: "#fff",
                   border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 12, cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center"
                 }}
@@ -229,13 +284,13 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         </div>
       </div>
 
-      {/* MODAL PARA AMPLIAR LA FOTO EN LA MISMA PANTALLA */}
+      {/* Modal Zoom Foto */}
       {showModal && (
         <div 
           onClick={() => setShowModal(false)}
           style={{
             position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
-            background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(15, 23, 42, 0.8)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center",
             zIndex: 9999, cursor: "zoom-out"
           }}
         >
@@ -243,15 +298,15 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
             <img
               src={form.foto_url}
               alt="Foto ampliada"
-              style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: 8, objectFit: "contain", border: "2px solid #fff" }}
+              style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: 12, objectFit: "contain", border: "2px solid #fff", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5)" }}
             />
             <button
               type="button"
               onClick={() => setShowModal(false)}
               style={{
-                position: "absolute", top: -12, right: -12, background: "#ef4444", color: "#fff",
+                position: "absolute", top: -12, right: -12, background: "#EF4444", color: "#fff",
                 border: "none", borderRadius: "50%", width: 32, height: 32, fontSize: 16, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 6px rgba(0,0,0,0.3)"
               }}
               title="Cerrar"
             >
@@ -261,13 +316,14 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+      {/* Botones de Acción */}
+      <div style={{ display: "flex", gap: 12, marginTop: 24, borderTop: `1px solid #E2E8F0`, paddingTop: 20 }}>
         <button
           type="button"
           onClick={onCancel}
           style={{
-            flex: 1, background: "#fff", border: `1.5px solid ${C.line}`, padding: "10px",
-            borderRadius: 10, fontWeight: 600, cursor: "pointer", color: C.ink70
+            flex: 1, background: "#fff", border: `1.5px solid #CBD5E1`, padding: "12px",
+            borderRadius: 10, fontWeight: 600, cursor: "pointer", color: "#475569"
           }}
         >
           Cancelar
@@ -276,8 +332,9 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
           type="submit"
           disabled={saving}
           style={{
-            flex: 1, background: C.coral, border: "none", padding: "10px",
-            borderRadius: 10, fontWeight: 600, color: "#fff", cursor: "pointer", opacity: saving ? 0.7 : 1
+            flex: 1, background: C.coral, border: "none", padding: "12px",
+            borderRadius: 10, fontWeight: 600, color: "#fff", cursor: "pointer", opacity: saving ? 0.7 : 1,
+            boxShadow: "0 4px 6px -1px rgba(225, 112, 85, 0.3)"
           }}
         >
           {saving ? "Guardando..." : "Guardar registro"}
