@@ -46,11 +46,19 @@ export default function App() {
       (`${r.nombres} ${r.apellidos}`.toLowerCase().includes(q) || r.id.includes(q)));
   }, [query, records]);
 
+  // Estado inicial del filtro rápido: "TODOS"
+  // (Nota: puedes cambiar el useState de soloPendientes por: const [soloPendientes, setSoloPendientes] = useState("TODOS");)
+
   const todos = useMemo(() => {
     if (!records) return [];
     return records
       .filter((r) => showArchived || r.estado !== "Archivado")
-      .filter((r) => !soloPendientes || (r.fecha_seguimiento && r.estado !== "Visitado" && r.estado !== "Cancelado"))
+      .filter((r) => {
+        if (soloPendientes === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cancelado"].includes(r.estado);
+        if (soloPendientes === "NO_LOCALIZADOS") return r.categoria_cliente === "No localizado" || r.estado === "No localizado";
+        if (soloPendientes === "INTERESADOS") return ["Interesado", "Preoferta", "En trámite / Pendiente"].includes(r.categoria_cliente || r.estado);
+        return true; // "TODOS"
+      })
       .sort((a, b) => (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""));
   }, [records, showArchived, soloPendientes]);
 
@@ -188,15 +196,21 @@ export default function App() {
             </>
           )}
 
-          {view === "todos" && (
+         {view === "todos" && (
             <>
-              <ViewHeader title="Todos los registros" subtitle={`${todos.length} en total`} />
-              <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-                <FiltroChip active={soloPendientes} onClick={() => setSoloPendientes(!soloPendientes)} label="Solo pendientes" />
+              <ViewHeader title="Base de datos de créditos" subtitle={`${todos.length} registros en total`} />
+              
+              {/* Botones de filtro rápido comercial */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+                <FiltroChip active={soloPendientes === "TODOS"} onClick={() => setSoloPendientes("TODOS")} label="Todos" />
+                <FiltroChip active={soloPendientes === "PENDIENTES"} onClick={() => setSoloPendientes("PENDIENTES")} label="📅 Con fecha / Pendientes" />
+                <FiltroChip active={soloPendientes === "NO_LOCALIZADOS"} onClick={() => setSoloPendientes("NO_LOCALIZADOS")} label="❌ No localizados" />
+                <FiltroChip active={soloPendientes === "INTERESADOS"} onClick={() => setSoloPendientes("INTERESADOS")} label="⭐ Interesados / Preofertas" />
                 {profile.rol === "admin" && (
-                  <FiltroChip active={showArchived} onClick={() => setShowArchived(!showArchived)} label="Ver archivados" />
+                  <FiltroChip active={showArchived} onClick={() => setShowArchived(!showArchived)} label="Archivados" />
                 )}
               </div>
+
               {todos.length === 0 && <EmptyState text="No hay registros para este filtro." />}
               {todos.map((r) => (
                 <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile.rol === "admin"} />
