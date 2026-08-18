@@ -13,7 +13,10 @@ export default function CitaCard({ cita, onEdit, onComplete, profile }) {
   const apellidos = cliente.apellidos || cita.apellidos || "";
 
   // Nombre del asesor de forma segura (dinámico según quien inicie sesión)
-  const nombreAsesor = profile?.nombre || "Asesor";
+  // Temporalmente, deja esto así para ver qué campos tiene tu perfil
+  // Agrega esto antes de la línea de nombreAsesor
+  console.log("CONTENIDO DE PROFILE:", profile);
+  const nombreAsesor = profile?.nombre || profile?.nombre_completo || profile?.displayName || profile?.name || "Asesor";
 
   const telHref = telefono ? `tel:${telefono}` : undefined;
   
