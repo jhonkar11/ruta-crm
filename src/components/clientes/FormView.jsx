@@ -87,7 +87,17 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         <div style={{ flex: 1 }}><Field label="Nombres"><TextInput value={f.nombres} onChange={(e) => set("nombres", e.target.value)} /></Field></div>
         <div style={{ flex: 1 }}><Field label="Apellidos"><TextInput value={f.apellidos} onChange={(e) => set("apellidos", e.target.value)} /></Field></div>
       </div>
-      <Field label="Teléfono"><TextInput value={f.telefono} onChange={(e) => set("telefono", e.target.value)} /></Field>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}><Field label="Teléfono"><TextInput value={f.telefono} onChange={(e) => set("telefono", e.target.value)} /></Field></div>
+        <div style={{ flex: 1 }}><Field label="WhatsApp"><TextInput value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></Field></div>
+      </div>
+      <Field label="Correo electrónico"><TextInput type="email" value={f.correo} onChange={(e) => set("correo", e.target.value)} /></Field>
+
+      <Field label="Dirección"><TextInput value={f.direccion} onChange={(e) => set("direccion", e.target.value)} /></Field>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}><Field label="Barrio"><TextInput value={f.barrio} onChange={(e) => set("barrio", e.target.value)} /></Field></div>
+        <div style={{ flex: 1 }}><Field label="Ciudad"><TextInput value={f.ciudad} onChange={(e) => set("ciudad", e.target.value)} /></Field></div>
+      </div>
 
       <SectionLabel>Segmentación Comercial</SectionLabel>
       <div style={{ display: "flex", gap: 10 }}>
@@ -104,24 +114,44 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
       </div>
 
       {f.tipo_negocio === "Otro" && (
-        <Field label="Especifique tipo de negocio"><TextInput value={f.otro_tipo_negocio || ""} onChange={(e) => set("otro_tipo_negocio", e.target.value)} /></Field>
+        <Field label="Especifique el tipo de negocio" required>
+          <TextInput value={f.otro_tipo_negocio || ""} onChange={(e) => set("otro_tipo_negocio", e.target.value)} placeholder="Ej. Pizzería Don Juan" />
+        </Field>
       )}
 
       <SectionLabel>Gestión de visitas</SectionLabel>
-      <Field label="Estado"><Select value={f.estado} onChange={(e) => set("estado", e.target.value)} options={ESTADOS} /></Field>
-      <Field label="Observaciones">
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <Field label="Estado">
+            <Select value={f.estado} onChange={(e) => set("estado", e.target.value)} options={ESTADOS} />
+          </Field>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Field label="Próximo seguimiento">
+            <input type="date" value={f.fecha_seguimiento || ""} onChange={(e) => set("fecha_seguimiento", e.target.value)} style={inputStyle(false)} />
+          </Field>
+        </div>
+      </div>
+
+      <Field label="Observaciones / notas de la visita">
         <textarea value={f.observaciones || ""} onChange={(e) => set("observaciones", e.target.value)} rows={3} style={{ ...inputStyle(false), resize: "vertical" }} />
       </Field>
-      
+
       <Field label="Foto de la visita">
         <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onPhoto} style={{ display: "none" }} />
-        <button onClick={() => fileRef.current.click()} style={{ background: C.paper, padding: "10px", borderRadius: 8, cursor: "pointer" }}>
-          {uploading ? "Subiendo..." : f.foto_url ? "Cambiar foto" : "Tomar foto"}
+        <button onClick={() => fileRef.current.click()} style={{ background: C.paper, padding: "10px 14px", borderRadius: 8, cursor: "pointer", border: `1.5px solid ${C.line}` }}>
+          {uploading ? "Subiendo..." : f.foto_url ? "Cambiar foto" : "Adjuntar foto"}
         </button>
       </Field>
 
-      <div style={{ marginTop: 20 }}>
-        <button onClick={save} disabled={saving || uploading} style={{ width: "100%", padding: 15, background: C.coral, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, cursor: "pointer" }}>
+      <SectionLabel>Metadatos del sistema</SectionLabel>
+      <div style={{ background: C.paper, borderRadius: 12, padding: 12, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: C.ink70 }}>
+        Asesor: <b>{f.asesor_nombre}</b>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, marginTop: 20, marginBottom: 10 }}>
+        <button onClick={onCancel} style={{ flex: 1, padding: 13, borderRadius: 12, border: `1.5px solid ${C.line}`, background: "#fff", cursor: "pointer" }}>Cancelar</button>
+        <button onClick={save} disabled={saving || uploading} style={{ flex: 2, padding: 13, borderRadius: 12, border: "none", background: C.coral, color: "#fff", fontWeight: 700, cursor: "pointer" }}>
           {saving ? "Guardando..." : "Guardar registro"}
         </button>
       </div>
