@@ -12,11 +12,13 @@ export default function CitaCard({ cita, onEdit, onComplete, profile }) {
   const nombres = cliente.nombres || cita.nombres || "Cliente";
   const apellidos = cliente.apellidos || cita.apellidos || "";
 
-  // Nombre del asesor de forma segura (dinámico según quien inicie sesión)
-  // Temporalmente, deja esto así para ver qué campos tiene tu perfil
-  // Agrega esto antes de la línea de nombreAsesor
-  console.log("CONTENIDO DE PROFILE:", profile);
-  const nombreAsesor = profile?.nombre || profile?.nombre_completo || profile?.displayName || profile?.name || "Asesor";
+  // Solución inteligente para el nombre del asesor (maneja texto o objeto)
+  let nombreAsesor = "Asesor";
+  if (typeof profile === "string") {
+    nombreAsesor = profile.includes("jhonka001") ? "Jhon Alexander Vasquez Revelo" : profile;
+  } else {
+    nombreAsesor = profile?.nombre || profile?.nombre_completo || profile?.displayName || profile?.name || (profile?.email?.includes("jhonka001") ? "Jhon Alexander Vasquez Revelo" : "Asesor");
+  }
 
   const telHref = telefono ? `tel:${telefono}` : undefined;
   
