@@ -6,10 +6,7 @@ import { Phone, MessageCircle, Calendar, CheckCircle2, Clock } from "lucide-reac
 export default function CitasView({ citas = [], clientes = [], onAgendar, onPosponer, onCompletar }) {
   const [filtro, setFiltro] = useState("todos");
 
-  // Usamos el listado que esté disponible (citas o clientes)
-  const listaDatos = citas.length > 0 ? citas : clientes;
-
-  // Función para formatear fecha de manera segura
+  // Función para formatear fechas de forma segura
   const formatearFecha = (fechaStr) => {
     if (!fechaStr) return "Sin fecha";
     try {
@@ -21,10 +18,12 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
     }
   };
 
-  const citasFiltradas = listaDatos.filter(item => {
-    if (filtro === "vencidas") return item.fecha_seguimiento && new Date(item.fecha_seguimiento) < new Date();
-    if (filtro === "hoy") return item.fecha_seguimiento === new Date().toISOString().split('T')[0];
-    if (filtro === "proximas") return item.fecha_seguimiento;
+  // Filtrado de citas
+  const citasFiltradas = citas.filter(item => {
+    const fechaEval = item.fecha || item.fecha_seguimiento;
+    if (filtro === "vencidas") return fechaEval && new Date(fechaEval) < new Date();
+    if (filtro === "hoy") return fechaEval && fechaEval.startsWith(new Date().toISOString().split('T')[0]);
+    if (filtro === "proximas") return fechaEval && new Date(fechaEval) >= new Date();
     return true;
   });
 
@@ -61,32 +60,27 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
 
       {/* Listado de Tarjetas */}
       {citasFiltradas.length === 0 ? (
-        <EmptyState text="No hay citas o seguimientos registrados." />
+        <EmptyState text="No hay citas o visitas registradas." />
       ) : (
-        citasFiltradas.map((item, index) => {
-          // Imprimimos en la consola de tu navegador el objeto exacto para inspeccionarlo
-          console.log(`Objeto item [${index}]:`, item);
+        citasFiltradas.map((cita, index) => {
+          // Cruzamos la tabla visitas con la tabla clientes usando cliente_id
+          const clienteEncontrado = clientes.find(c => String(c.id).trim() === String(cita.cliente_id).trim()) || {};
 
-          // Evaluamos múltiples variantes por si el campo se llama diferente en la BD
-          const nombreBruto = item.nombres || item.nombre || item.nombre_cliente || item.cliente;
-          const apellidoBruto = item.apellidos || item.apellido || "";
-          
-          const nombreCompleto = nombreBruto 
-            ? `${nombreBruto} ${apellidoBruto}`.trim() 
-            : (typeof item.cliente === 'string' ? item.cliente : `Cliente #${item.id || index + 1}`);
+          const nombreCompleto = clienteEncontrado.nombres 
+            ? `${clienteEncontrado.nombres} ${clienteEncontrado.apellidos || ""}`.trim() 
+            : `Cliente ID: ${cita.cliente_id || "N/A"}`;
 
-          const nitCliente = item.id || item.cliente_id || "N/A";
-          const direccionCliente = item.direccion || item.dir || "Dirección no especificada";
-          const telefonoCliente = item.telefono || item.celular;
-          const whatsappCliente = item.whatsapp || item.telefono || item.celular;
-          const estadoEtiqueta = item.estado || item.categoria_cliente || "Programada";
+          const nitCliente = clienteEncontrado.id || cita.cliente_id || "N/A";
+          const direccionCliente = clienteEncontrado.direccion || "Dirección no especificada";
+          const telefonoCliente = clienteEncontrado.telefono;
+          const whatsappCliente = clienteEncontrado.whatsapp || clienteEncontrado.telefono;
+          const estadoEtiqueta = cita.estado || clienteEncontrado.estado || "Programada";
 
-          const fechaRaw = item.fecha_seguimiento || item.fecha || item.fecha_cita;
-          const fechaFormateada = formatearFecha(fechaRaw);
+          const fechaFormateada = formatearFecha(cita.fecha || cita.fecha_seguimiento);
 
           return (
             <div 
-              key={item.id || index} 
+              key={cita.id || index} 
               style={{
                 background: "#FFFFFF",
                 borderRadius: 16,
@@ -120,8 +114,15 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                 </span>
               </div>
               <div style={{ fontSize: 12.5, color: C.ink70, marginBottom: 14 }}>
-                📍 {direccionCliente} {item.barrio ? `- ${item.barrio}` : ""} {item.ciudad ? `(${item.ciudad})` : ""}
+                📍 {direccionCliente} {clienteEncontrado.barrio ? `- ${clienteEncontrado.barrio}` : ""} {clienteEncontrado.ciudad ? `(${clienteEncontrado.ciudad})` : ""}
               </div>
+
+              {/* Observaciones si las hay */}
+              {cita.observaciones && (
+                <div style={{ fontSize: 12, color: C.ink70, background: "#F8FAFC", padding: 8, borderRadius: 8, marginBottom: 12 }}>
+                  💬 {cita.observaciones}
+                </div>
+              )}
 
               {/* Barra de Acciones Directas */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
@@ -145,7 +146,7 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     type="button"
-                    onClick={() => onPosponer && onPosponer(item)}
+                    onClick={() => onPosponer && onPosponer(cita)}
                     style={{
                       background: "#FEF3C7",
                       color: "#D97706",
@@ -162,7 +163,7 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                   </button>
                   <button
                     type="button"
-                    onClick={() => onCompletar && onCompletar(item)}
+                    onClick={() => onCompletar && onCompletar(cita)}
                     style={{
                       background: "#D1FAE5",
                       color: "#059669",
