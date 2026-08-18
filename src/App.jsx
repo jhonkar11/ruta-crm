@@ -28,7 +28,7 @@ export default function App() {
   const citas = useMemo(() => {
     if (!records) return [];
     return records
-      .filter((r) => r.estado !== "Archivado" && r.fecha_seguimiento)
+      .filter((r) => r && r.estado !== "Archivado" && r.fecha_seguimiento)
       .map((r) => ({
         id: r.id,
         clienteId: r.id,
@@ -48,20 +48,20 @@ export default function App() {
 
   const citasManana = useMemo(() => {
     if (!records) return [];
-    return records.filter(r => r.fecha_seguimiento === mananaISO && r.estado !== "Archivado" && r.estado !== "Visitado" && r.estado !== "Cancelado");
+    return records.filter(r => r && r.fecha_seguimiento === mananaISO && r.estado !== "Archivado" && r.estado !== "Visitado" && r.estado !== "Cancelado");
   }, [records, mananaISO]);
 
   const buscados = useMemo(() => {
     if (!query.trim() || !records) return [];
     const q = query.trim().toLowerCase();
-    return records.filter((r) => r.estado !== "Archivado" &&
-      (`${r.nombres} ${r.apellidos}`.toLowerCase().includes(q) || r.id.includes(q)));
+    return records.filter((r) => r && r.estado !== "Archivado" &&
+      (`${r.nombres || ""} ${r.apellidos || ""}`.toLowerCase().includes(q) || (r.id || "").toString().includes(q)));
   }, [query, records]);
 
   const todos = useMemo(() => {
     if (!records) return [];
     return records
-      .filter((r) => showArchived || r.estado !== "Archivado")
+      .filter((r) => r && (showArchived || r.estado !== "Archivado"))
       .filter((r) => {
         if (filtroActivo === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cancelado"].includes(r.estado);
         if (filtroActivo === "NO_LOCALIZADOS") return r.categoria_cliente === "No localizado" || r.estado === "No localizado";
@@ -73,7 +73,7 @@ export default function App() {
 
   const citasHoyCount = useMemo(() => {
     const hoy = todayISO();
-    return (citas || []).filter((c) => c.estado === "Programada" && c.fecha_hora.slice(0, 10) <= hoy).length;
+    return (citas || []).filter((c) => c && c.estado === "Programada" && c.fecha_hora.slice(0, 10) <= hoy).length;
   }, [citas]);
 
   if (authLoading) {
@@ -97,7 +97,7 @@ export default function App() {
   const openNew = () => { setEditing(undefined); setView("form"); };
 
   const handleSave = async (record, isNew) => {
-    if (isNew && records.some((r) => r.id === record.id)) {
+    if (isNew && records.some((r) => r && r.id === record.id)) {
       alert("Ya existe un registro con esa cédula/NIT.");
       return;
     }
@@ -111,27 +111,27 @@ export default function App() {
   };
 
   const crearCitaSimulada = async ({ clienteId, fechaHora }) => {
-    const clienteObj = records.find(r => r.id === clienteId);
+    const clienteObj = records.find(r => r && r.id === clienteId);
     if (!clienteObj) return;
     const fechaLimpia = fechaHora.slice(0, 10);
     await saveCliente({ ...clienteObj, fecha_seguimiento: fechaLimpia, estado: "Pendiente" }, false, user.id);
   };
 
   const posponerSimulado = async (cita, nuevaFechaHora) => {
-    const clienteObj = records.find(r => r.id === (cita.clienteId || cita.id));
+    const clienteObj = records.find(r => r && r.id === (cita.clienteId || cita.id));
     if (!clienteObj) return;
     const fechaLimpia = nuevaFechaHora.slice(0, 10);
     await saveCliente({ ...clienteObj, fecha_seguimiento: fechaLimpia }, false, user.id);
   };
 
   const marcarCumplidaSimulada = async (id) => {
-    const clienteObj = records.find(r => r.id === id);
+    const clienteObj = records.find(r => r && r.id === id);
     if (!clienteObj) return;
     await saveCliente({ ...clienteObj, estado: "Visitado" }, false, user.id);
   };
 
   const cancelarSimulado = async (id) => {
-    const clienteObj = records.find(r => r.id === id);
+    const clienteObj = records.find(r => r && r.id === id);
     if (!clienteObj) return;
     await saveCliente({ ...clienteObj, estado: "Cancelado" }, false, user.id);
   };
@@ -198,7 +198,7 @@ export default function App() {
 
           {view === "mapa" && (
             <>
-              <ViewHeader title="Panel de Metas y Filtros" subtitle={`${records ? records.filter(r => r.estado !== "Archivado").length : 0} registros totales en la base de datos`} />
+              <ViewHeader title="Panel de Metas y Filtros" subtitle={`${records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos`} />
               <MapaView records={records} onEdit={openEdit} />
             </>
           )}
@@ -206,7 +206,7 @@ export default function App() {
           {view === "citas" && (
             <CitasView
               citas={citas}
-              clientes={records.filter((r) => r.estado !== "Archivado")}
+              clientes={records ? records.filter((r) => r && r.estado !== "Archivado") : []}
               currentUser={{ id: user.id, nombre: profile.nombre }}
               onCrear={crearCitaSimulada}
               onPosponer={posponerSimulado}
@@ -253,7 +253,12 @@ export default function App() {
           )}
 
           {view === "form" && (
-            <FormView initial={editing} currentUser={{ id: user.id, nombre: profile.nombre }} onSave={handleSave} onCancel={() => setView("todos")} />
+            <FormView 
+              initial={editing} 
+              currentUser={{ id: user.id, nombre: profile.nombre }} 
+              onSave={handleSave} 
+              onCancel={() => { setEditing(undefined); setView("todos"); }} 
+            />
           )}
         </div>
 
