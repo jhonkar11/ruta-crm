@@ -32,7 +32,6 @@ export default function App() {
       .map((r) => ({
         id: r.id,
         clienteId: r.id,
-        // Usamos la fecha de seguimiento combinada con una hora estándar para el ordenamiento
         fecha_hora: `${r.fecha_seguimiento}T09:00:00`,
         estado: r.estado === "Visitado" || r.estado === "Cancelado" ? "Cumplida" : "Programada",
         notas: r.observaciones || "Seguimiento programado",
@@ -94,7 +93,6 @@ export default function App() {
     }
   };
 
-  // Funciones simuladas para manejar las acciones desde la vista de Citas actualizando el cliente
   const crearCitaSimulada = async ({ clienteId, fechaHora }) => {
     const clienteObj = records.find(r => r.id === clienteId);
     if (!clienteObj) return;
@@ -137,11 +135,19 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.paper, fontFamily: "'Inter', sans-serif" }}>
-      <div style={{ maxWidth: 460, margin: "0 auto", minHeight: "100vh", background: C.paper, position: "relative", boxShadow: "0 0 60px rgba(0,0,0,0.15)" }}>
+    <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "'Inter', sans-serif" }}>
+      {/* Contenedor principal adaptable: en PC se expande holgadamente hasta 850px para aprovechar la pantalla */}
+      <div style={{ 
+        maxWidth: "850px", 
+        margin: "0 auto", 
+        minHeight: "100vh", 
+        background: C.paper, 
+        position: "relative", 
+        boxShadow: "0 0 40px rgba(0,0,0,0.08)" 
+      }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
-        <div style={{ padding: "18px 16px 100px" }}>
+        <div style={{ padding: "24px 24px 100px" }}>
           {error && (
             <div style={{ background: "#FCEBE5", color: C.coralDark, padding: 12, borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
               Error cargando datos: {error}
@@ -150,7 +156,7 @@ export default function App() {
 
           {view === "mapa" && (
             <>
-              <ViewHeader title="Mapa de clientes" subtitle={`${todos.length} registros activos en el mapa`} />
+              <ViewHeader title="Panel de Metas y Filtros" subtitle={`${todos.length} registros totales en la base de datos`} />
               <MapaView records={records} onEdit={openEdit} />
             </>
           )}
