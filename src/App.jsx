@@ -225,8 +225,8 @@ export default function App() {
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
               {buscados.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile.rol === "admin"} profile={profile} />
-              ))}
+          <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+          ))}
             </>
           )}
 
@@ -247,7 +247,7 @@ export default function App() {
 
               {todos.length === 0 && <EmptyState text="No hay registros para este filtro." />}
               {todos.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile.rol === "admin"} profile={profile} />
+              <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile?.rol === "admin"} profile={profile || {}} />
               ))}
             </>
           )}
