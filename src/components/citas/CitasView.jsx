@@ -6,8 +6,8 @@ import CitaCard from "./CitaCard";
 import CitaFormModal from "./CitaFormModal";
 
 export default function CitasView({ citas, clientes, currentUser, onCrear, onPosponer, onCumplida, onCancelar }) {
-  const [modal, setModal] = useState(null); // { mode: 'crear' | 'posponer', citaBase? }
-  const [confirmSimple, setConfirmSimple] = useState(null); // { tipo: 'cumplida'|'cancelar', cita }
+  const [modal, setModal] = useState(null); 
+  const [confirmSimple, setConfirmSimple] = useState(null); 
 
   const hoy = todayISO();
 
@@ -57,7 +57,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
             ⚠ Vencidas sin gestionar ({grupos.vencidas.length})
           </div>
           {grupos.vencidas.map((c) => (
-            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer}
+            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser}
               onCumplida={(cita) => setConfirmSimple({ tipo: "cumplida", cita })}
               onCancelar={(cita) => setConfirmSimple({ tipo: "cancelar", cita })} />
           ))}
@@ -69,7 +69,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
       </div>
       {grupos.deHoy.length === 0 && <EmptyState text="No tienes citas programadas para hoy." />}
       {grupos.deHoy.map((c) => (
-        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer}
+        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser}
           onCumplida={(cita) => setConfirmSimple({ tipo: "cumplida", cita })}
           onCancelar={(cita) => setConfirmSimple({ tipo: "cancelar", cita })} />
       ))}
@@ -79,7 +79,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
       </div>
       {grupos.proximas.length === 0 && <EmptyState text="No hay citas próximas agendadas." />}
       {grupos.proximas.map((c) => (
-        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer}
+        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser}
           onCumplida={(cita) => setConfirmSimple({ tipo: "cumplida", cita })}
           onCancelar={(cita) => setConfirmSimple({ tipo: "cancelar", cita })} />
       ))}
@@ -90,7 +90,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
             Historial reciente
           </div>
           {grupos.historial.map((c) => (
-            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} onCumplida={() => {}} onCancelar={() => {}} />
+            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser} onCumplida={() => {}} onCancelar={() => {}} />
           ))}
         </>
       )}

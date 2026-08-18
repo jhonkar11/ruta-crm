@@ -2,7 +2,7 @@ import { Phone, MessageCircle, Calendar, Clock, MapPin, Building2 } from "lucide
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
-export default function CitaCard({ cita, onEdit, onComplete }) {
+export default function CitaCard({ cita, onEdit, onComplete, profile }) {
   if (!cita) return null;
 
   // Extraer de forma segura el teléfono y datos del cliente asociado
@@ -12,10 +12,13 @@ export default function CitaCard({ cita, onEdit, onComplete }) {
   const nombres = cliente.nombres || cita.nombres || "Cliente";
   const apellidos = cliente.apellidos || cita.apellidos || "";
 
+  // Nombre del asesor de forma segura (dinámico según quien inicie sesión)
+  const nombreAsesor = profile?.nombre || "Asesor";
+
   const telHref = telefono ? `tel:${telefono}` : undefined;
   
   const mensajeWa = encodeURIComponent(
-    `Hola ${nombres}, te saludamos de Banco Caja Social para recordarte tu cita programada. ¡Un amigo hoy, mañana y siempre!`
+    `Hola ${nombres}, te saluda ${nombreAsesor} de Banco Caja Social para recordarte tu cita programada. ¡Un amigo hoy, mañana y siempre!`
   );
   const waHref = whatsapp ? `https://wa.me/57${whatsapp.replace(/\D/g, "")}?text=${mensajeWa}` : undefined;
 
