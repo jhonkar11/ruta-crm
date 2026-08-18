@@ -4,28 +4,29 @@ import { Stamp, IconBtn, EmptyState } from "../ui/UIKit";
 import { Phone, MessageCircle, Calendar, CheckCircle2, Clock } from "lucide-react";
 
 export default function CitasView({ citas = [], clientes = [], onAgendar, onPosponer, onCompletar }) {
-  const [filtro, setFiltro] = useState("todos"); // "todos", "vencidas", "hoy", "proximas"
+  const [filtro, setFiltro] = useState("todos");
 
-  // Función auxiliar para formatear fecha y hora de forma limpia
-  const formatearFechaHora = (fechaHoraStr) => {
-    if (!fechaHoraStr) return { fecha: "Sin fecha", hora: "Sin hora" };
+  // Si 'citas' llega vacío, usamos la lista de 'clientes' que tienen fecha_seguimiento asignada
+  const listadoClientesOCitas = citas.length > 0 ? citas : clientes.filter(c => c.fecha_seguimiento);
+
+  const formatearFechaHora = (fechaStr) => {
+    if (!fechaStr) return { fecha: "Sin fecha", hora: "Sin hora" };
     try {
-      const d = new Date(fechaHoraStr);
-      if (isNaN(d.getTime())) return { fecha: "Sin fecha", hora: "Sin hora" };
+      const d = new Date(fechaStr);
+      if (isNaN(d.getTime())) return { fecha: fechaStr, hora: "09:00 a. m." };
       
       const fechaFormateada = d.toLocaleDateString("es-CO", { year: 'numeric', month: '2-digit', day: '2-digit' });
-      const horaFormateada = d.toLocaleTimeString("es-CO", { hour: '2-digit', minute: '2-digit', hour12: true });
-      return { fecha: fechaFormateada, hora: horaFormateada };
+      return { fecha: fechaFormateada, hora: "09:00 a. m." };
     } catch {
-      return { fecha: "Sin fecha", hora: "Sin hora" };
+      return { fecha: fechaStr, hora: "09:00 a. m." };
     }
   };
 
-  // Filtrado de citas según la pestaña seleccionada
-  const citasFiltradas = citas.filter(c => {
-    if (filtro === "vencidas") return c.estado === "Vencida" || (c.fecha_hora && new Date(c.fecha_hora) < new Date());
-    if (filtro === "hoy") return c.estado === "Hoy";
-    if (filtro === "proximas") return c.estado === "Programada" || c.estado === "Próxima";
+  const citasFiltradas = listadoClientesOCitas.filter(item => {
+    const estadoItem = item.estado || item.categoria_cliente || "Programada";
+    if (filtro === "vencidas") return item.fecha_seguimiento && new Date(item.fecha_seguimiento) < new Date();
+    if (filtro === "hoy") return item.fecha_seguimiento === new Date().toISOString().split('T')[0];
+    if (filtro === "proximas") return item.fecha_seguimiento && new Date(item.fecha_seguimiento) >= new Date();
     return true;
   });
 
@@ -62,26 +63,22 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
 
       {/* Listado de Tarjetas */}
       {citasFiltradas.length === 0 ? (
-        <EmptyState text="No hay citas registradas en este filtro." />
+        <EmptyState text="No hay citas o seguimientos registrados." />
       ) : (
-        citasFiltradas.map((cita) => {
-          // Búsqueda flexible del cliente por ID (flexible a string/number) o usando propiedades directas de la cita
-          const cliente = clientes.find(c => String(c.id) === String(cita.cliente_id || cita.id_cliente)) || {};
-          
-          const nombreCliente = cliente.nombres 
-            ? `${cliente.nombres} ${cliente.apellidos || ""}` 
-            : (cita.nombre_cliente || cita.nombres || "Cliente sin nombre");
+        citasFiltradas.map((item, index) => {
+          // Mapeo directo con las columnas de tu tabla clientes de Supabase
+          const nombreCompleto = item.nombres ? `${item.nombres} ${item.apellidos || ""}`.trim() : (item.nombre_cliente || "Cliente sin nombre");
+          const nitCliente = item.id || "N/A";
+          const direccionCliente = item.direccion || "Dirección no especificada";
+          const telefonoCliente = item.telefono;
+          const whatsappCliente = item.whatsapp || item.telefono;
+          const estadoEtiqueta = item.estado || item.categoria_cliente || "Programada";
 
-          const nitCliente = cliente.id || cita.cliente_id || cita.id_cliente || "N/A";
-          const direccionCliente = cliente.direccion || cita.direccion || "Dirección no especificada";
-          const telefonoCliente = cliente.telefono || cita.telefono;
-          const whatsappCliente = cliente.whatsapp || cliente.telefono || cita.whatsapp;
-
-          const { fecha, hora } = formatearFechaHora(cita.fecha_hora || cita.fecha);
+          const { fecha, hora } = formatearFechaHora(item.fecha_seguimiento || item.fecha);
 
           return (
             <div 
-              key={cita.id || cita.cliente_id} 
+              key={item.id || index} 
               style={{
                 background: "#FFFFFF",
                 borderRadius: 16,
@@ -96,13 +93,13 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <div>
                   <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: C.ink }}>
-                    {nombreCliente}
+                    {nombreCompleto}
                   </div>
                   <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: C.ink40 }}>
                     CC/NIT {nitCliente}
                   </div>
                 </div>
-                <Stamp estado={cita.estado || "Programada"} size="sm" />
+                <Stamp estado={estadoEtiqueta} size="sm" />
               </div>
 
               {/* Fecha, Hora y Dirección Real */}
@@ -115,10 +112,10 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                 </span>
               </div>
               <div style={{ fontSize: 12.5, color: C.ink70, marginBottom: 14 }}>
-                📍 {direccionCliente}
+                📍 {direccionCliente} {item.barrio ? `- ${item.barrio}` : ""} {item.ciudad ? `(${item.ciudad})` : ""}
               </div>
 
-              {/* Barra de Acciones Directas (Llamada, WhatsApp, Reprogramar, Cumplida) */}
+              {/* Barra de Acciones Directas */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
                 <div style={{ display: "flex", gap: 8 }}>
                   {telefonoCliente && (
@@ -140,9 +137,7 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (onPosponer) onPosponer(cita);
-                    }}
+                    onClick={() => onPosponer && onPosponer(item)}
                     style={{
                       background: "#FEF3C7",
                       color: "#D97706",
@@ -159,9 +154,7 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (onCompletar) onCompletar(cita);
-                    }}
+                    onClick={() => onCompletar && onCompletar(item)}
                     style={{
                       background: "#D1FAE5",
                       color: "#059669",
