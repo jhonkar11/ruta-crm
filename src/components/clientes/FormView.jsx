@@ -20,7 +20,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
       estado: "Pendiente",
       fecha_seguimiento: "",
       observaciones: "",
-      foto: ""
+      foto_url: ""
     }
   );
 
@@ -35,7 +35,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleChange("foto", reader.result);
+        handleChange("foto_url", reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -198,20 +198,20 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
             borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: C.ink
           }}>
             <Camera size={16} color={C.coral} />
-            <span>{form.foto ? "Cambiar foto" : "Subir foto"}</span>
+            <span>{form.foto_url ? "Cambiar foto" : "Subir foto"}</span>
             <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
           </label>
 
-          {form.foto && (
+          {form.foto_url && (
             <div style={{ position: "relative", display: "inline-block" }}>
               <img
-                src={form.foto}
+                src={form.foto_url}
                 alt="Vista previa"
                 style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.line}` }}
               />
               <button
                 type="button"
-                onClick={() => handleChange("foto", "")}
+                onClick={() => handleChange("foto_url", "")}
                 style={{
                   position: "absolute", top: -6, right: -6, background: "#ef4444", color: "#fff",
                   border: "none", borderRadius: "50%", width: 20, height: 20, fontSize: 12, cursor: "pointer",
