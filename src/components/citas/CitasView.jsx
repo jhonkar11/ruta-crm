@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn, EmptyState } from "../ui/UIKit";
-import { Phone, MessageCircle, Calendar, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Phone, MessageCircle, Calendar, CheckCircle2, Clock } from "lucide-react";
 
 export default function CitasView({ citas = [], clientes = [], onAgendar, onPosponer, onCompletar }) {
   const [filtro, setFiltro] = useState("todos"); // "todos", "vencidas", "hoy", "proximas"
@@ -23,7 +23,6 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
 
   // Filtrado de citas según la pestaña seleccionada
   const citasFiltradas = citas.filter(c => {
-    // Aquí puedes ajustar la lógica según los estados de tu backend
     if (filtro === "vencidas") return c.estado === "Vencida" || (c.fecha_hora && new Date(c.fecha_hora) < new Date());
     if (filtro === "hoy") return c.estado === "Hoy";
     if (filtro === "proximas") return c.estado === "Programada" || c.estado === "Próxima";
@@ -66,8 +65,19 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
         <EmptyState text="No hay citas registradas en este filtro." />
       ) : (
         citasFiltradas.map((cita) => {
-          const cliente = clientes.find(c => c.id === cita.cliente_id) || {};
-          const { fecha, hora } = formatearFechaHora(cita.fecha_hora);
+          // Búsqueda flexible del cliente por ID (flexible a string/number) o usando propiedades directas de la cita
+          const cliente = clientes.find(c => String(c.id) === String(cita.cliente_id || cita.id_cliente)) || {};
+          
+          const nombreCliente = cliente.nombres 
+            ? `${cliente.nombres} ${cliente.apellidos || ""}` 
+            : (cita.nombre_cliente || cita.nombres || "Cliente sin nombre");
+
+          const nitCliente = cliente.id || cita.cliente_id || cita.id_cliente || "N/A";
+          const direccionCliente = cliente.direccion || cita.direccion || "Dirección no especificada";
+          const telefonoCliente = cliente.telefono || cita.telefono;
+          const whatsappCliente = cliente.whatsapp || cliente.telefono || cita.whatsapp;
+
+          const { fecha, hora } = formatearFechaHora(cita.fecha_hora || cita.fecha);
 
           return (
             <div 
@@ -86,17 +96,17 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                 <div>
                   <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: C.ink }}>
-                    {cliente.nombres ? `${cliente.nombres} ${cliente.apellidos || ""}` : (cita.nombre_cliente || "Cliente")}
+                    {nombreCliente}
                   </div>
                   <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: C.ink40 }}>
-                    CC/NIT {cliente.id || cita.cliente_id || "N/A"}
+                    CC/NIT {nitCliente}
                   </div>
                 </div>
                 <Stamp estado={cita.estado || "Programada"} size="sm" />
               </div>
 
               {/* Fecha, Hora y Dirección Real */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: C.ink70, marginBottom: 14, fontFamily: "'IBM Plex Mono', monospace" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: C.ink70, marginBottom: 8, fontFamily: "'IBM Plex Mono', monospace" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <Calendar size={13} color={C.coral} /> {fecha}
                 </span>
@@ -105,23 +115,23 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                 </span>
               </div>
               <div style={{ fontSize: 12.5, color: C.ink70, marginBottom: 14 }}>
-                📍 {cliente.direccion || cita.direccion || "Dirección no especificada"}
+                📍 {direccionCliente}
               </div>
 
               {/* Barra de Acciones Directas (Llamada, WhatsApp, Reprogramar, Cumplida) */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {cliente.telefono && (
+                  {telefonoCliente && (
                     <IconBtn 
                       icon={Phone} 
-                      href={`tel:${cliente.telefono}`} 
+                      href={`tel:${telefonoCliente}`} 
                       label="Llamar" 
                     />
                   )}
-                  {cliente.whatsapp && (
+                  {whatsappCliente && (
                     <IconBtn 
                       icon={MessageCircle} 
-                      href={`https://wa.me/57${cliente.whatsapp}`} 
+                      href={`https://wa.me/57${whatsappCliente}`} 
                       label="WhatsApp" 
                     />
                   )}
@@ -129,29 +139,34 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
 
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
-                    onClick={() => onPosponer && onPosponer(cita)}
+                    type="button"
+                    onClick={() => {
+                      if (onPosponer) onPosponer(cita);
+                    }}
                     style={{
                       background: "#FEF3C7",
                       color: "#D97706",
                       border: "none",
-                      padding: "6px 10px",
+                      padding: "6px 12px",
                       borderRadius: 8,
                       fontSize: 11,
                       fontWeight: 700,
                       cursor: "pointer",
                       fontFamily: "'IBM Plex Mono', monospace"
                     }}
-                    title="Reprogramar cita"
                   >
                     Reprogramar
                   </button>
                   <button
-                    onClick={() => onCompletar && onCompletar(cita)}
+                    type="button"
+                    onClick={() => {
+                      if (onCompletar) onCompletar(cita);
+                    }}
                     style={{
                       background: "#D1FAE5",
                       color: "#059669",
                       border: "none",
-                      padding: "6px 10px",
+                      padding: "6px 12px",
                       borderRadius: 8,
                       fontSize: 11,
                       fontWeight: 700,
@@ -161,7 +176,6 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
                       alignItems: "center",
                       gap: 4
                     }}
-                    title="Marcar como cumplida"
                   >
                     <CheckCircle2 size={13} /> Cumplida
                   </button>
