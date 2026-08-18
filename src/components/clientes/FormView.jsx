@@ -1,32 +1,69 @@
-import { useRef, useState } from "react";
-import { ChevronLeft, Camera, Save, Check } from "lucide-react";
-import { C, ESTADOS, TIPOS, inputStyle, todayISO } from "../../styles/tokens";
+import { useRef, useState, useEffect } from "react";
+import { ChevronLeft, Camera, Save, BookmarkCheck } from "lucide-react";
+import { C, ESTADOS, inputStyle, todayISO } from "../../styles/tokens";
 import { Field, TextInput, Select, SectionLabel, IconBtn } from "../ui/UIKit";
 import { uploadFotoVisita } from "../../services/storageService";
 import imageCompression from 'browser-image-compression';
 
 export default function FormView({ initial, currentUser, onSave, onCancel }) {
+  // Categorías adaptadas al sector de créditos bancarios
   const CATEGORIAS = [
-    "Nuevo", "Antiguo", "Renovación", "Cancelado", 
-    "Remitido", "Prospecto directo zona", "Preoferta"
+    "Contactado",
+    "No localizado",
+    "Negado",
+    "Interesado",
+    "No interesado",
+    "En trámite / Pendiente"
   ];
+
+  const TIPOS_NEGOCIO = [
+    "Comercio",
+    "Industria",
+    "Servicios",
+    "Transporte",
+    "Educación",
+    "Salud",
+    "Gastronomía",
+    "Otro"
+  ];
+
+  const STORAGE_KEY = `crm_draft_${currentUser.id}`;
 
   const blank = {
     id: "", nombres: "", apellidos: "", telefono: "", whatsapp: "", correo: "",
-    direccion: "", barrio: "", ciudad: "", categoria_cliente: "Nuevo", 
-    tipo_negocio: "", otro_tipo_negocio: "", estado: "Pendiente", 
+    direccion: "", barrio: "", ciudad: "", categoria_cliente: "Contactado", 
+    tipo_negocio: "Comercio", otro_tipo_negocio: "", estado: "Pendiente", 
     fecha_ultima_visita: "", fecha_seguimiento: "", observaciones: "",
     asesor_id: currentUser.id, asesor_nombre: currentUser.nombre, foto_url: null,
   };
   
-  const [f, setF] = useState(initial || blank);
+  const [f, setF] = useState(() => {
+    if (initial) return initial;
+    // Intentar recuperar borrador si existe uno guardado previamente
+    const savedDraft = localStorage.getItem(STORAGE_KEY);
+    if (savedDraft) {
+      try { return JSON.parse(savedDraft); } catch (e) { return blank; }
+    }
+    return blank;
+  });
+
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
   const fileRef = useRef(null);
   const isNew = !initial;
 
-  const set = (k, v) => setF((prev) => ({ ...prev, [k]: v }));
+  const set = (k, v) => {
+    setF((prev) => {
+      const updated = { ...prev, [k]: v };
+      // Auto-guardar borrador en tiempo real mientras escribe
+      if (isNew) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
 
   const onPhoto = async (e) => {
     const file = e.target.files[0];
@@ -65,18 +102,39 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
     setSaving(true);
     try {
       await onSave(record, isNew);
+      // Limpiar borrador al guardar exitosamente
+      if (isNew) localStorage.removeItem(STORAGE_KEY);
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSaveDraft = () => {
+    if (isNew) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(f));
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 3000);
+    }
+  };
+
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <IconBtn icon={ChevronLeft} label="Volver" tone="line" onClick={onCancel} />
-        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: C.ink }}>
-          {isNew ? "Nuevo prospecto" : "Editar registro"}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "between", marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <IconBtn icon={ChevronLeft} label="Volver" tone="line" onClick={onCancel} />
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: C.ink }}>
+            {isNew ? "Nuevo prospecto" : "Editar registro"}
+          </div>
         </div>
+        {isNew && (
+          <button 
+            onClick={handleSaveDraft} 
+            style={{ background: "#e0f2fe", border: "1px solid #bae6fd", color: "#0369a1", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
+          >
+            <BookmarkCheck size={14} />
+            {draftSaved ? "¡Borrador guardado!" : "Guardar borrador"}
+          </button>
+        )}
       </div>
 
       <SectionLabel>Información del prospecto</SectionLabel>
@@ -84,11 +142,11 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         <TextInput value={f.id} disabled={!isNew} onChange={(e) => set("id", e.target.value)} placeholder="Ej. 1017234567" />
       </Field>
       <div style={{ display: "flex", gap: 10 }}>
-        <div style={{ flex: 1 }}><Field label="Nombres"><TextInput value={f.nombres} onChange={(e) => set("nombres", e.target.value)} /></Field></div>
-        <div style={{ flex: 1 }}><Field label="Apellidos"><TextInput value={f.apellidos} onChange={(e) => set("apellidos", e.target.value)} /></Field></div>
+        <div style={{ flex: 1 }}><Field label="Nombres" required error={errors.nombres}><TextInput value={f.nombres} onChange={(e) => set("nombres", e.target.value)} /></Field></div>
+        <div style={{ flex: 1 }}><Field label="Apellidos" required error={errors.apellidos}><TextInput value={f.apellidos} onChange={(e) => set("apellidos", e.target.value)} /></Field></div>
       </div>
       <div style={{ display: "flex", gap: 10 }}>
-        <div style={{ flex: 1 }}><Field label="Teléfono"><TextInput value={f.telefono} onChange={(e) => set("telefono", e.target.value)} /></Field></div>
+        <div style={{ flex: 1 }}><Field label="Teléfono" required error={errors.telefono}><TextInput value={f.telefono} onChange={(e) => set("telefono", e.target.value)} /></Field></div>
         <div style={{ flex: 1 }}><Field label="WhatsApp"><TextInput value={f.whatsapp} onChange={(e) => set("whatsapp", e.target.value)} /></Field></div>
       </div>
       <Field label="Correo electrónico"><TextInput type="email" value={f.correo} onChange={(e) => set("correo", e.target.value)} /></Field>
@@ -102,20 +160,20 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
       <SectionLabel>Segmentación Comercial</SectionLabel>
       <div style={{ display: "flex", gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <Field label="Categoría de Cliente">
+          <Field label="Resultado de Visita / Categoría">
             <Select value={f.categoria_cliente} onChange={(e) => set("categoria_cliente", e.target.value)} options={CATEGORIAS} />
           </Field>
         </div>
         <div style={{ flex: 1 }}>
           <Field label="Tipo de negocio">
-            <Select value={f.tipo_negocio} onChange={(e) => set("tipo_negocio", e.target.value)} options={TIPOS} />
+            <Select value={f.tipo_negocio} onChange={(e) => set("tipo_negocio", e.target.value)} options={TIPOS_NEGOCIO} />
           </Field>
         </div>
       </div>
 
       {f.tipo_negocio === "Otro" && (
         <Field label="Especifique el tipo de negocio" required>
-          <TextInput value={f.otro_tipo_negocio || ""} onChange={(e) => set("otro_tipo_negocio", e.target.value)} placeholder="Ej. Pizzería Don Juan" />
+          <TextInput value={f.otro_tipo_negocio || ""} onChange={(e) => set("otro_tipo_negocio", e.target.value)} placeholder="Ej. Actividad específica" />
         </Field>
       )}
 
@@ -134,7 +192,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
       </div>
 
       <Field label="Observaciones / notas de la visita">
-        <textarea value={f.observaciones || ""} onChange={(e) => set("observaciones", e.target.value)} rows={3} style={{ ...inputStyle(false), resize: "vertical" }} />
+        <textarea value={f.observaciones || ""} onChange={(e) => set("observaciones", e.target.value)} rows={3} style={{ ...inputStyle(false), resize: "vertical" }} placeholder="Ej. Detalles del crédito, requerimientos..." />
       </Field>
 
       <Field label="Foto de la visita">
