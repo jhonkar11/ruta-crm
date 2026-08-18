@@ -6,27 +6,25 @@ import { Phone, MessageCircle, Calendar, CheckCircle2, Clock } from "lucide-reac
 export default function CitasView({ citas = [], clientes = [], onAgendar, onPosponer, onCompletar }) {
   const [filtro, setFiltro] = useState("todos");
 
-  // Si 'citas' llega vacío, usamos la lista de 'clientes' que tienen fecha_seguimiento asignada
-  const listadoClientesOCitas = citas.length > 0 ? citas : clientes.filter(c => c.fecha_seguimiento);
+  // Usamos el listado que esté disponible (citas o clientes)
+  const listaDatos = citas.length > 0 ? citas : clientes;
 
-  const formatearFechaHora = (fechaStr) => {
-    if (!fechaStr) return { fecha: "Sin fecha", hora: "Sin hora" };
+  // Función para formatear fecha de manera segura
+  const formatearFecha = (fechaStr) => {
+    if (!fechaStr) return "Sin fecha";
     try {
       const d = new Date(fechaStr);
-      if (isNaN(d.getTime())) return { fecha: fechaStr, hora: "09:00 a. m." };
-      
-      const fechaFormateada = d.toLocaleDateString("es-CO", { year: 'numeric', month: '2-digit', day: '2-digit' });
-      return { fecha: fechaFormateada, hora: "09:00 a. m." };
+      if (isNaN(d.getTime())) return fechaStr;
+      return d.toLocaleDateString("es-CO", { year: 'numeric', month: '2-digit', day: '2-digit' });
     } catch {
-      return { fecha: fechaStr, hora: "09:00 a. m." };
+      return fechaStr;
     }
   };
 
-  const citasFiltradas = listadoClientesOCitas.filter(item => {
-    const estadoItem = item.estado || item.categoria_cliente || "Programada";
+  const citasFiltradas = listaDatos.filter(item => {
     if (filtro === "vencidas") return item.fecha_seguimiento && new Date(item.fecha_seguimiento) < new Date();
     if (filtro === "hoy") return item.fecha_seguimiento === new Date().toISOString().split('T')[0];
-    if (filtro === "proximas") return item.fecha_seguimiento && new Date(item.fecha_seguimiento) >= new Date();
+    if (filtro === "proximas") return item.fecha_seguimiento;
     return true;
   });
 
@@ -66,15 +64,25 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
         <EmptyState text="No hay citas o seguimientos registrados." />
       ) : (
         citasFiltradas.map((item, index) => {
-          // Mapeo directo con las columnas de tu tabla clientes de Supabase
-          const nombreCompleto = item.nombres ? `${item.nombres} ${item.apellidos || ""}`.trim() : (item.nombre_cliente || "Cliente sin nombre");
-          const nitCliente = item.id || "N/A";
-          const direccionCliente = item.direccion || "Dirección no especificada";
-          const telefonoCliente = item.telefono;
-          const whatsappCliente = item.whatsapp || item.telefono;
+          // Imprimimos en la consola de tu navegador el objeto exacto para inspeccionarlo
+          console.log(`Objeto item [${index}]:`, item);
+
+          // Evaluamos múltiples variantes por si el campo se llama diferente en la BD
+          const nombreBruto = item.nombres || item.nombre || item.nombre_cliente || item.cliente;
+          const apellidoBruto = item.apellidos || item.apellido || "";
+          
+          const nombreCompleto = nombreBruto 
+            ? `${nombreBruto} ${apellidoBruto}`.trim() 
+            : (typeof item.cliente === 'string' ? item.cliente : `Cliente #${item.id || index + 1}`);
+
+          const nitCliente = item.id || item.cliente_id || "N/A";
+          const direccionCliente = item.direccion || item.dir || "Dirección no especificada";
+          const telefonoCliente = item.telefono || item.celular;
+          const whatsappCliente = item.whatsapp || item.telefono || item.celular;
           const estadoEtiqueta = item.estado || item.categoria_cliente || "Programada";
 
-          const { fecha, hora } = formatearFechaHora(item.fecha_seguimiento || item.fecha);
+          const fechaRaw = item.fecha_seguimiento || item.fecha || item.fecha_cita;
+          const fechaFormateada = formatearFecha(fechaRaw);
 
           return (
             <div 
@@ -105,10 +113,10 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
               {/* Fecha, Hora y Dirección Real */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 12, color: C.ink70, marginBottom: 8, fontFamily: "'IBM Plex Mono', monospace" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Calendar size={13} color={C.coral} /> {fecha}
+                  <Calendar size={13} color={C.coral} /> {fechaFormateada}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Clock size={13} color={C.coral} /> {hora}
+                  <Clock size={13} color={C.coral} /> 09:00 a. m.
                 </span>
               </div>
               <div style={{ fontSize: 12.5, color: C.ink70, marginBottom: 14 }}>
