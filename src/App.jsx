@@ -3,7 +3,6 @@ import { Search } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
-import { useCitas } from "./hooks/useCitas";
 
 import LoginScreen from "./components/auth/LoginScreen";
 import TopBar from "./components/layout/TopBar";
@@ -17,7 +16,6 @@ import { ViewHeader, EmptyState, ConfirmModal, TextInput } from "./components/ui
 export default function App() {
   const { user, profile, loading: authLoading, logout } = useAuth();
   const { records, loading: recordsLoading, error, saveCliente, archivar, eliminar } = useClientes();
-  const { citas, loading: citasLoading, crear: crearCita, posponer, marcarCumplida, cancelar } = useCitas();
 
   const [view, setView] = useState("mapa");
   const [editing, setEditing] = useState(undefined);
@@ -25,6 +23,22 @@ export default function App() {
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [soloPendientes, setSoloPendientes] = useState(false);
+
+  // Transformamos los clientes que tienen fecha de seguimiento en "citas" virtuales
+  const citas = useMemo(() => {
+    if (!records) return [];
+    return records
+      .filter((r) => r.estado !== "Archivado" && r.fecha_seguimiento)
+      .map((r) => ({
+        id: r.id,
+        clienteId: r.id,
+        // Usamos la fecha de seguimiento combinada con una hora estándar para el ordenamiento
+        fecha_hora: `${r.fecha_seguimiento}T09:00:00`,
+        estado: r.estado === "Visitado" || r.estado === "Cancelado" ? "Cumplida" : "Programada",
+        notas: r.observaciones || "Seguimiento programado",
+        cliente: r
+      }));
+  }, [records]);
 
   const buscados = useMemo(() => {
     if (!query.trim() || !records) return [];
@@ -80,6 +94,33 @@ export default function App() {
     }
   };
 
+  // Funciones simuladas para manejar las acciones desde la vista de Citas actualizando el cliente
+  const crearCitaSimulada = async ({ clienteId, fechaHora }) => {
+    const clienteObj = records.find(r => r.id === clienteId);
+    if (!clienteObj) return;
+    const fechaLimpia = fechaHora.slice(0, 10);
+    await saveCliente({ ...clienteObj, fecha_seguimiento: fechaLimpia, estado: "Pendiente" }, false, user.id);
+  };
+
+  const posponerSimulado = async (cita, nuevaFechaHora) => {
+    const clienteObj = records.find(r => r.id === (cita.clienteId || cita.id));
+    if (!clienteObj) return;
+    const fechaLimpia = nuevaFechaHora.slice(0, 10);
+    await saveCliente({ ...clienteObj, fecha_seguimiento: fechaLimpia }, false, user.id);
+  };
+
+  const marcarCumplidaSimulada = async (id) => {
+    const clienteObj = records.find(r => r.id === id);
+    if (!clienteObj) return;
+    await saveCliente({ ...clienteObj, estado: "Visitado" }, false, user.id);
+  };
+
+  const cancelarSimulado = async (id) => {
+    const clienteObj = records.find(r => r.id === id);
+    if (!clienteObj) return;
+    await saveCliente({ ...clienteObj, estado: "Cancelado" }, false, user.id);
+  };
+
   const handleArchive = (r) => setConfirmTarget({ type: "archive", record: r });
   const handleDelete = (r) => setConfirmTarget({ type: "delete", record: r });
 
@@ -115,19 +156,15 @@ export default function App() {
           )}
 
           {view === "citas" && (
-            citasLoading || citas === null ? (
-              <EmptyState text="Cargando citas…" />
-            ) : (
-              <CitasView
-                citas={citas}
-                clientes={records.filter((r) => r.estado !== "Archivado")}
-                currentUser={{ id: user.id, nombre: profile.nombre }}
-                onCrear={crearCita}
-                onPosponer={posponer}
-                onCumplida={marcarCumplida}
-                onCancelar={cancelar}
-              />
-            )
+            <CitasView
+              citas={citas}
+              clientes={records.filter((r) => r.estado !== "Archivado")}
+              currentUser={{ id: user.id, nombre: profile.nombre }}
+              onCrear={crearCitaSimulada}
+              onPosponer={posponerSimulado}
+              onCumplida={marcarCumplidaSimulada}
+              onCancelar={cancelarSimulado}
+            />
           )}
 
           {view === "buscar" && (
