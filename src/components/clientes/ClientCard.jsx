@@ -5,17 +5,29 @@ import { Stamp, IconBtn } from "../ui/UIKit";
 export default function ClientCard({ r, onEdit, onArchive, onDelete, canDelete, profile }) {
   const tel = r.telefono ? `tel:${r.telefono}` : undefined;
   
-  // Normalización blindada del nombre del asesor para evitar correos electrónicos en WhatsApp
+  // Normalización ultra-blindada del nombre del asesor
   let nombreAsesor = "Sandra Lorena Vásquez";
-  const rawNombre = profile?.nombre || profile?.email || "";
-  const correoLower = rawNombre.toLowerCase();
-
-  if (correoLower.includes("jhonka001")) {
-    nombreAsesor = "Jhon Alexander Vasquez Revelo";
-  } else if (correoLower.includes("sanloren1210")) {
-    nombreAsesor = "Sandra Lorena Vásquez";
-  } else if (rawNombre && !rawNombre.includes("@")) {
-    nombreAsesor = rawNombre; // Si ya viene un nombre limpio y válido
+  
+  if (profile) {
+    const rawNombre = (profile.nombre || "").toString().toLowerCase();
+    const rawEmail = (profile.email || "").toString().toLowerCase();
+    const rawCompleto = (profile.nombre_completo || "").toString().toLowerCase();
+    
+    if (
+      rawNombre.includes("jhonka001") || rawEmail.includes("jhonka001") || 
+      rawNombre.includes("jhon") || rawCompleto.includes("jhon")
+    ) {
+      nombreAsesor = "Jhon Alexander Vasquez Revelo";
+    } else if (
+      rawNombre.includes("sanloren1210") || rawEmail.includes("sanloren1210") || 
+      rawNombre.includes("sandra") || rawCompleto.includes("sandra")
+    ) {
+      nombreAsesor = "Sandra Lorena Vásquez";
+    } else if (profile.nombre && !profile.nombre.includes("@")) {
+      nombreAsesor = profile.nombre;
+    } else if (profile.nombre_completo && !profile.nombre_completo.includes("@")) {
+      nombreAsesor = profile.nombre_completo;
+    }
   }
 
   // Mensaje optimizado con el eslogan de Banco Caja Social para recordar la visita

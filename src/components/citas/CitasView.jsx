@@ -11,6 +11,23 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
 
   const hoy = todayISO();
 
+  // Normalización blindada del perfil/usuario actual para las citas
+  const profileLimpio = useMemo(() => {
+    if (!currentUser) return { nombre: "Sandra Lorena Vásquez" };
+    const rawNombre = currentUser.nombre || currentUser.email || "";
+    let nombreAsesor = "Sandra Lorena Vásquez";
+    
+    if (rawNombre.toLowerCase().includes("jhonka001") || rawNombre.toLowerCase().includes("jhon")) {
+      nombreAsesor = "Jhon Alexander Vasquez Revelo";
+    } else if (rawNombre.toLowerCase().includes("sanloren1210")) {
+      nombreAsesor = "Sandra Lorena Vásquez";
+    } else if (rawNombre && !rawNombre.includes("@")) {
+      nombreAsesor = rawNombre;
+    }
+
+    return { ...currentUser, nombre: nombreAsesor };
+  }, [currentUser]);
+
   const grupos = useMemo(() => {
     const activas = (citas || []).filter((c) => c.estado === "Programada");
     const vencidas = activas.filter((c) => c.fecha_hora.slice(0, 10) < hoy);
@@ -34,7 +51,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
     if (modal.mode === "posponer") {
       await onPosponer(modal.citaBase, fechaHora, notas);
     } else {
-      await onCrear({ clienteId, asesorId: currentUser.id, fechaHora, notas });
+      await onCrear({ clienteId, asesorId: profileLimpio.id, fechaHora, notas });
     }
     setModal(null);
   };
@@ -57,7 +74,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
             ⚠ Vencidas sin gestionar ({grupos.vencidas.length})
           </div>
           {grupos.vencidas.map((c) => (
-            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser}
+            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={profileLimpio}
               onCumplida={(cita) => setConfirmSimple({ tipo: "cumplida", cita })}
               onCancelar={(cita) => setConfirmSimple({ tipo: "cancelar", cita })} />
           ))}
@@ -69,7 +86,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
       </div>
       {grupos.deHoy.length === 0 && <EmptyState text="No tienes citas programadas para hoy." />}
       {grupos.deHoy.map((c) => (
-        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser}
+        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={profileLimpio}
           onCumplida={(cita) => setConfirmSimple({ tipo: "cumplida", cita })}
           onCancelar={(cita) => setConfirmSimple({ tipo: "cancelar", cita })} />
       ))}
@@ -79,7 +96,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
       </div>
       {grupos.proximas.length === 0 && <EmptyState text="No hay citas próximas agendadas." />}
       {grupos.proximas.map((c) => (
-        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser}
+        <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={profileLimpio}
           onCumplida={(cita) => setConfirmSimple({ tipo: "cumplida", cita })}
           onCancelar={(cita) => setConfirmSimple({ tipo: "cancelar", cita })} />
       ))}
@@ -90,7 +107,7 @@ export default function CitasView({ citas, clientes, currentUser, onCrear, onPos
             Historial reciente
           </div>
           {grupos.historial.map((c) => (
-            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={currentUser} onCumplida={() => {}} onCancelar={() => {}} />
+            <CitaCard key={c.id} cita={c} onPosponer={abrirPosponer} profile={profileLimpio} onCumplida={() => {}} onCancelar={() => {}} />
           ))}
         </>
       )}
