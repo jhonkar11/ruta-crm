@@ -13,6 +13,8 @@ export function Stamp({ estado, size = "md", rotate = true, kind = "cliente" }) 
     bg = "#FEF3C7"; fg = "#D97706";
   } else if (est.includes("preoferta") || est.includes("interesado")) {
     bg = "#DBEAFE"; fg = "#2563EB";
+  } else if (est.includes("programada")) {
+    bg = "#2563EB"; fg = "#FFFFFF";
   } else if (est.includes("contactado") || est.includes("cumplida") || est.includes("visitado")) {
     bg = "#0D9488"; fg = "#FFFFFF";
   }
