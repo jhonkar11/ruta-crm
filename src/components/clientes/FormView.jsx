@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, inputStyle } from "../../styles/tokens";
-import { TextInput, SelectInput, TextArea, ActionBtn } from "../ui/UIKit";
+import { TextInput, TextArea } from "../ui/UIKit";
 import { Camera, X } from "lucide-react";
 
 export default function FormView({ initial, currentUser, onSave, onCancel }) {
@@ -35,7 +35,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleChange("foto", reader.result); // Guarda la imagen en formato base64 para previsualizarla y guardarla
+        handleChange("foto", reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -68,7 +68,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
             value={form.id}
             onChange={(e) => handleChange("id", e.target.value)}
             placeholder="Número de cédula o NIT"
-            disabled={!!initial} // Si ya existe, no se edita la cédula principal
+            disabled={!!initial}
             style={inputStyle(false)}
           />
         </div>
@@ -128,55 +128,43 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Barrio</label>
-          <TextInput
-            value={form.barrio}
-            onChange={(e) => handleChange("barrio", e.target.value)}
-            placeholder="Barrio"
-            style={inputStyle(false)}
-          />
-        </div>
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Ciudad</label>
-          <TextInput
-            value={form.ciudad}
-            onChange={(e) => handleChange("ciudad", e.target.value)}
-            placeholder="Ciudad"
-            style={inputStyle(false)}
-          />
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Resultado de Visita / Categoría</label>
-          <SelectInput
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Resultado de Visita / Categoría</label>
+          <select
             value={form.categoria_cliente}
             onChange={(e) => handleChange("categoria_cliente", e.target.value)}
-            options={["Nuevo", "Interesado", "Preoferta", "No localizado", "En trámite / Pendiente"]}
-            style={inputStyle(false)}
-          />
+            style={{ ...inputStyle(false), width: "100%", background: "#fff" }}
+          >
+            {["Nuevo", "Interesado", "Preoferta", "No localizado", "En trámite / Pendiente"].map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </div>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Tipo de Negocio</label>
-          <SelectInput
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Tipo de Negocio</label>
+          <select
             value={form.tipo_negocio}
             onChange={(e) => handleChange("tipo_negocio", e.target.value)}
-            options={["Comercio", "Industria", "Servicios", "Agropecuario", "Independiente"]}
-            style={inputStyle(false)}
-          />
+            style={{ ...inputStyle(false), width: "100%", background: "#fff" }}
+          >
+            {["Comercio", "Industria", "Servicios", "Agropecuario", "Independiente"].map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div>
-          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Estado</label>
-          <SelectInput
+          <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Estado</label>
+          <select
             value={form.estado}
             onChange={(e) => handleChange("estado", e.target.value)}
-            options={["Pendiente", "Programado", "Visitado", "Cancelado"]}
-            style={inputStyle(false)}
-          />
+            style={{ ...inputStyle(false), width: "100%", background: "#fff" }}
+          >
+            {["Pendiente", "Programado", "Visitado", "Cancelado"].map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Próximo Seguimiento</label>
@@ -199,7 +187,6 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         />
       </div>
 
-      {/* SECCIÓN DE FOTO CON VISTA PREVIA */}
       <div style={{ marginBottom: 20, borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
         <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 8 }}>
           Foto de la Visita
