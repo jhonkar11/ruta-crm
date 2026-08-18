@@ -6,7 +6,6 @@ import { Phone, MessageCircle, Calendar, CheckCircle2, Clock } from "lucide-reac
 export default function CitasView({ citas = [], clientes = [], onAgendar, onPosponer, onCompletar }) {
   const [filtro, setFiltro] = useState("todos");
 
-  // Función para formatear fechas de forma segura
   const formatearFecha = (fechaStr) => {
     if (!fechaStr) return "Sin fecha";
     try {
@@ -18,7 +17,6 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
     }
   };
 
-  // Filtrado de citas
   const citasFiltradas = citas.filter(item => {
     const fechaEval = item.fecha || item.fecha_seguimiento;
     if (filtro === "vencidas") return fechaEval && new Date(fechaEval) < new Date();
@@ -63,17 +61,20 @@ export default function CitasView({ citas = [], clientes = [], onAgendar, onPosp
         <EmptyState text="No hay citas o visitas registradas." />
       ) : (
         citasFiltradas.map((cita, index) => {
-          // Cruzamos la tabla visitas con la tabla clientes usando cliente_id
-          const clienteEncontrado = clientes.find(c => String(c.id).trim() === String(cita.cliente_id).trim()) || {};
+          // Extraemos el ID del cliente probando todas las variantes posibles
+          const idClienteBusqueda = String(cita.cliente_id || cita.id_cliente || cita.cliente || "").trim();
+          
+          // Buscamos el cliente haciendo coincidir el ID (forzando a string para evitar errores de tipo)
+          const clienteEncontrado = clientes.find(c => String(c.id).trim() === idClienteBusqueda) || {};
 
           const nombreCompleto = clienteEncontrado.nombres 
             ? `${clienteEncontrado.nombres} ${clienteEncontrado.apellidos || ""}`.trim() 
-            : `Cliente ID: ${cita.cliente_id || "N/A"}`;
+            : (cita.nombre_cliente || `Cliente ID: ${idClienteBusqueda || "N/A"}`);
 
-          const nitCliente = clienteEncontrado.id || cita.cliente_id || "N/A";
-          const direccionCliente = clienteEncontrado.direccion || "Dirección no especificada";
-          const telefonoCliente = clienteEncontrado.telefono;
-          const whatsappCliente = clienteEncontrado.whatsapp || clienteEncontrado.telefono;
+          const nitCliente = clienteEncontrado.id || idClienteBusqueda || "N/A";
+          const direccionCliente = clienteEncontrado.direccion || cita.direccion || "Dirección no especificada";
+          const telefonoCliente = clienteEncontrado.telefono || cita.telefono;
+          const whatsappCliente = clienteEncontrado.whatsapp || clienteEncontrado.telefono || cita.whatsapp;
           const estadoEtiqueta = cita.estado || clienteEncontrado.estado || "Programada";
 
           const fechaFormateada = formatearFecha(cita.fecha || cita.fecha_seguimiento);
