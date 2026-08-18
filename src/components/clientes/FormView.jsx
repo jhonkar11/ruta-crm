@@ -207,7 +207,9 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
               <img
                 src={form.foto_url}
                 alt="Vista previa"
-                style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.line}` }}
+                onClick={() => window.open(form.foto_url, "_blank")}
+                style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.line}`, cursor: "zoom-in" }}
+                title="Haz clic para ampliar"
               />
               <button
                 type="button"
