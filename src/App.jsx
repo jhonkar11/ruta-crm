@@ -22,7 +22,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [soloPendientes, setSoloPendientes] = useState("TODOS");
+  const [filtroActivo, setFiltroActivo] = useState("TODOS");
 
   // Transformamos los clientes que tienen fecha de seguimiento en "citas" virtuales
   const citas = useMemo(() => {
@@ -63,13 +63,13 @@ export default function App() {
     return records
       .filter((r) => showArchived || r.estado !== "Archivado")
       .filter((r) => {
-        if (soloPendientes === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cancelado"].includes(r.estado);
-        if (soloPendientes === "NO_LOCALIZADOS") return r.categoria_cliente === "No localizado" || r.estado === "No localizado";
-        if (soloPendientes === "INTERESADOS") return ["Interesado", "Preoferta", "En trámite / Pendiente"].includes(r.categoria_cliente || r.estado);
+        if (filtroActivo === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cancelado"].includes(r.estado);
+        if (filtroActivo === "NO_LOCALIZADOS") return r.categoria_cliente === "No localizado" || r.estado === "No localizado";
+        if (filtroActivo === "INTERESADOS") return ["Interesado", "Preoferta", "En trámite / Pendiente"].includes(r.categoria_cliente || r.estado);
         return true; // "TODOS"
       })
       .sort((a, b) => (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""));
-  }, [records, showArchived, soloPendientes]);
+  }, [records, showArchived, filtroActivo]);
 
   const citasHoyCount = useMemo(() => {
     const hoy = todayISO();
@@ -153,7 +153,6 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "'Inter', sans-serif" }}>
-      {/* Contenedor principal adaptable para PC y Celular */}
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
@@ -199,7 +198,7 @@ export default function App() {
 
           {view === "mapa" && (
             <>
-              <ViewHeader title="Panel de Metas y Filtros" subtitle={`${todos.length} registros totales en la base de datos`} />
+              <ViewHeader title="Panel de Metas y Filtros" subtitle={`${records ? records.filter(r => r.estado !== "Archivado").length : 0} registros totales en la base de datos`} />
               <MapaView records={records} onEdit={openEdit} />
             </>
           )}
@@ -226,7 +225,7 @@ export default function App() {
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
               {buscados.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile.rol === "admin"} />
+                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile.rol === "admin"} profile={profile} />
               ))}
             </>
           )}
@@ -237,10 +236,10 @@ export default function App() {
               
               {/* Botones de filtro rápido comercial */}
               <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-                <FiltroChip active={soloPendientes === "TODOS"} onClick={() => setSoloPendientes("TODOS")} label="Todos" />
-                <FiltroChip active={soloPendientes === "PENDIENTES"} onClick={() => setSoloPendientes("PENDIENTES")} label="📅 Con fecha / Pendientes" />
-                <FiltroChip active={soloPendientes === "NO_LOCALIZADOS"} onClick={() => setSoloPendientes("NO_LOCALIZADOS")} label="❌ No localizados" />
-                <FiltroChip active={soloPendientes === "INTERESADOS"} onClick={() => setSoloPendientes("INTERESADOS")} label="⭐ Interesados / Preofertas" />
+                <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="Todos" />
+                <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
+                <FiltroChip active={filtroActivo === "NO_LOCALIZADOS"} onClick={() => setFiltroActivo("NO_LOCALIZADOS")} label="❌ No localizados" />
+                <FiltroChip active={filtroActivo === "INTERESADOS"} onClick={() => setFiltroActivo("INTERESADOS")} label="⭐ Interesados / Preofertas" />
                 {profile.rol === "admin" && (
                   <FiltroChip active={showArchived} onClick={() => setShowArchived(!showArchived)} label="Archivados" />
                 )}
@@ -248,7 +247,7 @@ export default function App() {
 
               {todos.length === 0 && <EmptyState text="No hay registros para este filtro." />}
               {todos.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile.rol === "admin"} />
+                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile.rol === "admin"} profile={profile} />
               ))}
             </>
           )}
