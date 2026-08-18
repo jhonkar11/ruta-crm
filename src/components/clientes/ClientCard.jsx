@@ -7,7 +7,7 @@ export default function ClientCard({ r, onEdit, onArchive, onDelete, canDelete }
   
   // Mensaje optimizado con el eslogan de Banco Caja Social para recordar la visita
   const mensajeWa = encodeURIComponent(
-    `Hola ${r.nombres}, te saludamos de Banco Caja Social. Como tu banco amigo, te recordamos que tenemos programada nuestra visita de seguimiento para el día de mañana. ¿Te queda bien el horario acordado para reunirnos? ¡Un amigo hoy, mañana y siempre!`
+    `Hola ${r.nombres}, te saluda ${profile?.nombre || "Sandra Lorena Vásquez"} de Banco Caja Social. Como tu banco amigo, te recordamos que tenemos programada nuestra visita de seguimiento para el día de mañana. ¿Te queda bien el horario acordado para reunirnos? ¡Un amigo hoy, mañana y siempre!`
   );
   
   const wa = `https://wa.me/57${(r.whatsapp || "").replace(/\D/g, "")}?text=${mensajeWa}`;
