@@ -29,7 +29,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
       (pos) => {
         set("lat", pos.coords.latitude.toFixed(6));
         set("lng", pos.coords.longitude.toFixed(6));
-        setGeoMsg("Ubicación capturada ✓");
+        set("geoMsg", "Ubicación capturada ✓");
       },
       () => setGeoMsg("No se pudo obtener la ubicación. Ingrésala manualmente."),
       { timeout: 8000 }
@@ -85,11 +85,6 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
     if (record.lng === "") record.lng = null;
     if (record.fecha_seguimiento === "") record.fecha_seguimiento = null;
     
-    // Si selecciona "Otro", unimos el texto para guardarlo correctamente en la base de datos si lo deseas
-    if (record.tipo_negocio === "Otro" && record.otro_tipo_negocio) {
-      record.tipo_negocio = `Otro: ${record.otro_tipo_negocio}`;
-    }
-
     if (record.estado !== "Pendiente" && !record.fecha_ultima_visita) {
       record.fecha_ultima_visita = todayISO();
     }
@@ -184,7 +179,6 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
         </div>
       </div>
 
-      {/* Campo dinámico que aparece únicamente si selecciona "Otro" en el tipo de negocio */}
       {f.tipo_negocio === "Otro" && (
         <Field label="Especifique el tipo de negocio" required>
           <TextInput 
