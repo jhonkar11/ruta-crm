@@ -12,12 +12,28 @@ export default function CitaCard({ cita, onEdit, onComplete, profile }) {
   const nombres = cliente.nombres || cita.nombres || "Cliente";
   const apellidos = cliente.apellidos || cita.apellidos || "";
 
-  // Solución inteligente para el nombre del asesor (maneja texto o objeto)
+  // Solución inteligente para el nombre del asesor según el usuario logueado
   let nombreAsesor = "Asesor";
+  
   if (typeof profile === "string") {
-    nombreAsesor = profile.includes("jhonka001") ? "Jhon Alexander Vasquez Revelo" : profile;
-  } else {
-    nombreAsesor = profile?.nombre || profile?.nombre_completo || profile?.displayName || profile?.name || (profile?.email?.includes("jhonka001") ? "Jhon Alexander Vasquez Revelo" : "Asesor");
+    if (profile.includes("jhonka001")) {
+      nombreAsesor = "Jhon Alexander Vasquez Revelo";
+    } else if (profile.includes("sanloren1210")) {
+      nombreAsesor = "Sandra Lorena Vásquez";
+    } else {
+      nombreAsesor = profile;
+    }
+  } else if (profile && typeof profile === "object") {
+    const correoUser = profile.nombre || profile.email || "";
+    if (profile.asesor_nombre) {
+      nombreAsesor = profile.asesor_nombre;
+    } else if (correoUser.includes("jhonka001")) {
+      nombreAsesor = "Jhon Alexander Vasquez Revelo";
+    } else if (correoUser.includes("sanloren1210")) {
+      nombreAsesor = "Sandra Lorena Vásquez";
+    } else {
+      nombreAsesor = profile.nombre || profile.nombre_completo || profile.displayName || profile.name || "Asesor";
+    }
   }
 
   const telHref = telefono ? `tel:${telefono}` : undefined;
