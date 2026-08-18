@@ -1,74 +1,172 @@
 import { useState } from "react";
-import { Phone, MessageCircle, Navigation, Edit3 } from "lucide-react";
-import { C, ESTADO_STYLE } from "../../styles/tokens";
+import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3 } from "lucide-react";
+import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
-export default function MapaView({ records, onEdit }) {
-  const [active, setActive] = useState(null);
-  const visibles = records.filter((r) => r.estado !== "Archivado" && r.lat && r.lng);
-  const lats = visibles.map((r) => r.lat), lngs = visibles.map((r) => r.lng);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-  const pad = 0.06;
+export default function MapaView({ records = [], onEdit }) {
+  const [categoriaFiltro, setCategoriaFiltro] = useState("TODOS");
+  const [activeClient, setActiveClient] = useState(null);
 
-  const project = (r) => {
-    const x = ((r.lng - minLng) / ((maxLng - minLng) || 1)) * (1 - 2 * pad) + pad;
-    const y = 1 - (((r.lat - minLat) / ((maxLat - minLat) || 1)) * (1 - 2 * pad) + pad);
-    return { x: x * 100, y: y * 100 };
-  };
+  // Filtrar registros activos (excluyendo archivados)
+  const activos = records.filter((r) => r.estado !== "Archivado");
+
+  // Contadores rápidos para la gestión de créditos
+  const total = activos.length;
+  const interesados = activos.filter(r => r.categoria_cliente === "Interesado").length;
+  const enTramite = activos.filter(r => r.categoria_cliente === "En trámite / Pendiente").length;
+  const contactados = activos.filter(r => r.categoria_cliente === "Contactado").length;
+  const noLocalizados = activos.filter(r => r.categoria_cliente === "No localizado").length;
+
+  // Filtrar lista según la categoría seleccionada en las tarjetas
+  const filtrados = categoriaFiltro === "TODOS" 
+    ? activos 
+    : activos.filter(r => r.categoria_cliente === categoriaFiltro);
 
   return (
-    <div style={{ position: "relative" }}>
-      <div style={{
-        background: "#fff", borderRadius: 16, border: `1px solid ${C.line}`, overflow: "hidden",
-        position: "relative", height: 340,
-        backgroundImage: `linear-gradient(${C.line} 1px, transparent 1px), linear-gradient(90deg, ${C.line} 1px, transparent 1px)`,
-        backgroundSize: "24px 24px", backgroundColor: "#F8F9FA",
-      }}>
-        {visibles.length === 0 && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: C.ink40, fontSize: 13 }}>
-            Sin coordenadas para mostrar
-          </div>
-        )}
-        {visibles.map((r, i) => {
-          const p = project(r);
-          const s = ESTADO_STYLE[r.estado];
-          return (
-            <button key={r.id} onClick={() => setActive(r)} style={{
-              position: "absolute", left: `${p.x}%`, top: `${p.y}%`, transform: "translate(-50%, -100%)",
-              background: "none", border: "none", cursor: "pointer", padding: 0,
-            }}>
-              <div style={{
-                width: 26, height: 26, borderRadius: "50% 50% 50% 0", background: s.bg,
-                transform: "rotate(-45deg)", display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.3)", border: "2px solid #fff",
-              }}>
-                <span style={{ transform: "rotate(45deg)", color: s.fg, fontSize: 10, fontWeight: 800 }}>{i + 1}</span>
-              </div>
-            </button>
-          );
-        })}
+    <div style={{ padding: "4px 4px 90px 4px" }}>
+      {/* Cabecera del Panel */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: C.ink, margin: 0 }}>
+            Panel de Metas y Filtros
+          </h2>
+          <p style={{ fontSize: 12, color: C.ink70, margin: "2px 0 0 0" }}>
+            Control de base de datos y créditos
+          </p>
+        </div>
+        <div style={{ background: "#fff7ed", border: "1px solid #ffedd5", padding: "6px 10px", borderRadius: 8, display: "flex", alignItems: "center", gap: 6 }}>
+          <TrendingUp size={14} color={C.coral} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.coral }}>{total} Total</span>
+        </div>
       </div>
 
-      {active && (
-        <div style={{ marginTop: 12, background: "#fff", borderRadius: 16, border: `1px solid ${C.line}`, padding: 16 }}>
+      {/* Tarjetas de Resumen / Filtros rápidos estilo Embudo */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+        <StatCard 
+          title="Interesados" 
+          count={interesados} 
+          icon={CheckCircle2} 
+          color="#16a34a" 
+          active={categoriaFiltro === "Interesado"}
+          onClick={() => setCategoriaFiltro(categoriaFiltro === "Interesado" ? "TODOS" : "Interesado")} 
+        />
+        <StatCard 
+          title="En Trámite" 
+          count={enTramite} 
+          icon={Clock} 
+          color="#0284c7" 
+          active={categoriaFiltro === "En trámite / Pendiente"}
+          onClick={() => setCategoriaFiltro(categoriaFiltro === "En trámite / Pendiente" ? "TODOS" : "En trámite / Pendiente")} 
+        />
+        <StatCard 
+          title="Contactados" 
+          count={contactados} 
+          icon={AlertCircle} 
+          color="#ca8a04" 
+          active={categoriaFiltro === "Contactado"}
+          onClick={() => setCategoriaFiltro(categoriaFiltro === "Contactado" ? "TODOS" : "Contactado")} 
+        />
+        <StatCard 
+          title="No Localizados" 
+          count={noLocalizados} 
+          icon={XCircle} 
+          color="#dc2626" 
+          active={categoriaFiltro === "No localizado"}
+          onClick={() => setCategoriaFiltro(categoriaFiltro === "No localizado" ? "TODOS" : "No localizado")} 
+        />
+      </div>
+
+      {/* Barra de estado del filtro actual */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 2px" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>
+          {categoriaFiltro === "TODOS" ? "Mostrando todos los registros" : `Filtro: ${categoriaFiltro}`}
+        </span>
+        {categoriaFiltro !== "TODOS" && (
+          <button 
+            onClick={() => setCategoriaFiltro("TODOS")}
+            style={{ background: "none", border: "none", color: C.coral, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            Quitar filtro
+          </button>
+        )}
+      </div>
+
+      {/* Lista de clientes filtrados */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {filtrados.length === 0 ? (
+          <div style={{ background: "#fff", padding: 24, borderRadius: 12, textAlign: "center", border: `1px solid ${C.line}` }}>
+            <p style={{ color: C.ink70, fontSize: 13, margin: 0 }}>No hay registros con este estado.</p>
+          </div>
+        ) : (
+          filtrados.map((r) => (
+            <div 
+              key={r.id} 
+              onClick={() => setActiveClient(activeClient?.id === r.id ? null : r)}
+              style={{
+                background: "#fff", borderRadius: 12, padding: 12, border: `1px solid ${activeClient?.id === r.id ? C.coral : C.line}`,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.02)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center"
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
+                  {r.nombres} {r.apellidos}
+                </div>
+                <div style={{ fontSize: 11.5, color: C.ink70, marginTop: 2, display: "flex", gap: 6 }}>
+                  <span>CC: {r.id}</span>
+                  <span>•</span>
+                  <span>{r.tipo_negocio || "Comercio"}</span>
+                </div>
+              </div>
+              <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Tarjeta de acciones rápidas al seleccionar un cliente de la lista */}
+      {activeClient && (
+        <div style={{ marginTop: 16, background: "#fff", borderRadius: 16, border: `1.5px solid ${C.coral}`, padding: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>
-                {active.nombres} {active.apellidos}
+                {activeClient.nombres} {activeClient.apellidos}
               </div>
-              <div style={{ fontSize: 12.5, color: C.ink70, marginTop: 2 }}>{active.direccion}, {active.barrio}</div>
+              <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
+                {activeClient.direccion ? `${activeClient.direccion}, ${activeClient.barrio || ''}` : "Sin dirección registrada"}
+              </div>
             </div>
-            <Stamp estado={active.estado} size="sm" />
+            <Stamp estado={activeClient.categoria_cliente || activeClient.estado} size="sm" />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <IconBtn icon={Phone} label="Llamar" href={active.telefono ? `tel:${active.telefono}` : undefined} disabled={!active.telefono} />
-            <IconBtn icon={MessageCircle} label="WhatsApp" href={active.whatsapp ? `https://wa.me/57${active.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!active.whatsapp} />
-            <IconBtn icon={Navigation} label="Cómo llegar" href={`https://www.google.com/maps?q=${active.lat},${active.lng}`} />
-            <IconBtn icon={Edit3} label="Ver ficha" onClick={() => onEdit(active)} />
+            <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono} />
+            <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${activeClient.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp} />
+            <IconBtn icon={Edit3} label="Ver ficha" onClick={() => onEdit(activeClient)} />
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function StatCard({ title, count, icon: Icon, color, active, onClick }) {
+  return (
+    <div 
+      onClick={onClick}
+      style={{
+        background: active ? "#fff7ed" : "#fff",
+        border: `2px solid ${active ? C.coral : C.line}`,
+        borderRadius: 12, padding: 12, cursor: "pointer",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        transition: "all 0.2s ease"
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.ink70 }}>{title}</span>
+        <Icon size={16} color={color} />
+      </div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: C.ink }}>
+        {count}
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { MapPin, Clock, Users, Search, Plus, CalendarClock } from "lucide-react";
+import { Filter, Users, Search, Plus, CalendarClock } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { NavTab } from "../ui/UIKit";
 
@@ -9,7 +9,7 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount }) {
       background: "#fff", borderTop: `1px solid ${C.line}`, display: "flex", padding: "8px 4px 12px",
       boxShadow: "0 -4px 16px rgba(0,0,0,0.06)",
     }}>
-      <NavTab icon={MapPin} label="Mapa" active={view === "mapa"} onClick={() => setView("mapa")} />
+      <NavTab icon={Filter} label="Filtros" active={view === "mapa"} onClick={() => setView("mapa")} />
       <NavTab icon={CalendarClock} label="Citas" active={view === "citas"} onClick={() => setView("citas")} badge={citasHoyCount} />
       <div style={{ flex: 1, display: "flex", justifyContent: "center", marginTop: -22 }}>
         <button onClick={onNew} style={{
