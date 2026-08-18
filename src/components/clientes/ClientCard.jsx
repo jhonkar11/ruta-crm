@@ -5,8 +5,18 @@ import { Stamp, IconBtn } from "../ui/UIKit";
 export default function ClientCard({ r, onEdit, onArchive, onDelete, canDelete, profile }) {
   const tel = r.telefono ? `tel:${r.telefono}` : undefined;
   
-  // Nombre del asesor de forma segura
-  const nombreAsesor = profile?.nombre || "Sandra Lorena Vásquez";
+  // Normalización blindada del nombre del asesor para evitar correos electrónicos en WhatsApp
+  let nombreAsesor = "Sandra Lorena Vásquez";
+  const rawNombre = profile?.nombre || profile?.email || "";
+  const correoLower = rawNombre.toLowerCase();
+
+  if (correoLower.includes("jhonka001")) {
+    nombreAsesor = "Jhon Alexander Vasquez Revelo";
+  } else if (correoLower.includes("sanloren1210")) {
+    nombreAsesor = "Sandra Lorena Vásquez";
+  } else if (rawNombre && !rawNombre.includes("@")) {
+    nombreAsesor = rawNombre; // Si ya viene un nombre limpio y válido
+  }
 
   // Mensaje optimizado con el eslogan de Banco Caja Social para recordar la visita
   const mensajeWa = encodeURIComponent(
