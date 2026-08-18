@@ -1,23 +1,23 @@
 import { AlertCircle } from "lucide-react";
 import { C, inputStyle, iconRow } from "../../styles/tokens";
 
-export function Stamp({ estado, size = "md", rotate = false, kind = "cliente" }) {
+export function Stamp({ estado, size = "md", rotate = true, kind = "cliente" }) {
   const est = (estado || "Nuevo").toLowerCase();
 
   let bg = "#F1F5F9";
   let fg = "#475569";
 
   if (est.includes("no localizado") || est.includes("cancelado")) {
-    bg = "#FEE2E2"; fg = "#991B1B";
+    bg = "#FEE2E2"; fg = "#DC2626";
   } else if (est.includes("trámite") || est.includes("pendiente")) {
-    bg = "#FEF3C7"; fg = "#92400E";
+    bg = "#FEF3C7"; fg = "#D97706";
   } else if (est.includes("preoferta") || est.includes("interesado")) {
-    bg = "#DBEAFE"; fg = "#1E40AF";
-  } else if (est.includes("contactado") || est.includes("cumplida")) {
-    bg = "#DCFCE7"; fg = "#166534";
+    bg = "#DBEAFE"; fg = "#2563EB";
+  } else if (est.includes("contactado") || est.includes("cumplida") || est.includes("visitado")) {
+    bg = "#0D9488"; fg = "#FFFFFF";
   }
 
-  const pad = size === "sm" ? "2px 8px" : "3px 10px";
+  const pad = size === "sm" ? "2px 8px" : "4px 12px";
   const font = size === "sm" ? "10px" : "11px";
 
   return (
@@ -28,12 +28,12 @@ export function Stamp({ estado, size = "md", rotate = false, kind = "cliente" })
         fontFamily: "'IBM Plex Mono', monospace",
         fontWeight: 700, 
         fontSize: font, 
-        letterSpacing: "0.06em", 
+        letterSpacing: "0.08em", 
         padding: pad,
         borderRadius: 6, 
-        border: `1px solid ${fg}33`, 
+        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
         textTransform: "uppercase",
-        transform: rotate ? "rotate(-2.5deg)" : "none", 
+        transform: rotate ? "rotate(2deg)" : "none", 
         display: "inline-block",
         whiteSpace: "nowrap",
       }}
