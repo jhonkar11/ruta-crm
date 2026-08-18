@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, BellRing } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
@@ -22,7 +22,7 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [soloPendientes, setSoloPendientes] = useState(false);
+  const [soloPendientes, setSoloPendientes] = useState("TODOS");
 
   // Transformamos los clientes que tienen fecha de seguimiento en "citas" virtuales
   const citas = useMemo(() => {
@@ -39,15 +39,24 @@ export default function App() {
       }));
   }, [records]);
 
+  // Alerta automática para visitas programadas exactamente para mañana
+  const mananaISO = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }, []);
+
+  const citasManana = useMemo(() => {
+    if (!records) return [];
+    return records.filter(r => r.fecha_seguimiento === mananaISO && r.estado !== "Archivado" && r.estado !== "Visitado" && r.estado !== "Cancelado");
+  }, [records, mananaISO]);
+
   const buscados = useMemo(() => {
     if (!query.trim() || !records) return [];
     const q = query.trim().toLowerCase();
     return records.filter((r) => r.estado !== "Archivado" &&
       (`${r.nombres} ${r.apellidos}`.toLowerCase().includes(q) || r.id.includes(q)));
   }, [query, records]);
-
-  // Estado inicial del filtro rápido: "TODOS"
-  // (Nota: puedes cambiar el useState de soloPendientes por: const [soloPendientes, setSoloPendientes] = useState("TODOS");)
 
   const todos = useMemo(() => {
     if (!records) return [];
@@ -144,7 +153,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "'Inter', sans-serif" }}>
-      {/* Contenedor principal adaptable: en PC se expande holgadamente hasta 850px para aprovechar la pantalla */}
+      {/* Contenedor principal adaptable para PC y Celular */}
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
@@ -159,6 +168,32 @@ export default function App() {
           {error && (
             <div style={{ background: "#FCEBE5", color: C.coralDark, padding: 12, borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
               Error cargando datos: {error}
+            </div>
+          )}
+
+          {/* Alerta inteligente de visitas programadas para mañana */}
+          {citasManana.length > 0 && (
+            <div style={{ 
+              background: "#FEF3C7", 
+              border: "1.5px solid #F59E0B", 
+              color: "#92400E", 
+              padding: "14px 18px", 
+              borderRadius: 14, 
+              marginBottom: 18, 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 12,
+              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.15)"
+            }}>
+              <div style={{ background: "#F59E0B", color: "#fff", padding: 8, borderRadius: "50%", display: "flex" }}>
+                <BellRing size={20} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s))</strong>
+                <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
+                  Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
+                </div>
+              </div>
             </div>
           )}
 

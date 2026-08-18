@@ -4,7 +4,13 @@ import { Stamp, IconBtn } from "../ui/UIKit";
 
 export default function ClientCard({ r, onEdit, onArchive, onDelete, canDelete }) {
   const tel = `tel:${r.telefono}`;
-  const wa = `https://wa.me/57${(r.whatsapp || "").replace(/\D/g, "")}`;
+  
+  // Mensaje optimizado con el eslogan de Banco Caja Social para recordar la visita
+  const mensajeWa = encodeURIComponent(
+    `Hola ${r.nombres}, te saludamos de Banco Caja Social. Como tu banco amigo, te recordamos que tenemos programada nuestra visita de seguimiento para el día de mañana. ¿Te queda bien el horario acordado para reunirnos? ¡Un amigo hoy, mañana y siempre!`
+  );
+  
+  const wa = `https://wa.me/57${(r.whatsapp || "").replace(/\D/g, "")}?text=${mensajeWa}`;
 
   return (
     <div style={{
@@ -44,7 +50,7 @@ export default function ClientCard({ r, onEdit, onArchive, onDelete, canDelete }
 
       <div style={{ display: "flex", gap: 8, marginTop: 14, borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
         <IconBtn icon={Phone} label="Llamar" href={r.telefono ? tel : undefined} disabled={!r.telefono} />
-        <IconBtn icon={MessageCircle} label="WhatsApp" href={r.whatsapp ? wa : undefined} disabled={!r.whatsapp} />
+        <IconBtn icon={MessageCircle} label="WhatsApp (Recordatorio)" href={r.whatsapp ? wa : undefined} disabled={!r.whatsapp} />
         <IconBtn icon={Edit3} label="Editar ficha" onClick={() => onEdit(r)} />
         <div style={{ flex: 1 }} />
         {r.estado !== "Archivado" && <IconBtn icon={Archive} label="Archivar" onClick={() => onArchive(r)} />}
