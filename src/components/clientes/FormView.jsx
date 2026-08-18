@@ -119,7 +119,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "between", marginBottom: 18 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <IconBtn icon={ChevronLeft} label="Volver" tone="line" onClick={onCancel} />
           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: C.ink }}>
