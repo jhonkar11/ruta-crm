@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, inputStyle } from "../../styles/tokens";
-import { TextInput, TextArea } from "../ui/UIKit";
+import { TextInput } from "../ui/UIKit";
 import { Camera, X } from "lucide-react";
 
 export default function FormView({ initial, currentUser, onSave, onCancel }) {
@@ -178,12 +178,12 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
       </div>
 
       <div style={{ marginBottom: 12 }}>
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>Observaciones / Notas de la visita</label>
-        <TextArea
+        <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 4 }}>Observaciones / Notas de la visita</label>
+        <textarea
           value={form.observaciones}
           onChange={(e) => handleChange("observaciones", e.target.value)}
           placeholder="Escribe notas relevantes de la visita..."
-          style={{ ...inputStyle(false), height: 80 }}
+          style={{ ...inputStyle(false), width: "100%", height: 80, background: "#fff", resize: "vertical", fontFamily: "inherit" }}
         />
       </div>
 
