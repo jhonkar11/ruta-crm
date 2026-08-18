@@ -25,6 +25,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
   );
 
   const [saving, setSaving] = useState(false);
+  const [showModal, setShowModal] = useState(false); // Estado para controlar el zoom interno
 
   const handleChange = (field, val) => {
     setForm((prev) => ({ ...prev, [field]: val }));
@@ -56,7 +57,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ background: C.paper, borderRadius: 16, padding: 20 }}>
+    <form onSubmit={handleSubmit} style={{ background: C.paper, borderRadius: 16, padding: 20, position: "relative" }}>
       <h2 style={{ fontSize: 18, fontWeight: 700, color: C.ink, marginBottom: 16 }}>
         {initial ? "Editar Prospecto / Cliente" : "Nuevo Prospecto"}
       </h2>
@@ -207,7 +208,7 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
               <img
                 src={form.foto_url}
                 alt="Vista previa"
-                onClick={() => window.open(form.foto_url, "_blank")}
+                onClick={() => setShowModal(true)}
                 style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8, border: `1px solid ${C.line}`, cursor: "zoom-in" }}
                 title="Haz clic para ampliar"
               />
@@ -227,6 +228,38 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
           )}
         </div>
       </div>
+
+      {/* MODAL PARA AMPLIAR LA FOTO EN LA MISMA PANTALLA */}
+      {showModal && (
+        <div 
+          onClick={() => setShowModal(false)}
+          style={{
+            position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+            background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 9999, cursor: "zoom-out"
+          }}
+        >
+          <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }} onClick={(e) => e.stopPropagation()}>
+            <img
+              src={form.foto_url}
+              alt="Foto ampliada"
+              style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: 8, objectFit: "contain", border: "2px solid #fff" }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              style={{
+                position: "absolute", top: -12, right: -12, background: "#ef4444", color: "#fff",
+                border: "none", borderRadius: "50%", width: 32, height: 32, fontSize: 16, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+              }}
+              title="Cerrar"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
         <button
