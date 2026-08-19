@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3 } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3, Calendar, ShieldCheck } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
@@ -10,17 +10,31 @@ export default function MapaView({ records = [], onEdit }) {
   // Filtrar registros activos (excluyendo archivados)
   const activos = records.filter((r) => r.estado !== "Archivado");
 
-  // Contadores rápidos para la gestión de créditos
+  // Contadores rápidos actualizados para los 6 bloques de gestión
   const total = activos.length;
   const interesados = activos.filter(r => r.categoria_cliente === "Interesado").length;
-  const enTramite = activos.filter(r => r.categoria_cliente === "En trámite / Pendiente").length;
+  const enTramite = activos.filter(r => r.categoria_cliente === "En trámite / Pendiente" || r.estado === "En trámite" || r.estado === "Pendiente").length;
   const contactados = activos.filter(r => r.categoria_cliente === "Contactado").length;
-  const noLocalizados = activos.filter(r => r.categoria_cliente === "No localizado").length;
+  const noLocalizados = activos.filter(r => r.categoria_cliente === "No localizado" || r.estado === "No localizado").length;
+  const reprogramados = activos.filter(r => r.categoria_cliente === "Reprogramada" || r.estado === "Reprogramada").length;
+  const creditosOk = activos.filter(r => ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida"].includes(r.categoria_cliente || r.estado)).length;
 
-  // Filtrar lista según la categoría seleccionada en las tarjetas
+  // Filtrar lista según la categoría seleccionada en las tarjetas de 3 columnas
   const filtrados = categoriaFiltro === "TODOS" 
     ? activos 
-    : activos.filter(r => r.categoria_cliente === categoriaFiltro);
+    : activos.filter(r => {
+        const val = r.categoria_cliente || r.estado;
+        if (categoriaFiltro === "En trámite / Pendiente") {
+          return val === "En trámite / Pendiente" || val === "En trámite" || val === "Pendiente";
+        }
+        if (categoriaFiltro === "Créditos OK") {
+          return ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida"].includes(val);
+        }
+        if (categoriaFiltro === "Reprogramada") {
+          return val === "Reprogramada";
+        }
+        return val === categoriaFiltro;
+      });
 
   return (
     <div style={{ padding: "4px 4px 90px 4px" }}>
@@ -40,8 +54,8 @@ export default function MapaView({ records = [], onEdit }) {
         </div>
       </div>
 
-      {/* Tarjetas de Resumen / Filtros rápidos estilo Embudo */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+      {/* Tarjetas de Resumen / Filtros rápidos organizados en 3 columnas */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
         <StatCard 
           title="Interesados" 
           count={interesados} 
@@ -73,6 +87,22 @@ export default function MapaView({ records = [], onEdit }) {
           color="#dc2626" 
           active={categoriaFiltro === "No localizado"}
           onClick={() => setCategoriaFiltro(categoriaFiltro === "No localizado" ? "TODOS" : "No localizado")} 
+        />
+        <StatCard 
+          title="Reprogramadas" 
+          count={reprogramados} 
+          icon={Calendar} 
+          color="#8B5CF6" 
+          active={categoriaFiltro === "Reprogramada"}
+          onClick={() => setCategoriaFiltro(categoriaFiltro === "Reprogramada" ? "TODOS" : "Reprogramada")} 
+        />
+        <StatCard 
+          title="Créditos OK" 
+          count={creditosOk} 
+          icon={ShieldCheck} 
+          color="#059669" 
+          active={categoriaFiltro === "Créditos OK"}
+          onClick={() => setCategoriaFiltro(categoriaFiltro === "Créditos OK" ? "TODOS" : "Créditos OK")} 
         />
       </div>
 
@@ -155,16 +185,20 @@ function StatCard({ title, count, icon: Icon, color, active, onClick }) {
       style={{
         background: active ? "#fff7ed" : "#fff",
         border: `2px solid ${active ? C.coral : C.line}`,
-        borderRadius: 12, padding: 12, cursor: "pointer",
+        borderRadius: 12, padding: "10px 8px", cursor: "pointer",
         boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-        transition: "all 0.2s ease"
+        transition: "all 0.2s ease",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        minHeight: 64
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-        <span style={{ fontSize: 11.5, fontWeight: 600, color: C.ink70 }}>{title}</span>
-        <Icon size={16} color={color} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: C.ink70, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+        <Icon size={14} color={color} />
       </div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: C.ink }}>
+      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>
         {count}
       </div>
     </div>
