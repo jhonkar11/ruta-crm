@@ -8,32 +8,69 @@ export default function MapaView({ records = [], onEdit }) {
   const [activeClient, setActiveClient] = useState(null);
 
   // Filtrar registros activos (excluyendo archivados)
-  const activos = records.filter((r) => r.estado !== "Archivado");
+  const activos = records.filter((r) => r && r.estado !== "Archivado");
 
-  // Contadores rápidos actualizados para los 6 bloques de gestión
+  // Contadores rápidos para los 6 bloques evaluando tanto categoría como estado directo
   const total = activos.length;
-  const interesados = activos.filter(r => r.categoria_cliente === "Interesado").length;
-  const enTramite = activos.filter(r => r.categoria_cliente === "En trámite / Pendiente" || r.estado === "En trámite" || r.estado === "Pendiente").length;
-  const contactados = activos.filter(r => r.categoria_cliente === "Contactado").length;
+  
+  const interesados = activos.filter(r => r.categoria_cliente === "Interesado" || r.estado === "Interesado").length;
+  
+  const enTramite = activos.filter(r => 
+    r.categoria_cliente === "En trámite / Pendiente" || 
+    r.estado === "En trámite" || 
+    r.estado === "Pendiente" ||
+    r.estado === "En trámite / Pendiente"
+  ).length;
+  
+  const contactados = activos.filter(r => r.categoria_cliente === "Contactado" || r.estado === "Contactado").length;
+  
   const noLocalizados = activos.filter(r => r.categoria_cliente === "No localizado" || r.estado === "No localizado").length;
-  const reprogramados = activos.filter(r => r.categoria_cliente === "Reprogramada" || r.estado === "Reprogramada").length;
-  const creditosOk = activos.filter(r => ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida"].includes(r.categoria_cliente || r.estado)).length;
+  
+  const reprogramados = activos.filter(r => 
+    r.categoria_cliente === "Reprogramada" || 
+    r.estado === "Reprogramada" ||
+    r.estado === "Reprogramado"
+  ).length;
+  
+  const creditosOk = activos.filter(r => {
+    const cat = r.categoria_cliente || "";
+    const est = r.estado || "";
+    return ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida", "Crédito cumplido"].includes(cat) ||
+           ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida", "Crédito cumplido"].includes(est);
+  }).length;
 
-  // Filtrar lista según la categoría seleccionada en las tarjetas de 3 columnas
+  // Filtrar lista de clientes al hacer clic en las tarjetas de resumen
   const filtrados = categoriaFiltro === "TODOS" 
     ? activos 
     : activos.filter(r => {
-        const val = r.categoria_cliente || r.estado;
-        if (categoriaFiltro === "En trámite / Pendiente") {
-          return val === "En trámite / Pendiente" || val === "En trámite" || val === "Pendiente";
+        const cat = r.categoria_cliente || "";
+        const est = r.estado || "";
+        const combinados = `${cat} ${est}`.toLowerCase();
+
+        if (categoriaFiltro === "Interesado") {
+          return combinados.includes("interesado");
         }
-        if (categoriaFiltro === "Créditos OK") {
-          return ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida"].includes(val);
+        if (categoriaFiltro === "En trámite / Pendiente") {
+          return combinados.includes("trámite") || combinados.includes("pendiente");
+        }
+        if (categoriaFiltro === "Contactado") {
+          return combinados.includes("contactado");
+        }
+        if (categoriaFiltro === "No localizado") {
+          return combinados.includes("no localizado");
         }
         if (categoriaFiltro === "Reprogramada") {
-          return val === "Reprogramada";
+          return combinados.includes("reprogramada") || combinados.includes("reprogramado");
         }
-        return val === categoriaFiltro;
+        if (categoriaFiltro === "Créditos OK") {
+          return combinados.includes("aprobado") || 
+                 combinados.includes("crédito ok") || 
+                 combinados.includes("credito ok") || 
+                 combinados.includes("desembolsado") || 
+                 combinados.includes("cumplida") ||
+                 combinados.includes("crédito cumplido");
+        }
+        return cat === categoriaFiltro || est === categoriaFiltro;
       });
 
   return (
