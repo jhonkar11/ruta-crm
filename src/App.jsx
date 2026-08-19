@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, BellRing } from "lucide-react";
+import { Search, BellRing, X, Phone, MessageCircle, Edit3 } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
@@ -12,6 +12,7 @@ import MapaView from "./components/clientes/MapaView";
 import FormView from "./components/clientes/FormView";
 import CitasView from "./components/citas/CitasView";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput } from "./components/ui/UIKit";
+import { Stamp, IconBtn } from "./components/ui/UIKit";
 
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
@@ -23,6 +24,9 @@ export default function App() {
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
+  
+  // Estado para controlar el modal flotante de la alerta de mañana
+  const [showMananaModal, setShowMananaModal] = useState(false);
 
   const profile = useMemo(() => {
     if (!rawProfile) return null;
@@ -103,7 +107,7 @@ export default function App() {
     await saveCliente({ ...clienteObj, estado: "Cancelado" }, false, user.id);
   };
 
-  const openEdit = (r) => { setEditing(r); setView("form"); };
+  const openEdit = (r) => { setEditing(undefined); setEditing(r); setView("form"); };
   const openNew = () => { setEditing(undefined); setView("form"); };
 
   const handleSave = async (record, isNew) => {
@@ -172,23 +176,28 @@ export default function App() {
           )}
 
           {citasManana.length > 0 && (
-            <div style={{ 
-              background: "#FEF3C7", 
-              border: "1.5px solid #F59E0B", 
-              color: "#92400E", 
-              padding: "14px 18px", 
-              borderRadius: 14, 
-              marginBottom: 18, 
-              display: "flex", 
-              alignItems: "center", 
-              gap: 12,
-              boxShadow: "0 4px 12px rgba(245, 158, 11, 0.15)"
-            }}>
+            <div 
+              onClick={() => setShowMananaModal(true)}
+              style={{ 
+                background: "#FEF3C7", 
+                border: "1.5px solid #F59E0B", 
+                color: "#92400E", 
+                padding: "14px 18px", 
+                borderRadius: 14, 
+                marginBottom: 18, 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 12,
+                boxShadow: "0 4px 12px rgba(245, 158, 11, 0.15)",
+                cursor: "pointer",
+                transition: "transform 0.1s ease"
+              }}
+            >
               <div style={{ background: "#F59E0B", color: "#fff", padding: 8, borderRadius: "50%", display: "flex" }}>
                 <BellRing size={20} />
               </div>
               <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s))</strong>
+                <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s)) - Toca para ver</strong>
                 <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
                   Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
                 </div>
@@ -261,6 +270,71 @@ export default function App() {
 
         {view !== "form" && <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />}
       </div>
+
+      {/* Modal flotante para los clientes con visita para mañana */}
+      {showMananaModal && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1000, padding: 16
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, width: "100%", maxWidth: 500,
+            maxHeight: "85vh", display: "flex", flexDirection: "column",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden"
+          }}>
+            {/* Cabecera del Modal */}
+            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FEF3C7" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <BellRing size={18} color="#D97706" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#92400E" }}>
+                  Visitas para mañana ({citasManana.length})
+                </h3>
+              </div>
+              <button 
+                onClick={() => setShowMananaModal(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#92400E", display: "flex" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Lista de Clientes de Mañana */}
+            <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "#f8fafc" }}>
+              {citasManana.map((r) => (
+                <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
+                        {r.nombres} {r.apellidos}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
+                        {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
+                      </div>
+                    </div>
+                    <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
+                    <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
+                    <IconBtn icon={MessageCircle} label="WhatsApp" href={r.whatsapp ? `https://wa.me/57${r.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!r.whatsapp} />
+                    <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pie del Modal */}
+            <div style={{ padding: 12, borderTop: `1px solid ${C.line}`, background: "#fff", textAlign: "right" }}>
+              <button 
+                onClick={() => setShowMananaModal(false)}
+                style={{ background: C.ink, color: "#fff", border: "none", padding: "8:px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "8px 16px" }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmTarget && (
         <ConfirmModal
