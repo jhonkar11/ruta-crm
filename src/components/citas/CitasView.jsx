@@ -132,7 +132,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {citasFiltradas.map((c) => {
-            // Robustez para encontrar el cliente sin importar cómo venga la relación desde la base de datos
+            // Robustez total para encontrar el cliente y su dirección sin importar cómo venga la relación
             const idBuscado = c.cliente_id || c.clienteId || (typeof c.cliente === "string" ? c.cliente : null);
             const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
             
@@ -140,7 +140,9 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             
             const nombreCliente = cliente ? `${cliente.nombres || cliente.nombre || ""} ${cliente.apellidos || ""}`.trim() : (c.nombre_cliente || "Cliente sin nombre");
             const cedulaCliente = cliente ? cliente.id : (idBuscado || "N/A");
-            const direccionCliente = cliente ? cliente.direccion : (c.direccion || "Sin dirección");
+            
+            // Corrección aplicada aquí: evaluamos de manera segura si la dirección existe en el objeto cliente o en la cita
+            const direccionCliente = cliente?.direccion || c.direccion || "Sin dirección";
 
             return (
               <div
