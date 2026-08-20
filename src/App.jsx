@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, BellRing, X, Phone, MessageCircle, Edit3 } from "lucide-react";
+import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
@@ -315,16 +315,17 @@ export default function App() {
             maxHeight: "85vh", display: "flex", flexDirection: "column",
             boxShadow: "0 10px 25px rgba(0,0,0,0.25)", overflow: "hidden"
           }}>
-            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FEF3C7" }}>
+            {/* Cabecera actualizada en color vinotinto */}
+            <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#4c0519" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <BellRing size={18} color="#D97706" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#92400E" }}>
+                <BellRing size={18} color="#f43f5e" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#ffffff" }}>
                   Visitas para mañana ({citasManana.length})
                 </h3>
               </div>
               <button 
                 onClick={() => setShowMananaModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#92400E", display: "flex" }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#ffffff", display: "flex", opacity: 0.8 }}
               >
                 <X size={20} />
               </button>
@@ -345,9 +346,9 @@ export default function App() {
                     <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
                   </div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
-                    <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
-                    <IconBtn icon={MessageCircle} label="WhatsApp" href={r.whatsapp ? `https://wa.me/57${r.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!r.whatsapp} />
-                    <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
+                    <IconBtn icon={PhoneCall} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
+                    <IconBtn icon={MessageSquareText} label="WhatsApp" href={r.whatsapp ? `https://wa.me/57${r.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!r.whatsapp} />
+                    <IconBtn icon={PencilLine} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
                   </div>
                 </div>
               ))}
