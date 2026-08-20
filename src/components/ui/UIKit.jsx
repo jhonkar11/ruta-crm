@@ -104,7 +104,11 @@ export function Select({ value, onChange, options, error }) {
   );
 }
 
-export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onCancel, children }) {
+export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onCancel, children, isOpen, message }) {
+  if (isOpen === false) return null;
+  const finalTitle = title || "";
+  const finalBody = body || message || "";
+
   return (
     <div style={{
       position: "fixed", inset: 0, background: "rgba(18,32,61,0.55)", zIndex: 60,
@@ -115,19 +119,23 @@ export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onC
         maxWidth: 420, boxShadow: "0 -8px 30px rgba(0,0,0,0.2)", maxHeight: "85vh", overflowY: "auto",
       }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: C.ink, marginBottom: 8 }}>
-          {title}
+          {finalTitle}
         </div>
-        {body && <div style={{ fontSize: 14, color: C.ink70, marginBottom: 20, lineHeight: 1.5 }}>{body}</div>}
+        {finalBody && <div style={{ fontSize: 14, color: C.ink70, marginBottom: 20, lineHeight: 1.5 }}>{finalBody}</div>}
         {children}
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-          <button onClick={onCancel} style={{
-            flex: 1, padding: "12px", borderRadius: 12, border: `1.5px solid ${C.line}`,
-            background: "#fff", color: C.ink, fontWeight: 600, cursor: "pointer",
-          }}>Cancelar</button>
-          <button onClick={onConfirm} style={{
-            flex: 1, padding: "12px", borderRadius: 12, border: "none",
-            background: danger ? C.coral : C.ink, color: "#fff", fontWeight: 600, cursor: "pointer",
-          }}>{confirmLabel}</button>
+          {onCancel && (
+            <button onClick={onCancel} style={{
+              flex: 1, padding: "12px", borderRadius: 12, border: `1.5px solid ${C.line}`,
+              background: "#fff", color: C.ink, fontWeight: 600, cursor: "pointer",
+            }}>Cancelar</button>
+          )}
+          {onConfirm && (
+            <button onClick={onConfirm} style={{
+              flex: 1, padding: "12px", borderRadius: 12, border: "none",
+              background: danger ? C.coral : C.ink, color: "#fff", fontWeight: 600, cursor: "pointer",
+            }}>{confirmLabel || "Aceptar"}</button>
+          )}
         </div>
       </div>
     </div>
@@ -180,6 +188,28 @@ export function NavTab({ icon: Icon, label, active, onClick, badge }) {
         )}
       </span>
       <span style={{ fontSize: 9.5, fontWeight: 600, fontFamily: "'IBM Plex Mono', monospace" }}>{label}</span>
+    </button>
+  );
+}
+
+export function FiltroChip({ active, onClick, label }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "8px 14px",
+        borderRadius: "20px",
+        fontSize: "12.5px",
+        fontWeight: "600",
+        background: active ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.05)",
+        border: active ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.1)",
+        color: active ? "#ffffff" : "rgba(255, 255, 255, 0.7)",
+        cursor: "pointer",
+        backdropFilter: "blur(8px)",
+        transition: "all 0.2s ease"
+      }}
+    >
+      {label}
     </button>
   );
 }
