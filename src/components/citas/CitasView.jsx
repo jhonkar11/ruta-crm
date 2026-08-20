@@ -45,14 +45,16 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     }
 
     try {
-      // Enviamos ambos formatos (camelCase y snake_case) para garantizar compatibilidad con el componente padre
-      await onCrear({
+      const payload = {
         clienteId: String(clienteId),
         cliente_id: String(clienteId),
         fechaHora: `${fecha}T${hora}:00`,
         fecha_hora: `${fecha}T${hora}:00`,
         notas: notas || ""
-      });
+      };
+      console.log("Enviando cita:", payload);
+
+      await onCrear(payload);
 
       setModalAgendar(false);
       setClienteId("");
@@ -60,8 +62,8 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       setHora("09:00");
       setNotas("");
     } catch (error) {
-      console.error("Error al crear la cita:", error);
-      alert("Hubo un error al guardar la cita.");
+      console.error("Detalle completo del error:", error);
+      alert(`Error al guardar: ${error.message || error.error_description || JSON.stringify(error)}`);
     }
   };
 
