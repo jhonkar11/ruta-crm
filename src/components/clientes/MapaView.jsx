@@ -10,67 +10,74 @@ export default function MapaView({ records = [], onEdit }) {
   // Filtrar registros activos (excluyendo archivados)
   const activos = records.filter((r) => r && r.estado !== "Archivado");
 
-  // Contadores rápidos para los 6 bloques evaluando tanto categoría como estado directo
+  // Contadores estrictos y limpios para cada tarjeta
   const total = activos.length;
   
-  const interesados = activos.filter(r => r.categoria_cliente === "Interesado" || r.estado === "Interesado").length;
-  
-  const enTramite = activos.filter(r => 
-    r.categoria_cliente === "En trámite / Pendiente" || 
-    r.estado === "En trámite" || 
-    r.estado === "Pendiente" ||
-    r.estado === "En trámite / Pendiente"
+  const interesados = activos.filter(r => 
+    (r.categoria_cliente || "").trim().toLowerCase() === "interesado" || 
+    (r.estado || "").trim().toLowerCase() === "interesado"
   ).length;
   
-  const contactados = activos.filter(r => r.categoria_cliente === "Contactado" || r.estado === "Contactado").length;
+  const enTramite = activos.filter(r => {
+    const cat = (r.categoria_cliente || "").trim();
+    const est = (r.estado || "").trim();
+    return cat === "En trámite / Pendiente" || 
+           est === "En trámite" || 
+           est === "Pendiente" ||
+           est === "En trámite / Pendiente";
+  }).length;
   
-  const noLocalizados = activos.filter(r => r.categoria_cliente === "No localizado" || r.estado === "No localizado").length;
-  
-  const reprogramados = activos.filter(r => 
-    r.categoria_cliente === "Reprogramada" || 
-    r.estado === "Reprogramada" ||
-    r.estado === "Reprogramado"
+  const contactados = activos.filter(r => 
+    (r.categoria_cliente || "").trim().toLowerCase() === "contactado" || 
+    (r.estado || "").trim().toLowerCase() === "contactado"
   ).length;
+  
+  const noLocalizados = activos.filter(r => 
+    (r.categoria_cliente || "").trim().toLowerCase() === "no localizado" || 
+    (r.estado || "").trim().toLowerCase() === "no localizado"
+  ).length;
+  
+  const reprogramados = activos.filter(r => {
+    const cat = (r.categoria_cliente || "").trim().toLowerCase();
+    const est = (r.estado || "").trim().toLowerCase();
+    return cat === "reprogramada" || cat === "reprogramado" || 
+           est === "reprogramada" || est === "reprogramado";
+  }).length;
   
   const creditosOk = activos.filter(r => {
-    const cat = r.categoria_cliente || "";
-    const est = r.estado || "";
-    return ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida", "Crédito cumplido"].includes(cat) ||
-           ["Aprobado", "Crédito OK", "Desembolsado", "Cumplida", "Crédito cumplido"].includes(est);
+    const cat = (r.categoria_cliente || "").trim().toLowerCase();
+    const est = (r.estado || "").trim().toLowerCase();
+    const validosOk = ["aprobado", "crédito ok", "credito ok", "desembolsado", "cumplida", "crédito cumplido", "credito cumplido"];
+    return validosOk.includes(cat) || validosOk.includes(est);
   }).length;
 
-  // Filtrar lista de clientes al hacer clic en las tarjetas de resumen
+  // Filtrado estricto al hacer clic en cada tarjeta de resumen
   const filtrados = categoriaFiltro === "TODOS" 
     ? activos 
     : activos.filter(r => {
-        const cat = r.categoria_cliente || "";
-        const est = r.estado || "";
-        const combinados = `${cat} ${est}`.toLowerCase();
+        const cat = (r.categoria_cliente || "").trim().toLowerCase();
+        const est = (r.estado || "").trim().toLowerCase();
 
         if (categoriaFiltro === "Interesado") {
-          return combinados.includes("interesado");
+          return cat === "interesado" || est === "interesado";
         }
         if (categoriaFiltro === "En trámite / Pendiente") {
-          return combinados.includes("trámite") || combinados.includes("pendiente");
+          return cat === "en trámite / pendiente" || est === "en trámite" || est === "pendiente" || est === "en trámite / pendiente";
         }
         if (categoriaFiltro === "Contactado") {
-          return combinados.includes("contactado");
+          return cat === "contactado" || est === "contactado";
         }
         if (categoriaFiltro === "No localizado") {
-          return combinados.includes("no localizado");
+          return cat === "no localizado" || est === "no localizado";
         }
         if (categoriaFiltro === "Reprogramada") {
-          return combinados.includes("reprogramada") || combinados.includes("reprogramado");
+          return cat === "reprogramada" || cat === "reprogramado" || est === "reprogramada" || est === "reprogramado";
         }
         if (categoriaFiltro === "Créditos OK") {
-          return combinados.includes("aprobado") || 
-                 combinados.includes("crédito ok") || 
-                 combinados.includes("credito ok") || 
-                 combinados.includes("desembolsado") || 
-                 combinados.includes("cumplida") ||
-                 combinados.includes("crédito cumplido");
+          const validosOk = ["aprobado", "crédito ok", "credito ok", "desembolsado", "cumplida", "crédito cumplido", "credito cumplido"];
+          return validosOk.includes(cat) || validosOk.includes(est);
         }
-        return cat === categoriaFiltro || est === categoriaFiltro;
+        return false;
       });
 
   return (
