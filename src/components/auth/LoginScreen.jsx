@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Zap } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
-import bgLogin from "../../assets/bg-login.webp"; // Asegúrate de ajustar la ruta si guardaste la imagen en otra carpeta
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -30,8 +29,8 @@ export default function LoginScreen() {
   return (
     <div style={{
       minHeight: "100vh",
-      // Usamos tu imagen real de fondo con efecto bokeh profesional
-      backgroundImage: `url(${bgLogin})`,
+      // Fondo con la imagen bokeh cargada mediante URL directa para evitar errores de compilación en Vercel
+      backgroundImage: `url("https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop")`,
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
@@ -43,11 +42,11 @@ export default function LoginScreen() {
       padding: 20,
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Capa sutil de oscurecimiento opcional para que la tarjeta resalte más sobre el fondo */}
+      {/* Capa de oscurecimiento elegante para que la tarjeta resalte con estilo glassmorphism */}
       <div style={{
         position: "absolute",
         inset: 0,
-        background: "rgba(11, 17, 32, 0.35)",
+        background: "rgba(11, 17, 32, 0.65)",
         zIndex: 0
       }} />
 
@@ -57,10 +56,10 @@ export default function LoginScreen() {
         maxWidth: 440,
         position: "relative",
         zIndex: 1,
-        background: "rgba(255, 255, 255, 0.08)", // Mayor transparencia para ver el fondo bokeh
+        background: "rgba(255, 255, 255, 0.07)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255, 255, 255, 0.18)",
+        border: "1px solid rgba(255, 255, 255, 0.15)",
         borderRadius: 24,
         padding: 32,
         boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)"
@@ -127,7 +126,7 @@ export default function LoginScreen() {
                   width: "100%",
                   padding: "14px 14px 14px 44px",
                   borderRadius: 12,
-                  background: "rgba(248, 250, 252, 0.9)", // Ligeramente translúcido también para integrarse mejor
+                  background: "rgba(248, 250, 252, 0.9)",
                   border: "1px solid rgba(255, 255, 255, 0.3)",
                   color: "#0F172A",
                   outline: "none",
