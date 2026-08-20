@@ -35,9 +35,8 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       tipo_negocio: "Comercio",
       estado: "Pendiente",
       fecha_seguimiento: "",
-      observaciones: "",
-      notas: "",
-      foto_url: "" // Mapeado correctamente a la columna de Supabase
+      observaciones: "", // Único campo válido para notas en la base de datos
+      foto_url: ""
     }
   );
 
@@ -45,13 +44,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
   const fileInputRef = useRef(null);
 
   const handleChange = (field, val) => {
-    setForm((prev) => {
-      const updated = { ...prev, [field]: val };
-      // Sincronizamos notas y observaciones para asegurar la persistencia en cualquier vista
-      if (field === "observaciones") updated.notas = val;
-      if (field === "notas") updated.observaciones = val;
-      return updated;
-    });
+    setForm((prev) => ({ ...prev, [field]: val }));
   };
 
   const handleFileChange = (e) => {
@@ -59,7 +52,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Se guarda en foto_url para que coincida exactamente con Supabase
         handleChange("foto_url", reader.result);
       };
       reader.readAsDataURL(file);
@@ -221,11 +213,11 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Observaciones y Notas */}
+        {/* Observaciones (Mapeado directo a la BD) */}
         <div>
           <label style={labelStyle}>Observaciones / Notas de la visita</label>
           <textarea
-            value={form.observaciones || form.notas || ""}
+            value={form.observaciones || ""}
             onChange={(e) => handleChange("observaciones", e.target.value)}
             placeholder="Escribe notas relevantes de la visita..."
             rows={3}
