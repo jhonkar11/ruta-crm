@@ -140,7 +140,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0b0f19", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
+      <div style={{ minHeight: "100vh", background: "#080E1E", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
         Cargando sesión…
       </div>
     );
@@ -149,7 +149,7 @@ export default function App() {
 
   if (recordsLoading || records === null) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0b0f19", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
+      <div style={{ minHeight: "100vh", background: "#080E1E", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
         Cargando registros…
       </div>
     );
@@ -158,22 +158,50 @@ export default function App() {
   return (
     <div style={{ 
       minHeight: "100vh", 
-      background: "linear-gradient(135deg, #090d16 0%, #111827 50%, #1e293b 100%)", 
+      background: "#080E1E", 
       fontFamily: "'Inter', sans-serif",
       color: "#f8fafc",
       position: "relative",
-      paddingBottom: "100px" // Espacio extra para que el contenido no quede oculto detrás del menú flotante
+      overflowX: "hidden",
+      paddingBottom: "100px"
     }}>
+      {/* Blob azul superior izquierdo */}
+      <div style={{
+        position: "fixed",
+        top: "-10%",
+        left: "-15%",
+        width: "900px",
+        height: "900px",
+        background: "radial-gradient(circle at center, rgba(37, 99, 235, 0.35) 0%, rgba(59, 130, 246, 0.15) 30%, transparent 70%)",
+        filter: "blur(80px)",
+        pointerEvents: "none",
+        zIndex: 0
+      }} />
+
+      {/* Blob naranja inferior derecho */}
+      <div style={{
+        position: "fixed",
+        bottom: "-15%",
+        right: "-10%",
+        width: "800px",
+        height: "800px",
+        background: "radial-gradient(circle at center, rgba(225, 78, 42, 0.28) 0%, rgba(251, 113, 133, 0.12) 35%, transparent 70%)",
+        filter: "blur(90px)",
+        pointerEvents: "none",
+        zIndex: 0
+      }} />
+
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        background: "rgba(15, 23, 42, 0.65)", 
+        background: "rgba(15, 23, 42, 0.75)", 
         backdropFilter: "blur(25px)",
         WebkitBackdropFilter: "blur(25px)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
-        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.1)",
         position: "relative", 
+        zIndex: 1,
         boxShadow: "0 0 60px rgba(0,0,0,0.6)" 
       }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
@@ -290,14 +318,14 @@ export default function App() {
         </div>
       </div>
 
-      {/* MENÚ INFERIOR FIJO FLOTANTE (Sticky Glassmorphism Absoluto a la Pantalla) */}
+      {/* MENÚ INFERIOR FIJO FLOTANTE */}
       {view !== "form" && (
         <div style={{
           position: "fixed",
           bottom: 20,
           left: 0,
           right: 0,
-          zIndex: 9999, // Garantiza que flote siempre sobre cualquier lista larga o contenido
+          zIndex: 9999,
           display: "flex",
           justifyContent: "center",
           pointerEvents: "none"
