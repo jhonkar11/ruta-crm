@@ -268,7 +268,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
             <form onSubmit={handleCrearSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                {/* Cambiado a div con rol de etiqueta para saltarnos el selector global de etiquetas */}
                 <div style={labelStyleAzulOscuro}>CLIENTE *</div>
                 <select
                   value={clienteId}
@@ -294,12 +293,24 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 </div>
                 <div>
                   <div style={labelStyleAzulOscuro}>HORA *</div>
-                  <input
-                    type="time"
+                  {/* Selector de hora modernizado en lista desplegable limpia */}
+                  <select
                     value={hora}
                     onChange={(e) => setHora(e.target.value)}
-                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
-                  />
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1", background: "#fff" }}
+                  >
+                    <option value="08:00">08:00 a.m.</option>
+                    <option value="09:00">09:00 a.m.</option>
+                    <option value="10:00">10:00 a.m.</option>
+                    <option value="11:00">11:00 a.m.</option>
+                    <option value="12:00">12:00 p.m.</option>
+                    <option value="13:00">01:00 p.m.</option>
+                    <option value="14:00">02:00 p.m.</option>
+                    <option value="15:00">03:00 p.m.</option>
+                    <option value="16:00">04:00 p.m.</option>
+                    <option value="17:00">05:00 p.m.</option>
+                    <option value="18:00">06:00 p.m.</option>
+                  </select>
                 </div>
               </div>
 
