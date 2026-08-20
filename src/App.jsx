@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Search, BellRing, X, Phone, MessageCircle, Edit3 } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
@@ -18,16 +18,7 @@ export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
   const { records, loading: recordsLoading, error, saveCliente, archivar, eliminar } = useClientes();
 
-  // Reemplaza la línea: const [view, setView] = useState("mapa");
-  // Por este bloque:
   const [view, setView] = useState(() => localStorage.getItem("crm_view") || "mapa");
-  
-  // Agrega este useEffect para guardar el cambio cada vez que la vista cambie:
-  import { useEffect } from "react"; // Asegúrate de tener useEffect en tu import inicial
-  // ...
-  useEffect(() => {
-    localStorage.setItem("crm_view", view);
-  }, [view]);
   const [editing, setEditing] = useState(undefined);
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState(null);
@@ -35,6 +26,10 @@ export default function App() {
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
   
   const [showMananaModal, setShowMananaModal] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("crm_view", view);
+  }, [view]);
 
   const profile = useMemo(() => {
     if (!rawProfile) return null;
@@ -244,7 +239,7 @@ export default function App() {
               <div style={{ flex: 1 }}>
                 <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s)) - Toca para ver</strong>
                 <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
-                   Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
+                    Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
                 </div>
               </div>
             </div>
