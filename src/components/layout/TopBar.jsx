@@ -26,7 +26,21 @@ export default function TopBar({ profile, userId, onLogout }) {
   };
 
   return (
-    <div style={{ background: C.ink, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", boxSizing: "border-box" }}>
+    <div style={{ 
+      background: "rgba(11, 17, 32, 0.7)", 
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+      padding: "16px 20px", 
+      display: "flex", 
+      justifyContent: "space-between", 
+      alignItems: "center", 
+      width: "100%", 
+      boxSizing: "border-box",
+      position: "sticky",
+      top: 0,
+      zIndex: 100
+    }}>
       <div style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff" }}>
           RUTA<span style={{ color: C.coral }}>·</span>CRM
@@ -52,13 +66,15 @@ export default function TopBar({ profile, userId, onLogout }) {
             border: "1px solid rgba(255, 255, 255, 0.2)",
             color: "#fff",
             padding: "6px 12px",
-            borderRadius: "6px",
+            borderRadius: "8px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: "6px",
             fontSize: "12px",
             fontFamily: "'IBM Plex Mono', monospace",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
             transition: "background 0.2s"
           }}
           onMouseOver={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)"}
