@@ -66,8 +66,14 @@ export function Field({ label, required, error, children }) {
 }
 
 export function IconBtn({ icon: Icon, onClick, label, tone = "ink", href, disabled }) {
-  const bg = tone === "coral" ? C.coral : tone === "line" ? "transparent" : "rgba(255, 255, 255, 0.1)";
-  const fg = tone === "coral" ? "#fff" : disabled ? "rgba(255, 255, 255, 0.3)" : "#ffffff";
+  // Ajuste para garantizar contraste perfecto tanto en fondos oscuros como en tarjetas blancas
+  let bg = tone === "coral" ? C.coral : tone === "line" ? "transparent" : "rgba(15, 23, 42, 0.06)";
+  let fg = tone === "coral" ? "#fff" : tone === "line" ? "#0F172A" : "#0F172A";
+  
+  if (disabled) {
+    fg = "rgba(15, 23, 42, 0.3)";
+  }
+
   const Comp = href ? "a" : "button";
   return (
     <Comp
@@ -79,10 +85,13 @@ export function IconBtn({ icon: Icon, onClick, label, tone = "ink", href, disabl
       title={label}
       disabled={disabled}
       style={{
-        background: bg, color: fg, border: tone === "line" ? "1px solid rgba(255, 255, 255, 0.2)" : "none",
+        background: bg, 
+        color: fg, 
+        border: tone === "line" ? "1px solid rgba(15, 23, 42, 0.2)" : "none",
         width: 36, height: 36, minWidth: 36, borderRadius: 10, ...iconRow(0),
         justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1, flexShrink: 0,
+        transition: "background 0.2s"
       }}
     >
       <Icon size={16} />
@@ -175,7 +184,6 @@ export function NavTab({ icon: Icon, label, active, onClick, badge }) {
     <button onClick={onClick} style={{
       flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex",
       flexDirection: "column", alignItems: "center", gap: 3, 
-      // Activo toma el color coral (C.coral) y inactivo toma blanco puro bien visible (#ffffff)
       color: active ? C.coral : "#ffffff", 
       padding: "2px 0",
       position: "relative",
