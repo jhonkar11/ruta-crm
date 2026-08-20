@@ -1,13 +1,14 @@
 import { useState, useRef } from "react";
 import { ViewHeader, TextInput, Stamp } from "../ui/UIKit";
 import { C, inputStyle } from "../../styles/tokens";
-import { Camera, Upload, CheckCircle2 } from "lucide-react";
+import { Camera, Upload, CheckCircle2, X } from "lucide-react";
 
-const inputDarkStyle = {
+// Estilo con fondo blanco puro y texto negro oscuro de alta visibilidad
+const inputLightStyle = {
   ...inputStyle,
-  background: "#0f172a",
-  border: "1px solid rgba(255, 255, 255, 0.15)",
-  color: "#ffffff"
+  background: "#FFFFFF",
+  border: "1.5px solid #CBD5E1",
+  color: "#0F172A"
 };
 
 const labelStyle = {
@@ -35,10 +36,11 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       estado: "Pendiente",
       fecha_seguimiento: "",
       observaciones: "",
-      foto: ""
+      foto_url: "" // Mapeado correctamente a la columna de Supabase
     }
   );
 
+  const [modalFoto, setModalFoto] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleChange = (field, val) => {
@@ -50,7 +52,8 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        handleChange("foto", reader.result);
+        // Se guarda en foto_url para que coincida exactamente con Supabase
+        handleChange("foto_url", reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -64,6 +67,8 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     }
     onSave(form, !initial);
   };
+
+  const fotoActual = form.foto_url || form.foto;
 
   return (
     <div>
@@ -86,7 +91,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               value={form.id}
               onChange={(e) => handleChange("id", e.target.value)}
               placeholder="Número de cédula o NIT"
-              style={inputDarkStyle}
+              style={inputLightStyle}
             />
           </div>
           <div>
@@ -95,7 +100,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               value={form.telefono || ""}
               onChange={(e) => handleChange("telefono", e.target.value)}
               placeholder="Teléfono de contacto"
-              style={inputDarkStyle}
+              style={inputLightStyle}
             />
           </div>
         </div>
@@ -108,7 +113,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               value={form.nombres || ""}
               onChange={(e) => handleChange("nombres", e.target.value)}
               placeholder="Nombres"
-              style={inputDarkStyle}
+              style={inputLightStyle}
             />
           </div>
           <div>
@@ -117,7 +122,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               value={form.apellidos || ""}
               onChange={(e) => handleChange("apellidos", e.target.value)}
               placeholder="Apellidos"
-              style={inputDarkStyle}
+              style={inputLightStyle}
             />
           </div>
         </div>
@@ -130,7 +135,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               value={form.whatsapp || ""}
               onChange={(e) => handleChange("whatsapp", e.target.value)}
               placeholder="Número de WhatsApp"
-              style={inputDarkStyle}
+              style={inputLightStyle}
             />
           </div>
           <div>
@@ -140,7 +145,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               value={form.correo || ""}
               onChange={(e) => handleChange("correo", e.target.value)}
               placeholder="correo@ejemplo.com"
-              style={inputDarkStyle}
+              style={inputLightStyle}
             />
           </div>
         </div>
@@ -152,7 +157,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             value={form.direccion || ""}
             onChange={(e) => handleChange("direccion", e.target.value)}
             placeholder="Dirección del local o casa"
-            style={inputDarkStyle}
+            style={inputLightStyle}
           />
         </div>
 
@@ -163,10 +168,10 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             <select
               value={form.categoria_cliente || "Interesado"}
               onChange={(e) => handleChange("categoria_cliente", e.target.value)}
-              style={{ ...inputDarkStyle, width: "100%", cursor: "pointer", height: "42px", borderRadius: "8px", padding: "0 12px" }}
+              style={{ ...inputLightStyle, width: "100%", cursor: "pointer", height: "46px", borderRadius: "12px", padding: "0 12px" }}
             >
               {["Nuevo", "Interesado", "Preoferta", "En trámite", "No localizado", "Cancelado"].map(opt => (
-                <option key={opt} value={opt} style={{ background: "#0f172a", color: "#fff" }}>{opt}</option>
+                <option key={opt} value={opt} style={{ background: "#FFFFFF", color: "#0F172A" }}>{opt}</option>
               ))}
             </select>
           </div>
@@ -175,10 +180,10 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             <select
               value={form.tipo_negocio || "Comercio"}
               onChange={(e) => handleChange("tipo_negocio", e.target.value)}
-              style={{ ...inputDarkStyle, width: "100%", cursor: "pointer", height: "42px", borderRadius: "8px", padding: "0 12px" }}
+              style={{ ...inputLightStyle, width: "100%", cursor: "pointer", height: "46px", borderRadius: "12px", padding: "0 12px" }}
             >
               {["Comercio", "Servicios", "Independiente", "Empresa", "Otro"].map(opt => (
-                <option key={opt} value={opt} style={{ background: "#0f172a", color: "#fff" }}>{opt}</option>
+                <option key={opt} value={opt} style={{ background: "#FFFFFF", color: "#0F172A" }}>{opt}</option>
               ))}
             </select>
           </div>
@@ -191,10 +196,10 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             <select
               value={form.estado || "Pendiente"}
               onChange={(e) => handleChange("estado", e.target.value)}
-              style={{ ...inputDarkStyle, width: "100%", cursor: "pointer", height: "42px", borderRadius: "8px", padding: "0 12px" }}
+              style={{ ...inputLightStyle, width: "100%", cursor: "pointer", height: "46px", borderRadius: "12px", padding: "0 12px" }}
             >
               {["Pendiente", "Programada", "Visitado", "Cumplida", "Cancelado", "Reprogramada"].map(opt => (
-                <option key={opt} value={opt} style={{ background: "#0f172a", color: "#fff" }}>{opt}</option>
+                <option key={opt} value={opt} style={{ background: "#FFFFFF", color: "#0F172A" }}>{opt}</option>
               ))}
             </select>
           </div>
@@ -204,7 +209,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               type="date"
               value={form.fecha_seguimiento || ""}
               onChange={(e) => handleChange("fecha_seguimiento", e.target.value)}
-              style={{ ...inputDarkStyle, width: "100%", colorScheme: "dark", cursor: "pointer" }}
+              style={{ ...inputLightStyle, width: "100%", cursor: "pointer" }}
             />
           </div>
         </div>
@@ -217,11 +222,11 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             onChange={(e) => handleChange("observaciones", e.target.value)}
             placeholder="Escribe notas relevantes de la visita..."
             rows={3}
-            style={{ ...inputDarkStyle, width: "100%", padding: "10px", borderRadius: "8px", resize: "vertical" }}
+            style={{ ...inputLightStyle, width: "100%", padding: "12px", borderRadius: "12px", resize: "vertical" }}
           />
         </div>
 
-        {/* FOTO DE LA VISITA (Cámara / Galería nativa) */}
+        {/* FOTO DE LA VISITA */}
         <div>
           <label style={labelStyle}>Foto de la Visita</label>
           <input
@@ -251,18 +256,54 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             >
               <Camera size={18} /> Tomar foto / Elegir de galería
             </button>
-            {form.foto && (
+            {fotoActual && (
               <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#34d399", fontSize: "13px", fontWeight: 600 }}>
                 <CheckCircle2 size={16} /> Foto cargada correctamente
               </div>
             )}
           </div>
-          {form.foto && (
+          {fotoActual && (
             <div style={{ marginTop: 10 }}>
-              <img src={form.foto} alt="Vista previa" style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)" }} />
+              <img
+                src={fotoActual}
+                alt="Vista previa"
+                onClick={() => setModalFoto(true)}
+                title="Haz clic para ampliar"
+                style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 8, border: "2px solid rgba(255,255,255,0.3)", cursor: "pointer" }}
+              />
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 4 }}>Toca la imagen para ampliarla</div>
             </div>
           )}
         </div>
+
+        {/* Modal para ampliar la foto */}
+        {modalFoto && fotoActual && (
+          <div
+            onClick={() => setModalFoto(false)}
+            style={{
+              position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 100,
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 20
+            }}
+          >
+            <div style={{ position: "relative", maxWidth: "90%", maxHeight: "90%" }} onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setModalFoto(false)}
+                style={{
+                  position: "absolute", top: -12, right: -12, background: "#ef4444", color: "#fff",
+                  border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex",
+                  alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 101, boxShadow: "0 2px 8px rgba(0,0,0,0.4)"
+                }}
+              >
+                <X size={18} />
+              </button>
+              <img
+                src={fotoActual}
+                alt="Foto ampliada"
+                style={{ maxWidth: "100%", maxHeight: "85vh", borderRadius: 12, border: "2px solid rgba(255,255,255,0.2)" }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Botones de acción */}
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
