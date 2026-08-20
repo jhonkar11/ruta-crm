@@ -293,24 +293,13 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 </div>
                 <div>
                   <div style={labelStyleAzulOscuro}>HORA *</div>
-                  {/* Selector de hora modernizado en lista desplegable limpia */}
-                  <select
+                  {/* Input de tipo time con estilo controlado para permitir cualquier minuto exacto */}
+                  <input
+                    type="time"
                     value={hora}
                     onChange={(e) => setHora(e.target.value)}
                     style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1", background: "#fff" }}
-                  >
-                    <option value="08:00">08:00 a.m.</option>
-                    <option value="09:00">09:00 a.m.</option>
-                    <option value="10:00">10:00 a.m.</option>
-                    <option value="11:00">11:00 a.m.</option>
-                    <option value="12:00">12:00 p.m.</option>
-                    <option value="13:00">01:00 p.m.</option>
-                    <option value="14:00">02:00 p.m.</option>
-                    <option value="15:00">03:00 p.m.</option>
-                    <option value="16:00">04:00 p.m.</option>
-                    <option value="17:00">05:00 p.m.</option>
-                    <option value="18:00">06:00 p.m.</option>
-                  </select>
+                  />
                 </div>
               </div>
 
