@@ -113,9 +113,20 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       return;
     }
     
-    // Enviamos la nueva fecha, hora, nota y dirección a la función onPosponer (o manejador correspondiente)
     const fechaHoraCompleta = `${nuevaFechaReprogramar}T${nuevaHoraReprogramar}:00`;
-    await onPosponer(modalReprogramar, fechaHoraCompleta, nuevaNotaReprogramar, nuevaDireccionReprogramar);
+    
+    // Unificamos las notas y la nueva dirección en un solo bloque para el campo de observaciones/notas
+    const observacionesActualizadas = [
+      nuevaNotaReprogramar ? `Nota: ${nuevaNotaReprogramar}` : "",
+      nuevaDireccionReprogramar ? `Dirección de visita: ${nuevaDireccionReprogramar}` : ""
+    ].filter(Boolean).join(" | ");
+
+    await onPosponer(
+      modalReprogramar, 
+      fechaHoraCompleta, 
+      observacionesActualizadas || modalReprogramar.notas, 
+      nuevaDireccionReprogramar
+    );
     
     setModalReprogramar(null);
     setNuevaFechaReprogramar("");
@@ -413,7 +424,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL REPROGRAMAR (MEJORADO CON FECHA, HORA, NOTA Y DIRECCIÓN) */}
+      {/* MODAL REPROGRAMAR */}
       {modalReprogramar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
