@@ -51,6 +51,7 @@ export default function App() {
         estado: r.estado || "Programada",
         notas: r.observaciones || "Seguimiento programado",
         cliente: r,
+        // Propiedades de respaldo directo para evitar fallos de renderizado
         nombres: r.nombres,
         apellidos: r.apellidos,
         direccion: r.direccion
@@ -160,49 +161,14 @@ export default function App() {
   }
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      width: "100%",
-      background: "#080E1E",
-      position: "relative",
-      overflowX: "hidden",
-      fontFamily: "'Inter', sans-serif"
-    }}>
-      {/* Blob azul - izquierda */}
-      <div style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "600px",
-        height: "600px",
-        background: "radial-gradient(circle at 30% 30%, rgba(59,130,246,0.25) 0%, transparent 60%)",
-        filter: "blur(60px)",
-        pointerEvents: "none",
-        zIndex: 0
-      }} />
-      
-      {/* Blob naranja - derecha */}
-      <div style={{
-        position: "fixed",
-        bottom: 0,
-        right: 0,
-        width: "700px",
-        height: "700px",
-        background: "radial-gradient(circle at 70% 70%, rgba(225,78,42,0.20) 0%, transparent 60%)",
-        filter: "blur(80px)",
-        pointerEvents: "none",
-        zIndex: 0
-      }} />
-
-      {/* Contenedor principal de la app sobre los blobs */}
+    <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "'Inter', sans-serif" }}>
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        background: "transparent", 
+        background: C.paper, 
         position: "relative", 
-        zIndex: 1,
-        boxShadow: "0 0 40px rgba(0,0,0,0.2)" 
+        boxShadow: "0 0 40px rgba(0,0,0,0.08)" 
       }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
@@ -217,7 +183,7 @@ export default function App() {
             <div 
               onClick={() => setShowMananaModal(true)}
               style={{ 
-                background: "rgba(254, 243, 199, 0.95)", 
+                background: "#FEF3C7", 
                 border: "1.5px solid #F59E0B", 
                 color: "#92400E", 
                 padding: "14px 18px", 
@@ -228,7 +194,6 @@ export default function App() {
                 gap: 12,
                 boxShadow: "0 4px 12px rgba(245, 158, 11, 0.15)",
                 cursor: "pointer",
-                backdropFilter: "blur(8px)",
                 transition: "transform 0.1s ease"
               }}
             >
@@ -280,8 +245,6 @@ export default function App() {
           {view === "todos" && (
             <>
               <ViewHeader title="Base de datos de créditos" subtitle={`${todos.length} registros en total`} />
-              
-              {/* Botones de filtros rápidos */}
               <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
                 <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="Todos" />
                 <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
@@ -316,14 +279,15 @@ export default function App() {
       {showMananaModal && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 1000, padding: 16
         }}>
           <div style={{
             background: "#fff", borderRadius: 16, width: "100%", maxWidth: 500,
             maxHeight: "85vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.25)", overflow: "hidden"
+            boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden"
           }}>
+            {/* Cabecera del Modal */}
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FEF3C7" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <BellRing size={18} color="#D97706" />
@@ -339,6 +303,7 @@ export default function App() {
               </button>
             </div>
 
+            {/* Lista de Clientes de Mañana */}
             <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "#f8fafc" }}>
               {citasManana.map((r) => (
                 <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
@@ -362,6 +327,7 @@ export default function App() {
               ))}
             </div>
 
+            {/* Pie del Modal */}
             <div style={{ padding: 12, borderTop: `1px solid ${C.line}`, background: "#fff", textAlign: "right" }}>
               <button 
                 onClick={() => setShowMananaModal(false)}
@@ -393,9 +359,9 @@ export default function App() {
 function FiltroChip({ active, onClick, label }) {
   return (
     <button onClick={onClick} style={{
-      border: `1.5px solid ${active ? C.coral : C.line}`, background: active ? "#FCEBE5" : "rgba(255,255,255,0.9)",
+      border: `1.5px solid ${active ? C.coral : C.line}`, background: active ? "#FCEBE5" : "#fff",
       color: active ? C.coralDark : C.ink70, borderRadius: 20, padding: "5px 12px", fontSize: 12,
-      fontWeight: 600, cursor: "pointer", backdropFilter: "blur(4px)"
+      fontWeight: 600, cursor: "pointer",
     }}>{label}</button>
   );
 }
