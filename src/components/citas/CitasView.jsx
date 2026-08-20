@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText, MapPin, Search } from "lucide-react";
+import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText, MapPin } from "lucide-react";
 import { C, inputStyle } from "../../styles/tokens";
 import { EmptyState } from "../ui/UIKit";
 
@@ -7,17 +7,30 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
   const [filtroTab, setFiltroTab] = useState(() => localStorage.getItem("citas_filtro_activo") || "TODAS");
   const [modalAgendar, setModalAgendar] = useState(false);
   const [modalReprogramar, setModalReprogramar] = useState(null);
-  const [busqueda, setBusqueda] = useState("");
 
+  // Guardar la pestaña activa en localStorage cada vez que cambie
   useEffect(() => {
     localStorage.setItem("citas_filtro_activo", filtroTab);
   }, [filtroTab]);
 
+  // Estilo robusto para los títulos de los campos
+  const labelStyleAzulOscuro = {
+    fontSize: "11.5px",
+    fontWeight: "700",
+    color: "#1e3a8a",
+    display: "block",
+    marginBottom: "6px",
+    letterSpacing: "0.5px",
+    textTransform: "uppercase"
+  };
+
+  // Estados del formulario para nueva cita
   const [clienteId, setClienteId] = useState("");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("09:00");
   const [notas, setNotas] = useState("");
 
+  // Estados para el formulario de reprogramación avanzada
   const [nuevaFechaReprogramar, setNuevaFechaReprogramar] = useState("");
   const [nuevaHoraReprogramar, setNuevaHoraReprogramar] = useState("09:00");
   const [nuevaNotaReprogramar, setNuevaNotaReprogramar] = useState("");
@@ -25,205 +38,473 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
   const citasFiltradas = useMemo(() => {
     return citas.filter(c => {
-      const matchTab = 
-        filtroTab === "TODAS" ? true :
-        filtroTab === "PROGRAMADAS" ? (c.estado === "Programada" || c.estado === "Pendiente") :
-        filtroTab === "CUMPLIDAS" ? (c.estado === "Cumplida" || c.estado === "Visitado") :
-        filtroTab === "REPROGRAMADAS" ? (c.estado === "Reprogramada") : true;
-
-      const textoBusqueda = busqueda.toLowerCase();
-      const matchBusqueda = 
-        !busqueda || 
-        (c.nombre_cliente && c.nombre_cliente.toLowerCase().includes(textoBusqueda)) ||
-        (c.observaciones && c.observaciones.toLowerCase().includes(textoBusqueda)) ||
-        (c.direccion && c.direccion.toLowerCase().includes(textoBusqueda));
-
-      return matchTab && matchBusqueda;
+      if (filtroTab === "PROGRAMADAS") return c.estado === "Programada" || c.estado === "Pendiente";
+      if (filtroTab === "CUMPLIDAS") return c.estado === "Cumplida" || c.estado === "Visitado";
+      if (filtroTab === "REPROGRAMADAS") return c.estado === "Reprogramada";
+      return true; // "TODAS"
     });
-  }, [citas, filtroTab, busqueda]);
+  }, [citas, filtroTab]);
 
   const handleCrearSubmit = async (e) => {
     e.preventDefault();
-    if (!clienteId || !fecha) return alert("Por favor selecciona un cliente y una fecha.");
-
-    const payload = {
-      cliente_id: parseInt(clienteId),
-      fecha_seguimiento: `${fecha}T${hora}:00`,
-      observaciones: notas || "",
-      estado: "Programada"
-    };
+    if (!clienteId || !fecha) {
+      alert("Por favor selecciona un cliente y una fecha.");
+      return;
+    }
 
     try {
+      const payload = {
+        clienteId: String(clienteId),
+        cliente_id: parseInt(clienteId),
+        fechaHora: `${fecha}T${hora}:00`,
+        fecha_seguimiento: `${fecha}T${hora}:00`,
+        observaciones: notas || "",
+        estado: "Programada"
+      };
+
       await onCrear(payload);
+
       setModalAgendar(false);
-      setClienteId(""); setFecha(""); setHora("09:00"); setNotas("");
-    } catch (err) {
-      alert("Error al agendar: " + err.message);
+      setClienteId("");
+      setFecha("");
+      setHora("09:00");
+      setNotas("");
+    } catch (error) {
+      alert(`Error al guardar: ${error.message || JSON.stringify(error)}`);
     }
   };
 
+  // Función para abrir el modal de reprogramar precargando los datos actuales
   const abrirModalReprogramar = (c) => {
     setModalReprogramar(c);
-    const fechaBase = c.fecha_seguimiento || c.fecha_hora || "";
+    
+    const fechaBase = c.fecha_seguimiento || c.fecha_hora;
     if (fechaBase) {
-      const [f, h] = fechaBase.split("T");
-      setNuevaFechaReprogramar(f);
-      setNuevaHoraReprogramar(h ? h.substring(0, 5) : "09:00");
+      const partes = fechaBase.split("T");
+      setNuevaFechaReprogramar(partes[0] || "");
+      if (partes[1]) {
+        setNuevaHoraReprogramar(partes[1].substring(0, 5));
+      } else {
+        setNuevaHoraReprogramar("09:00");
+      }
+    } else {
+      setNuevaFechaReprogramar("");
+      setNuevaHoraReprogramar("09:00");
     }
-    setNuevaNotaReprogramar(c.observaciones || "");
-    setNuevaDireccionReprogramar(c.direccion || "");
+    
+    setNuevaNotaReprogramar(c.observaciones || c.notas || "");
+
+    const idBuscado = c.clienteId || c.cliente_id || c.id;
+    const clienteEnLista = clientes.find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
+    const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
+    const clienteFinal = clienteObjEnCita || clienteEnLista || c;
+    setNuevaDireccionReprogramar(clienteFinal.direccion || c.direccion || "");
   };
 
   const handleReprogramarSubmit = async (e) => {
     e.preventDefault();
-    if (!modalReprogramar) return;
-
+    if (!nuevaFechaReprogramar || !modalReprogramar) {
+      alert("Selecciona una nueva fecha.");
+      return;
+    }
+    
+    const fechaHoraCompleta = `${nuevaFechaReprogramar}T${nuevaHoraReprogramar}:00`;
+    
     const payloadActualizado = {
-      fecha_seguimiento: `${nuevaFechaReprogramar}T${nuevaHoraReprogramar}:00`,
+      estado: 'Reprogramada',
+      fecha_seguimiento: fechaHoraCompleta,
       observaciones: nuevaNotaReprogramar,
-      direccion: nuevaDireccionReprogramar,
-      estado: 'Reprogramada'
+      direccion: nuevaDireccionReprogramar
     };
 
     await onPosponer(modalReprogramar, payloadActualizado);
+    
     setModalReprogramar(null);
   };
 
   return (
     <div style={{ paddingBottom: 40 }}>
-      {/* BARRA SUPERIOR DE ACCIONES Y FILTROS */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <div style={{ display: "flex", gap: 8, background: "#F1F5F9", padding: 4, borderRadius: 12 }}>
-          {["TODAS", "PROGRAMADAS", "REPROGRAMADAS", "CUMPLIDAS"].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setFiltroTab(tab)}
-              style={{
-                padding: "8px 14px",
-                borderRadius: 8,
-                border: "none",
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: "pointer",
-                background: filtroTab === tab ? "#fff" : "transparent",
-                color: filtroTab === tab ? C.coral : "#64748B",
-                boxShadow: filtroTab === tab ? "0 1px 3px rgba(0,0,0,0.1)" : "none"
-              }}
-            >
-              {tab}
-            </button>
-          ))}
+      {/* Encabezado */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <h2 style={{ 
+            fontFamily: "'Space Grotesk', sans-serif", 
+            fontSize: 22, 
+            fontWeight: 700, 
+            color: "#ffffff", 
+            margin: 0,
+            marginBottom: 4 
+          }}>
+            Citas y visitas
+          </h2>
+          <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", margin: 0 }}>
+            {citas.length} programadas en total
+          </p>
         </div>
-
         <button
           onClick={() => setModalAgendar(true)}
-          style={{ background: C.coral, color: "#fff", border: "none", padding: "10px 18px", borderRadius: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+          style={{
+            background: C.ink,
+            color: "#fff",
+            border: "none",
+            borderRadius: 10,
+            padding: "10px 18px",
+            fontSize: 13.5,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+          }}
         >
-          <Plus size={18} /> Nueva Cita
+          <Plus size={16} /> Agendar
         </button>
       </div>
 
-      {/* LISTADO DE CITAS */}
+      {/* Pestañas de filtrado */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
+        {[
+          { key: "TODAS", label: "Todas" },
+          { key: "PROGRAMADAS", label: "Programadas" },
+          { key: "CUMPLIDAS", label: "Cumplidas" },
+          { key: "REPROGRAMADAS", label: "Reprogramadas" }
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setFiltroTab(tab.key)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: 20,
+              fontSize: 12.5,
+              fontWeight: 600,
+              border: `1.5px solid ${filtroTab === tab.key ? C.coral : C.line}`,
+              background: filtroTab === tab ? "#FCEBE5" : "#fff",
+              color: filtroTab === tab ? C.coralDark : C.ink70,
+              cursor: "pointer",
+              transition: "all 0.2s"
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Listado en formato de tarjetas grandes completas (como la imagen 1) */}
       {citasFiltradas.length === 0 ? (
-        <EmptyState icon={Calendar} title="No hay citas registradas" description="No se encontraron elementos que coincidan con los filtros actuales." />
+        <EmptyState text="No hay citas registradas en esta vista." />
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-          {citasFiltradas.map((c, idx) => (
-            <div key={c.id || idx} style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", border: "1px solid #E2E8F0", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 12 }}>
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: C.coral, background: "#FFF1F2", padding: "4px 8px", borderRadius: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {citasFiltradas.map((c) => {
+            const idBuscado = c.clienteId || c.cliente_id || c.id;
+            const clienteEnLista = clientes.find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
+            const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
+            const clienteFinal = clienteObjEnCita || clienteEnLista || c;
+
+            const nombres = clienteFinal.nombres || clienteFinal.nombre || "";
+            const apellidos = clienteFinal.apellidos || "";
+            const nombreCompleto = `${nombres} ${apellidos}`.trim() || c.nombre_cliente || "Cliente sin nombre";
+            const cedula = clienteFinal.id || idBuscado || "N/A";
+            const direccion = clienteFinal.direccion || c.direccion || "Sin dirección registrada";
+            
+            const fechaMostrada = c.fecha_seguimiento || c.fecha_hora;
+            const notaMostrada = c.observaciones || c.notas;
+
+            return (
+              <div
+                key={c.id || Math.random()}
+                style={{
+                  background: "#FFFFFF",
+                  borderRadius: 12,
+                  padding: 20,
+                  border: `1px solid #E2E8F0`,
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+                  position: "relative"
+                }}
+              >
+                <div style={{ position: "absolute", top: 16, right: 20 }}>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    background: c.estado === "Cumplida" || c.estado === "Visitado" ? "#D1FAE5" : c.estado === "Reprogramada" ? "#DBEAFE" : "#FEF3C7",
+                    color: c.estado === "Cumplida" || c.estado === "Visitado" ? "#065F46" : c.estado === "Reprogramada" ? "#1E40AF" : "#92400E",
+                    textTransform: "uppercase"
+                  }}>
                     {c.estado || "Programada"}
                   </span>
-                  <span style={{ fontSize: 12, color: "#64748B", display: "flex", alignItems: "center", gap: 4 }}>
-                    <Clock size={14} /> {c.fecha_seguimiento ? c.fecha_seguimiento.replace("T", " ") : "Sin fecha"}
+                </div>
+
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#0F172A", paddingRight: 100 }}>
+                  {nombreCompleto}
+                </div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#64748B", marginTop: 4 }}>
+                  CC/NIT: {cedula}
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 14, fontSize: 13, color: "#475569" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>📍</span> {direccion}
                   </span>
                 </div>
-                <h4 style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 6 }}>
-                  {c.nombre_cliente || c.cliente?.nombre || "Cliente sin nombre"}
-                </h4>
-                {c.direccion && (
-                  <p style={{ fontSize: 13, color: "#475569", display: "flex", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                    <MapPin size={14} /> {c.direccion}
-                  </p>
-                )}
-                {c.observaciones && (
-                  <p style={{ fontSize: 13, color: "#64748B", background: "#F8FAFC", padding: 8, borderRadius: 8 }}>
-                    {c.observaciones}
-                  </p>
-                )}
-              </div>
 
-              {/* ACCIONES DE TARJETA */}
-              <div style={{ display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid #F1F5F9" }}>
-                <button onClick={() => abrirModalReprogramar(c)} style={{ flex: 1, padding: "8px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                  Reprogramar
-                </button>
-                {onCumplida && (
-                  <button onClick={() => onCumplida(c)} style={{ padding: "8px 12px", borderRadius: 8, border: "none", background: "#DCFCE7", color: "#166534", fontSize: 12, fontWeight: 600, cursor: "pointer" }} title="Marcar como cumplida">
-                    <CheckCircle size={16} />
-                  </button>
+                {fechaMostrada && (
+                  <div style={{
+                    marginTop: 12, fontSize: 11.5, color: "#92400E", background: "#FEF3C7",
+                    padding: "5px 10px", borderRadius: 6, width: "fit-content", display: "flex", alignItems: "center", gap: 6,
+                    fontWeight: 600
+                  }}>
+                    <Clock size={12} /> <span>Fecha y Hora: {fechaMostrada.replace("T", " ")}</span>
+                  </div>
                 )}
+
+                {notaMostrada && (
+                  <div style={{
+                    marginTop: 10,
+                    background: "#F8FAFC",
+                    borderLeft: "3px solid #3B82F6",
+                    padding: "8px 12px",
+                    borderRadius: "0 8px 8px 0",
+                    fontSize: 12.5,
+                    color: "#334155",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 8
+                  }}>
+                    <FileText size={14} color="#3B82F6" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <strong style={{ color: "#1E293B", marginRight: 4 }}>Nota:</strong>
+                      <span style={{ fontStyle: "italic" }}>{notaMostrada}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14 }}>
+                  <button
+                    onClick={() => abrirModalReprogramar(c)}
+                    style={{
+                      background: "#fff",
+                      border: `1px solid ${C.line}`,
+                      color: C.ink70,
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer"
+                    }}
+                  >
+                    Reprogramar
+                  </button>
+
+                  <button
+                    onClick={() => onCumplida(c)}
+                    style={{
+                      background: "#ECFDF5",
+                      border: "1px solid #A7F3D0",
+                      color: "#065F46",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4
+                    }}
+                  >
+                    <CheckCircle size={14} /> Cumplida
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* MODAL NUEVA CITA */}
       {modalAgendar && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460, padding: 28 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 18 }}>Agendar Nueva Cita</h3>
-            <form onSubmit={handleCrearSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+          padding: 16
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460,
+            padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+            border: "1px solid #F1F5F9", position: "relative"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                Agendar nueva cita
+              </h3>
+              <button 
+                onClick={() => setModalAgendar(false)} 
+                style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748B" }}
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCrearSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a", display: "block", marginBottom: 4 }}>Cliente</label>
-                <select value={clienteId} onChange={e => setClienteId(e.target.value)} style={inputStyle(false)}>
-                  <option value="">Seleccione un cliente...</option>
+                <div style={labelStyleAzulOscuro}>CLIENTE *</div>
+                <select
+                  value={clienteId}
+                  onChange={(e) => setClienteId(e.target.value)}
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
+                >
+                  <option value="">— Seleccionar —</option>
                   {clientes.map(cli => (
-                    <option key={cli.id} value={cli.id}>{cli.nombre}</option>
+                    <option key={cli.id} value={cli.id}>{cli.nombres} {cli.apellidos} ({cli.id})</option>
                   ))}
                 </select>
               </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a", display: "block", marginBottom: 4 }}>Fecha</label>
-                  <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} style={inputStyle(false)} />
+                  <div style={labelStyleAzulOscuro}>FECHA *</div>
+                  <input
+                    type="date"
+                    value={fecha}
+                    onChange={(e) => setFecha(e.target.value)}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
+                  />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a", display: "block", marginBottom: 4 }}>Hora</label>
-                  <input type="time" value={hora} onChange={e => setHora(e.target.value)} style={inputStyle(false)} />
+                  <div style={labelStyleAzulOscuro}>HORA *</div>
+                  <input
+                    type="time"
+                    value={hora}
+                    onChange={(e) => setHora(e.target.value)}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1", background: "#fff" }}
+                  />
                 </div>
               </div>
+
               <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a", display: "block", marginBottom: 4 }}>Notas / Observaciones</label>
-                <textarea value={notas} onChange={e => setNotas(e.target.value)} placeholder="Detalles de la cita..." style={inputStyle(false)} />
+                <div style={labelStyleAzulOscuro}>NOTAS</div>
+                <textarea
+                  value={notas}
+                  onChange={(e) => setNotas(e.target.value)}
+                  placeholder="Detalles de la cita..."
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, height: 84, resize: "none", borderColor: "#CBD5E1" }}
+                />
               </div>
-              <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-                <button type="button" onClick={() => setModalAgendar(false)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "1px solid #CBD5E1", background: "#fff", cursor: "pointer" }}>Cancelar</button>
-                <button type="submit" style={{ flex: 1, padding: 12, borderRadius: 12, background: C.coral, color: "#fff", border: "none", cursor: "pointer" }}>Guardar Cita</button>
+
+              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setModalAgendar(false)}
+                  style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1px solid #CBD5E1`, background: "#fff", color: "#334155", fontWeight: 600, cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{ flex: 1, padding: "12px", borderRadius: 12, border: "none", background: "#0F172A", color: "#fff", fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px rgba(15, 23, 42, 0.2)" }}
+                >
+                  Agendar
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL REPROGRAMAR INTEGRADO */}
+      {/* MODAL REPROGRAMAR */}
       {modalReprogramar && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.65)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460, padding: 28 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 18 }}>Reprogramar Cita</h3>
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+          padding: 16
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460,
+            padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", position: "relative"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                Reprogramar Cita / Visita
+              </h3>
+              <button 
+                onClick={() => setModalReprogramar(null)} 
+                style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748B" }}
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+
             <form onSubmit={handleReprogramarSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <input type="date" value={nuevaFechaReprogramar} onChange={e => setNuevaFechaReprogramar(e.target.value)} style={inputStyle(false)} />
-                <input type="time" value={nuevaHoraReprogramar} onChange={e => setNuevaHoraReprogramar(e.target.value)} style={inputStyle(false)} />
+                <div>
+                  <div style={labelStyleAzulOscuro}>NUEVA FECHA *</div>
+                  <input
+                    type="date"
+                    value={nuevaFechaReprogramar}
+                    onChange={(e) => setNuevaFechaReprogramar(e.target.value)}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
+                  />
+                </div>
+                <div>
+                  <div style={labelStyleAzulOscuro}>NUEVA HORA *</div>
+                  <input
+                    type="time"
+                    value={nuevaHoraReprogramar}
+                    onChange={(e) => setNuevaHoraReprogramar(e.target.value)}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1", background: "#fff" }}
+                  />
+                </div>
               </div>
-              <input type="text" value={nuevaDireccionReprogramar} onChange={e => setNuevaDireccionReprogramar(e.target.value)} placeholder="Dirección" style={inputStyle(false)} />
-              <textarea value={nuevaNotaReprogramar} onChange={e => setNuevaNotaReprogramar(e.target.value)} placeholder="Notas..." style={inputStyle(false)} />
-              
-              <div style={{ display: "flex", gap: 12, marginTop: 10 }}>
-                <button type="button" onClick={() => setModalReprogramar(null)} style={{ flex: 1, padding: 12, borderRadius: 12, border: "1px solid #CBD5E1", background: "#fff", cursor: "pointer" }}>Cancelar</button>
-                <button type="submit" style={{ flex: 1, padding: 12, borderRadius: 12, background: C.coral, color: "#fff", border: "none", cursor: "pointer" }}>Guardar Cambios</button>
+
+              <div>
+                <div style={labelStyleAzulOscuro}>ACTUALIZAR DIRECCIÓN</div>
+                <input
+                  type="text"
+                  value={nuevaDireccionReprogramar}
+                  onChange={(e) => setNuevaDireccionReprogramar(e.target.value)}
+                  placeholder="Dirección de la visita..."
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
+                />
+              </div>
+
+              <div>
+                <div style={labelStyleAzulOscuro}>NOTA / OBSERVACIÓN</div>
+                <textarea
+                  value={nuevaNotaReprogramar}
+                  onChange={(e) => setNuevaNotaReprogramar(e.target.value)}
+                  placeholder="Notas adicionales para la reprogramación..."
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, height: 72, resize: "none", borderColor: "#CBD5E1" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setModalReprogramar(null)}
+                  style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1px solid #CBD5E1`, background: "#fff", color: "#334155", fontWeight: 600, cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: C.coral,
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(232, 89, 12, 0.25)"
+                  }}
+                >
+                  Guardar Cambios
+                </button>
               </div>
             </form>
           </div>
