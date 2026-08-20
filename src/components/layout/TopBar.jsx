@@ -18,8 +18,10 @@ export default function TopBar({ profile, userId, onLogout }) {
     try {
       await activarNotificaciones(userId);
       setActivas(true);
+      alert("¡Notificaciones de citas activadas correctamente!");
     } catch (e) {
-      alert(e.message);
+      console.warn("Aviso de notificaciones:", e.message);
+      alert("Las notificaciones push requieren configurar las llaves VAPID en el servidor.");
     } finally {
       setCargando(false);
     }

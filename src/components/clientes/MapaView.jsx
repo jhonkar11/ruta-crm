@@ -10,14 +10,12 @@ export default function MapaView({ records = [], onEdit }) {
   const activos = records.filter((r) => r && r.estado !== "Archivado");
   const total = activos.length;
 
-  // Normalizador de estados para evitar mezclas
   const obtenerEstadoLimpio = (r) => {
     return (r.estado || r.categoria_cliente || "").trim().toLowerCase();
   };
 
   const matchFiltro = (r, tipo) => {
     const est = obtenerEstadoLimpio(r);
-
     if (tipo === "Interesado") return est.includes("interesado") || est.includes("preoferta");
     if (tipo === "En trámite") return est.includes("trámite") || est.includes("pendiente");
     if (tipo === "Contactado") return est.includes("contactado");
@@ -27,7 +25,6 @@ export default function MapaView({ records = [], onEdit }) {
     return false;
   };
 
-  // Contadores limpios basados estrictamente en el estado actual
   const interesados = activos.filter(r => matchFiltro(r, "Interesado")).length;
   const enTramite = activos.filter(r => matchFiltro(r, "En trámite")).length;
   const contactados = activos.filter(r => matchFiltro(r, "Contactado")).length;
@@ -40,7 +37,7 @@ export default function MapaView({ records = [], onEdit }) {
     : activos.filter(r => matchFiltro(r, filtroActivo));
 
   return (
-    <div style={{ padding: "4px 4px 90px 4px" }}>
+    <div style={{ padding: "4px 4px 110px 4px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: "#ffffff", margin: 0 }}>
@@ -56,7 +53,6 @@ export default function MapaView({ records = [], onEdit }) {
         </div>
       </div>
 
-      {/* Tarjetas de Resumen Interactivas */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
         <StatCard title="Interesados" count={interesados} icon={CheckCircle2} color="#16a34a" active={filtroActivo === "Interesado"} onClick={() => setFiltroActivo(filtroActivo === "Interesado" ? "TODOS" : "Interesado")} />
         <StatCard title="En Trámite" count={enTramite} icon={Clock} color="#0284c7" active={filtroActivo === "En trámite"} onClick={() => setFiltroActivo(filtroActivo === "En trámite" ? "TODOS" : "En trámite")} />
@@ -67,7 +63,6 @@ export default function MapaView({ records = [], onEdit }) {
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 2px" }}>
-        {/* Texto de estado con la misma tipografía institucional */}
         <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
           {filtroActivo === "TODOS" ? "Mostrando todos los registros" : `Filtro aplicado: ${filtroActivo}`}
         </span>
@@ -89,7 +84,7 @@ export default function MapaView({ records = [], onEdit }) {
               key={r.id} 
               onClick={() => setActiveClient(activeClient?.id === r.id ? null : r)}
               style={{
-                background: "#fff", borderRadius: 12, padding: 12, border: `1px solid ${activeClient?.id === r.id ? C.coral : C.line}`,
+                background: "#fff", borderRadius: 12, padding: 12, border: `1.5px solid ${activeClient?.id === r.id ? C.coral : C.line}`,
                 boxShadow: "0 1px 3px rgba(0,0,0,0.02)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center"
               }}
             >
@@ -97,7 +92,6 @@ export default function MapaView({ records = [], onEdit }) {
                 <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
                   {r.nombres} {r.apellidos}
                 </div>
-                {/* CC/NIT y tipo de negocio con la misma tipografía IBM Plex Mono y color rojo exacto */}
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#DC2626", fontWeight: 700, marginTop: 3, display: "flex", gap: 6 }}>
                   <span>CC/NIT: {r.id}</span>
                   <span>•</span>
@@ -110,8 +104,9 @@ export default function MapaView({ records = [], onEdit }) {
         )}
       </div>
 
+      {/* Tarjeta flotante inferior detallada al hacer clic en un cliente */}
       {activeClient && (
-        <div style={{ marginTop: 16, background: "#fff", borderRadius: 16, border: `1.5px solid ${C.coral}`, padding: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
+        <div style={{ marginTop: 16, background: "#fff", borderRadius: 16, border: `1.5px solid ${C.coral}`, padding: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>
@@ -123,10 +118,10 @@ export default function MapaView({ records = [], onEdit }) {
             </div>
             <Stamp estado={activeClient.estado || activeClient.categoria_cliente} size="sm" />
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
             <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono} />
-            <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${activeClient.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp} />
-            <IconBtn icon={Edit3} label="Ver ficha" onClick={() => onEdit(activeClient)} />
+            <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${String(activeClient.whatsapp).replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp} />
+            <IconBtn icon={Edit3} tone="coral" label="Editar ficha" onClick={() => onEdit(activeClient)} />
           </div>
         </div>
       )}
