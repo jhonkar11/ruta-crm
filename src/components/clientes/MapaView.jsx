@@ -67,8 +67,8 @@ export default function MapaView({ records = [], onEdit }) {
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 2px" }}>
-        {/* Texto de estado con alto contraste y amarillo brillante para destacar */}
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#FDE047", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
+        {/* Texto de estado con la misma tipografía institucional */}
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
           {filtroActivo === "TODOS" ? "Mostrando todos los registros" : `Filtro aplicado: ${filtroActivo}`}
         </span>
         {filtroActivo !== "TODOS" && (
@@ -97,9 +97,9 @@ export default function MapaView({ records = [], onEdit }) {
                 <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
                   {r.nombres} {r.apellidos}
                 </div>
-                {/* Cédula y comercio en color rojo intenso con excelente contraste */}
-                <div style={{ fontSize: 12, color: "#DC2626", fontWeight: 700, marginTop: 3, display: "flex", gap: 6 }}>
-                  <span>CC: {r.id}</span>
+                {/* CC/NIT y tipo de negocio con la misma tipografía IBM Plex Mono y color rojo exacto */}
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#DC2626", fontWeight: 700, marginTop: 3, display: "flex", gap: 6 }}>
+                  <span>CC/NIT: {r.id}</span>
                   <span>•</span>
                   <span>{r.tipo_negocio || "Comercio"}</span>
                 </div>
