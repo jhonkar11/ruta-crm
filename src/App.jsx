@@ -11,8 +11,7 @@ import ClientCard from "./components/clientes/ClientCard";
 import MapaView from "./components/clientes/MapaView";
 import FormView from "./components/clientes/FormView";
 import CitasView from "./components/citas/CitasView";
-import { ViewHeader, EmptyState, ConfirmModal, TextInput } from "./components/ui/UIKit";
-import { Stamp, IconBtn } from "./components/ui/UIKit";
+import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
@@ -50,7 +49,6 @@ export default function App() {
       .map((r) => ({
         id: r.id,
         clienteId: r.id,
-        // Si ya incluye la hora (contiene "T"), se respeta; si no, se le asigna la de por defecto
         fecha_hora: r.fecha_seguimiento.includes("T") ? r.fecha_seguimiento : `${r.fecha_seguimiento}T09:00:00`,
         estado: r.estado || "Programada",
         notas: r.observaciones || "Seguimiento programado",
@@ -96,13 +94,12 @@ export default function App() {
     return (citas || []).filter((c) => c && c.estado === "Programada" && c.fecha_hora.slice(0, 10) <= hoy).length;
   }, [citas]);
 
-  // Función para crear/agendar la cita nueva con hora exacta
   const crearCitaSimulada = async (payload) => {
     const clienteObj = records.find(r => r && r.id === payload.clienteId);
     if (!clienteObj) throw new Error("Cliente no encontrado en los registros.");
     await saveCliente({
       ...clienteObj,
-      fecha_seguimiento: payload.fechaHora, // Mantiene la hora exacta seleccionada (ej: "2026-08-27T14:30:00")
+      fecha_seguimiento: payload.fechaHora,
       observaciones: payload.notas || clienteObj.observaciones,
       estado: "Programada"
     }, false, user.id);
@@ -184,7 +181,6 @@ export default function App() {
       overflowX: "hidden",
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Fondo de ondas exacto idéntico al login */}
       <div style={{
         position: "fixed",
         inset: 0,
@@ -204,7 +200,6 @@ export default function App() {
         </svg>
       </div>
 
-      {/* Contenedor principal del dashboard sobre las ondas */}
       <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
