@@ -43,10 +43,10 @@ export default function MapaView({ records = [], onEdit }) {
     <div style={{ padding: "4px 4px 90px 4px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: C.ink, margin: 0 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: "#ffffff", margin: 0 }}>
             Panel de Metas y Filtros
           </h2>
-          <p style={{ fontSize: 12, color: C.ink70, margin: "2px 0 0 0" }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", margin: "2px 0 0 0" }}>
             Control unificado de base de datos y créditos
           </p>
         </div>
@@ -67,11 +67,12 @@ export default function MapaView({ records = [], onEdit }) {
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 2px" }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: C.ink70 }}>
+        {/* Texto de estado con alto contraste y amarillo brillante para destacar */}
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#FDE047", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
           {filtroActivo === "TODOS" ? "Mostrando todos los registros" : `Filtro aplicado: ${filtroActivo}`}
         </span>
         {filtroActivo !== "TODOS" && (
-          <button onClick={() => setFiltroActivo("TODOS")} style={{ background: "none", border: "none", color: C.coral, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          <button onClick={() => setFiltroActivo("TODOS")} style={{ background: "none", border: "none", color: "#FDE047", fontSize: 12, fontWeight: 700, cursor: "pointer", textDecoration: "underline" }}>
             Quitar filtro
           </button>
         )}
@@ -96,7 +97,8 @@ export default function MapaView({ records = [], onEdit }) {
                 <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
                   {r.nombres} {r.apellidos}
                 </div>
-                <div style={{ fontSize: 11.5, color: C.ink70, marginTop: 2, display: "flex", gap: 6 }}>
+                {/* Cédula y comercio en color rojo intenso con excelente contraste */}
+                <div style={{ fontSize: 12, color: "#DC2626", fontWeight: 700, marginTop: 3, display: "flex", gap: 6 }}>
                   <span>CC: {r.id}</span>
                   <span>•</span>
                   <span>{r.tipo_negocio || "Comercio"}</span>
