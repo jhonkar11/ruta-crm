@@ -116,10 +116,13 @@ export default function App() {
       return;
     }
 
-    // Limpiamos el objeto para enviar únicamente campos que existen en la tabla 'clientes' de Supabase
+    // Unificamos las notas que vienen del modal (pueden venir como 'notas' o 'observaciones')
+    const textoObservacion = datosActualizados.observaciones || datosActualizados.notas || clienteObj.observaciones;
+
+    // Preparamos el payload limpio con los nombres de columnas exactos que espera Supabase
     const payloadLimpio = {
       fecha_seguimiento: datosActualizados.fecha_seguimiento || clienteObj.fecha_seguimiento,
-      observaciones: datosActualizados.observaciones || clienteObj.observaciones,
+      observaciones: textoObservacion,
       direccion: datosActualizados.direccion || clienteObj.direccion,
       estado: "Reprogramada"
     };
