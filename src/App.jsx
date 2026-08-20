@@ -105,10 +105,17 @@ export default function App() {
     }, false, user.id);
   };
 
-  const posponerSimulado = async (cita, nuevaFecha) => {
-    const clienteObj = records.find(r => r && r.id === (cita.clienteId || cita.id));
+  // MODIFICACIÓN APLICADA AQUÍ: Recibe los datos actualizados y limpios desde CitasView
+  const posponerSimulado = async (citaOriginal, datosActualizados) => {
+    const clienteId = citaOriginal.id || citaOriginal.cliente_id || citaOriginal.clienteId;
+    const clienteObj = records.find(r => r && r.id === clienteId);
     if (!clienteObj) return;
-    await saveCliente({ ...clienteObj, fecha_seguimiento: nuevaFecha, estado: "Reprogramada" }, false, user.id);
+    
+    // Combinamos el cliente existente con los datos actualizados limpios (fecha_seguimiento, observaciones, estado)
+    await saveCliente({ 
+      ...clienteObj, 
+      ...datosActualizados 
+    }, false, user.id);
   };
 
   const marcarCumplidaSimulada = async (cita) => {
