@@ -9,7 +9,7 @@ import TopBar from "./components/layout/TopBar";
 import BottomNav from "./components/layout/BottomNav";
 import ClientCard from "./components/clientes/ClientCard";
 import MapaView from "./components/clientes/MapaView";
-import { FormView } from "./components/clientes/FormView";
+import FormView from "./components/clientes/FormView";
 import CitasView from "./components/citas/CitasView";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, FiltroChip } from "./components/ui/UIKit";
 import { Stamp, IconBtn } from "./components/ui/UIKit";
