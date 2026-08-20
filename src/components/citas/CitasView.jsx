@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText } from "lucide-react";
+import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText, MapPin } from "lucide-react";
 import { C, inputStyle } from "../../styles/tokens";
 import { EmptyState } from "../ui/UIKit";
 
@@ -25,8 +25,11 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
   const [hora, setHora] = useState("09:00");
   const [notas, setNotas] = useState("");
 
-  // Estado para la nueva fecha al reprogramar
+  // Estados para el formulario de reprogramación avanzada
   const [nuevaFechaReprogramar, setNuevaFechaReprogramar] = useState("");
+  const [nuevaHoraReprogramar, setNuevaHoraReprogramar] = useState("09:00");
+  const [nuevaNotaReprogramar, setNuevaNotaReprogramar] = useState("");
+  const [nuevaDireccionReprogramar, setNuevaDireccionReprogramar] = useState("");
 
   const citasFiltradas = useMemo(() => {
     return citas.filter(c => {
@@ -44,7 +47,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       return;
     }
 
-    // Validación defensiva por si la función no viene del componente padre
     if (typeof onCrear !== "function") {
       console.error("onCrear no es una función:", onCrear);
       alert("Error crítico: La función 'onCrear' no está configurada en el componente principal.");
@@ -74,15 +76,47 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     }
   };
 
+  // Función para abrir el modal de reprogramar precargando los datos actuales
+  const abrirModalReprogramar = (c) => {
+    setModalReprogramar(c);
+    if (c.fecha_hora) {
+      const partes = c.fecha_hora.split("T");
+      setNuevaFechaReprogramar(partes[0] || "");
+      if (partes[1]) {
+        setNuevaHoraReprogramar(partes[1].substring(0, 5)); // HH:MM
+      } else {
+        setNuevaHoraReprogramar("09:00");
+      }
+    } else {
+      setNuevaFechaReprogramar("");
+      setNuevaHoraReprogramar("09:00");
+    }
+    setNuevaNotaReprogramar(c.notas || "");
+
+    // Buscar dirección actual del cliente o de la cita
+    const idBuscado = c.clienteId || c.cliente_id || c.id;
+    const clienteEnLista = clientes.find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
+    const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
+    const clienteFinal = clienteObjEnCita || clienteEnLista || c;
+    setNuevaDireccionReprogramar(clienteFinal.direccion || c.direccion || "");
+  };
+
   const handleReprogramarSubmit = async (e) => {
     e.preventDefault();
     if (!nuevaFechaReprogramar) {
       alert("Selecciona una nueva fecha.");
       return;
     }
-    await onPosponer(modalReprogramar, `${nuevaFechaReprogramar}T09:00:00`);
+    
+    // Enviamos la nueva fecha, hora, nota y dirección a la función onPosponer (o manejador correspondiente)
+    const fechaHoraCompleta = `${nuevaFechaReprogramar}T${nuevaHoraReprogramar}:00`;
+    await onPosponer(modalReprogramar, fechaHoraCompleta, nuevaNotaReprogramar, nuevaDireccionReprogramar);
+    
     setModalReprogramar(null);
     setNuevaFechaReprogramar("");
+    setNuevaHoraReprogramar("09:00");
+    setNuevaNotaReprogramar("");
+    setNuevaDireccionReprogramar("");
   };
 
   return (
@@ -169,8 +203,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             const nombreCompleto = `${nombres} ${apellidos}`.trim() || "Cliente sin nombre";
             const cedula = clienteFinal.id || idBuscado || "N/A";
             const direccion = clienteFinal.direccion || c.direccion || "Sin dirección registrada";
-            
-            // Extraemos la nota/observación de la cita o del cliente por respaldo
             const notaCita = c.notas || clienteFinal.observaciones || "";
 
             return (
@@ -222,7 +254,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   </div>
                 )}
 
-                {/* BLOQUE DE NOTA / OBSERVACIÓN DE LA CITA */}
                 {notaCita && (
                   <div style={{
                     marginTop: 10,
@@ -246,7 +277,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
                 <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14 }}>
                   <button
-                    onClick={() => setModalReprogramar(c)}
+                    onClick={() => abrirModalReprogramar(c)}
                     style={{
                       background: "#fff",
                       border: `1px solid ${C.line}`,
@@ -377,7 +408,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL REPROGRAMAR */}
+      {/* MODAL REPROGRAMAR (MEJORADO CON FECHA, HORA, NOTA Y DIRECCIÓN) */}
       {modalReprogramar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -386,11 +417,13 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
           padding: 16
         }}>
           <div style={{
-            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 420,
+            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460,
             padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", position: "relative"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>Nueva Fecha</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                Reprogramar Cita / Visita
+              </h3>
               <button 
                 onClick={() => setModalReprogramar(null)} 
                 style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748B" }}
@@ -400,34 +433,74 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             </div>
 
             <form onSubmit={handleReprogramarSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <div style={labelStyleAzulOscuro}>NUEVA FECHA *</div>
+                  <input
+                    type="date"
+                    value={nuevaFechaReprogramar}
+                    onChange={(e) => setNuevaFechaReprogramar(e.target.value)}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
+                  />
+                </div>
+                <div>
+                  <div style={labelStyleAzulOscuro}>NUEVA HORA *</div>
+                  <input
+                    type="time"
+                    value={nuevaHoraReprogramar}
+                    onChange={(e) => setNuevaHoraReprogramar(e.target.value)}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1", background: "#fff" }}
+                  />
+                </div>
+              </div>
+
               <div>
-                <div style={labelStyleAzulOscuro}>SELECCIONAR NUEVA FECHA</div>
+                <div style={labelStyleAzulOscuro}>ACTUALIZAR DIRECCIÓN</div>
                 <input
-                  type="date"
-                  value={nuevaFechaReprogramar}
-                  onChange={(e) => setNuevaFechaReprogramar(e.target.value)}
-                  style={{ ...inputStyle(false), width: "100%", padding: "12px", borderRadius: 10, borderColor: "#CBD5E1" }}
+                  type="text"
+                  value={nuevaDireccionReprogramar}
+                  onChange={(e) => setNuevaDireccionReprogramar(e.target.value)}
+                  placeholder="Dirección de la visita..."
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
                 />
               </div>
 
-              <button
-                type="submit"
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  borderRadius: "12px",
-                  border: "none",
-                  background: C.coral,
-                  color: "#fff",
-                  fontWeight: 600,
-                  fontSize: 14,
-                  cursor: "pointer",
-                  marginTop: 8,
-                  boxShadow: "0 4px 12px rgba(232, 89, 12, 0.25)"
-                }}
-              >
-                Guardar Fecha
-              </button>
+              <div>
+                <div style={labelStyleAzulOscuro}>NOTA / OBSERVACIÓN</div>
+                <textarea
+                  value={nuevaNotaReprogramar}
+                  onChange={(e) => setNuevaNotaReprogramar(e.target.value)}
+                  placeholder="Notas adicionales para la reprogramación..."
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, height: 72, resize: "none", borderColor: "#CBD5E1" }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setModalReprogramar(null)}
+                  style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1px solid #CBD5E1`, background: "#fff", color: "#334155", fontWeight: 600, cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: C.coral,
+                    color: "#fff",
+                    fontWeight: 600,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(232, 89, 12, 0.25)"
+                  }}
+                >
+                  Guardar Cambios
+                </button>
+              </div>
             </form>
           </div>
         </div>
