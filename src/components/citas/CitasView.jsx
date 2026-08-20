@@ -70,13 +70,17 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     }
 
     try {
+      const fechaHoraCompleta = `${fecha}T${hora}:00`;
+      
       const payload = {
         clienteId: String(clienteId),
         cliente_id: parseInt(clienteId),
-        fechaHora: `${fecha}T${hora}:00`,
-        fecha_seguimiento: `${fecha}T${hora}:00`,
+        fechaHora: fechaHoraCompleta,
+        fecha_hora: fechaHoraCompleta,
+        fecha_seguimiento: fechaHoraCompleta,
         direccion: direccionNueva,
         observaciones: notas || "",
+        notas: notas || "",
         estado: "Programada"
       };
 
@@ -132,6 +136,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       estado: 'Reprogramada',
       fecha_seguimiento: fechaHoraCompleta,
       observaciones: nuevaNotaReprogramar,
+      notas: nuevaNotaReprogramar,
       direccion: nuevaDireccionReprogramar
     };
 
