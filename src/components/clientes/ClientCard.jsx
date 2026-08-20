@@ -1,4 +1,4 @@
-import { Phone, MessageCircle, Edit3, Archive, Trash2, Calendar, Building2, Tag, Clock } from "lucide-react";
+import { Phone, MessageCircle, Edit3, Archive, Trash2, Building2, Tag, Clock } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
@@ -81,6 +81,23 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
           fontWeight: 600
         }}>
           <Clock size={12} /> <span>Seguimiento: {currentClient.fecha_seguimiento}</span>
+        </div>
+      )}
+
+      {/* Sección de Observaciones */}
+      {currentClient.observaciones && (
+        <div style={{
+          marginTop: 12,
+          padding: "8px 12px",
+          background: "#F8FAFC",
+          borderLeft: "3px solid #E11D48",
+          borderRadius: "0 8px 8px 0",
+          fontSize: 12.5,
+          color: "#475569",
+          lineHeight: 1.4
+        }}>
+          <span style={{ fontWeight: 700, color: "#E11D48", marginRight: 6 }}>Nota:</span>
+          {currentClient.observaciones}
         </div>
       )}
 
