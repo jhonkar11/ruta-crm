@@ -8,11 +8,11 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
   const [modalAgendar, setModalAgendar] = useState(false);
   const [modalReprogramar, setModalReprogramar] = useState(null);
 
-  // Estilo ultra forzado en azul marino oscuro para máxima visibilidad
+  // Estilo robusto para los títulos de los campos
   const labelStyleAzulOscuro = {
     fontSize: "11.5px",
-    fontWeight: "700 !important",
-    color: "#1e3a8a", // Azul marino profundo y llamativo
+    fontWeight: "700",
+    color: "#1e3a8a",
     display: "block",
     marginBottom: "6px",
     letterSpacing: "0.5px",
@@ -241,7 +241,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL NUEVA CITA CON RETOQUE VISUAL */}
+      {/* MODAL NUEVA CITA */}
       {modalAgendar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -252,8 +252,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
           <div style={{
             background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460,
             padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-            border: "1px solid #F1F5F9", position: "relative",
-            animation: "fadeIn 0.2s ease-out"
+            border: "1px solid #F1F5F9", position: "relative"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <h3 style={{ fontSize: 19, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -269,7 +268,8 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
             <form onSubmit={handleCrearSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label style={labelStyleAzulOscuro}>CLIENTE *</label>
+                {/* Cambiado a div con rol de etiqueta para saltarnos el selector global de etiquetas */}
+                <div style={labelStyleAzulOscuro}>CLIENTE *</div>
                 <select
                   value={clienteId}
                   onChange={(e) => setClienteId(e.target.value)}
@@ -284,7 +284,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={labelStyleAzulOscuro}>FECHA *</label>
+                  <div style={labelStyleAzulOscuro}>FECHA *</div>
                   <input
                     type="date"
                     value={fecha}
@@ -293,7 +293,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   />
                 </div>
                 <div>
-                  <label style={labelStyleAzulOscuro}>HORA *</label>
+                  <div style={labelStyleAzulOscuro}>HORA *</div>
                   <input
                     type="time"
                     value={hora}
@@ -304,7 +304,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
               </div>
 
               <div>
-                <label style={labelStyleAzulOscuro}>NOTAS</label>
+                <div style={labelStyleAzulOscuro}>NOTAS</div>
                 <textarea
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
@@ -357,7 +357,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
             <form onSubmit={handleReprogramarSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={labelStyleAzulOscuro}>SELECCIONAR NUEVA FECHA</label>
+                <div style={labelStyleAzulOscuro}>SELECCIONAR NUEVA FECHA</div>
                 <input
                   type="date"
                   value={nuevaFechaReprogramar}
