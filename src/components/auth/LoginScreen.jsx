@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Zap } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
+import bgLogin from "../../assets/bg-login.webp"; // Asegúrate de ajustar la ruta si guardaste la imagen en otra carpeta
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -29,7 +30,11 @@ export default function LoginScreen() {
   return (
     <div style={{
       minHeight: "100vh",
-      background: "#0B1120",
+      // Usamos tu imagen real de fondo con efecto bokeh profesional
+      backgroundImage: `url(${bgLogin})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -38,41 +43,27 @@ export default function LoginScreen() {
       padding: 20,
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Blobs de luz ambiental */}
+      {/* Capa sutil de oscurecimiento opcional para que la tarjeta resalte más sobre el fondo */}
       <div style={{
         position: "absolute",
-        top: "-15%",
-        left: "-10%",
-        width: 800,
-        height: 800,
-        background: "radial-gradient(circle, rgba(59,130,246,0.35) 0%, transparent 60%)",
-        filter: "blur(80px)",
-        zIndex: 0
-      }} />
-      <div style={{
-        position: "absolute",
-        bottom: "-10%",
-        right: "-5%",
-        width: 700,
-        height: 700,
-        background: "radial-gradient(circle, rgba(225,78,42,0.30) 0%, transparent 60%)",
-        filter: "blur(80px)",
+        inset: 0,
+        background: "rgba(11, 17, 32, 0.35)",
         zIndex: 0
       }} />
 
-      {/* Tarjeta Central Glassmorphism */}
+      {/* Tarjeta Central Glassmorphism Transparente */}
       <div style={{
         width: "100%",
         maxWidth: 440,
         position: "relative",
         zIndex: 1,
-        background: "rgba(255, 255, 255, 0.06)",
-        backdropFilter: "blur(30px)",
-        WebkitBackdropFilter: "blur(30px)",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
+        background: "rgba(255, 255, 255, 0.08)", // Mayor transparencia para ver el fondo bokeh
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.18)",
         borderRadius: 24,
         padding: 32,
-        boxShadow: "0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12)"
+        boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)"
       }}>
         {/* Cabecera / Logo */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>
@@ -80,9 +71,9 @@ export default function LoginScreen() {
             display: "inline-flex",
             alignItems: "center",
             gap: 10,
-            background: "rgba(255,255,255,0.06)",
+            background: "rgba(255,255,255,0.08)",
             backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.12)",
             padding: "8px 14px",
             borderRadius: 20,
             marginBottom: 16
@@ -100,7 +91,7 @@ export default function LoginScreen() {
             }}>
               <Zap size={14} />
             </div>
-            <span style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: "0.12em", color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>
+            <span style={{ fontFamily: "monospace", fontSize: 11, letterSpacing: "0.12em", color: "rgba(255,255,255,0.8)", fontWeight: 600 }}>
               GESTIÓN INTELIGENTE DE CAMPO
             </span>
           </div>
@@ -114,14 +105,14 @@ export default function LoginScreen() {
         <div style={{ fontWeight: 700, fontSize: 20, color: "#fff", marginBottom: 4 }}>
           Iniciar sesión
         </div>
-        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 24 }}>
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 24 }}>
           Accede a tu ruta comercial
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Campo Correo */}
           <div>
-            <label style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "block", fontWeight: 600 }}>
+            <label style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.8)", marginBottom: 8, display: "block", fontWeight: 600 }}>
               Correo electrónico
             </label>
             <div style={{ position: "relative" }}>
@@ -136,8 +127,8 @@ export default function LoginScreen() {
                   width: "100%",
                   padding: "14px 14px 14px 44px",
                   borderRadius: 12,
-                  background: "#F8FAFC",
-                  border: "1px solid #E2E8F0",
+                  background: "rgba(248, 250, 252, 0.9)", // Ligeramente translúcido también para integrarse mejor
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
                   color: "#0F172A",
                   outline: "none",
                   fontSize: 14,
@@ -149,7 +140,7 @@ export default function LoginScreen() {
 
           {/* Campo Contraseña */}
           <div style={{ marginBottom: 4 }}>
-            <label style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "block", fontWeight: 600 }}>
+            <label style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.8)", marginBottom: 8, display: "block", fontWeight: 600 }}>
               Contraseña
             </label>
             <div style={{ position: "relative" }}>
@@ -164,8 +155,8 @@ export default function LoginScreen() {
                   width: "100%",
                   padding: "14px 44px 14px 44px",
                   borderRadius: 12,
-                  background: "#F8FAFC",
-                  border: "1px solid #E2E8F0",
+                  background: "rgba(248, 250, 252, 0.9)",
+                  border: "1px solid rgba(255, 255, 255, 0.3)",
                   color: "#0F172A",
                   outline: "none",
                   fontSize: 14,
@@ -195,7 +186,7 @@ export default function LoginScreen() {
           </div>
 
           {err && (
-            <div style={{ color: "#fb7185", fontSize: 13, display: "flex", alignItems: "center", gap: 6, background: "rgba(251, 113, 133, 0.1)", padding: "10px 12px", borderRadius: 8 }}>
+            <div style={{ color: "#fb7185", fontSize: 13, display: "flex", alignItems: "center", gap: 6, background: "rgba(251, 113, 133, 0.15)", padding: "10px 12px", borderRadius: 8 }}>
               <AlertCircle size={14} /> <span>{err}</span>
             </div>
           )}
@@ -234,10 +225,10 @@ export default function LoginScreen() {
         {/* Pie de tarjeta */}
         <div style={{
           textAlign: "center",
-          color: "rgba(255, 255, 255, 0.35)",
+          color: "rgba(255, 255, 255, 0.5)",
           fontSize: 11,
           marginTop: 28,
-          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+          borderTop: "1px solid rgba(255, 255, 255, 0.12)",
           paddingTop: 16
         }}>
           © 2026 RUTA CRM · Gestión comercial de campo
