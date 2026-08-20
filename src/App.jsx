@@ -158,51 +158,27 @@ export default function App() {
   return (
     <div style={{ 
       minHeight: "100vh", 
-      background: "#080E1E", 
+      background: "rgba(11, 17, 32, 0.45)", 
+      backdropFilter: "blur(2px)",
       fontFamily: "'Inter', sans-serif",
       color: "#f8fafc",
       position: "relative",
       overflowX: "hidden",
       paddingBottom: "100px"
     }}>
-      {/* Blob azul superior izquierdo */}
-      <div style={{
-        position: "fixed",
-        top: "-10%",
-        left: "-15%",
-        width: "900px",
-        height: "900px",
-        background: "radial-gradient(circle at center, rgba(37, 99, 235, 0.35) 0%, rgba(59, 130, 246, 0.15) 30%, transparent 70%)",
-        filter: "blur(80px)",
-        pointerEvents: "none",
-        zIndex: 0
-      }} />
-
-      {/* Blob naranja inferior derecho */}
-      <div style={{
-        position: "fixed",
-        bottom: "-15%",
-        right: "-10%",
-        width: "800px",
-        height: "800px",
-        background: "radial-gradient(circle at center, rgba(225, 78, 42, 0.28) 0%, rgba(251, 113, 133, 0.12) 35%, transparent 70%)",
-        filter: "blur(90px)",
-        pointerEvents: "none",
-        zIndex: 0
-      }} />
-
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        background: "rgba(15, 23, 42, 0.75)", 
-        backdropFilter: "blur(25px)",
-        WebkitBackdropFilter: "blur(25px)",
+        background: "rgba(11, 17, 32, 0.6)", 
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
         borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
         borderRight: "1px solid rgba(255, 255, 255, 0.1)",
         position: "relative", 
         zIndex: 1,
-        boxShadow: "0 0 60px rgba(0,0,0,0.6)" 
+        boxShadow: "0 0 60px rgba(0,0,0,0.6)",
+        borderRadius: 16
       }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
