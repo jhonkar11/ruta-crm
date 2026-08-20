@@ -18,7 +18,16 @@ export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
   const { records, loading: recordsLoading, error, saveCliente, archivar, eliminar } = useClientes();
 
-  const [view, setView] = useState("mapa");
+  // Reemplaza la línea: const [view, setView] = useState("mapa");
+  // Por este bloque:
+  const [view, setView] = useState(() => localStorage.getItem("crm_view") || "mapa");
+  
+  // Agrega este useEffect para guardar el cambio cada vez que la vista cambie:
+  import { useEffect } from "react"; // Asegúrate de tener useEffect en tu import inicial
+  // ...
+  useEffect(() => {
+    localStorage.setItem("crm_view", view);
+  }, [view]);
   const [editing, setEditing] = useState(undefined);
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState(null);
