@@ -158,16 +158,16 @@ export default function App() {
   return (
     <div style={{ 
       minHeight: "100vh", 
-      // Fondo oscuro profesional y sofisticado con gradiente nocturno
       background: "linear-gradient(135deg, #090d16 0%, #111827 50%, #1e293b 100%)", 
       fontFamily: "'Inter', sans-serif",
-      color: "#f8fafc"
+      color: "#f8fafc",
+      position: "relative",
+      paddingBottom: "100px" // Espacio extra para que el contenido no quede oculto detrás del menú flotante
     }}>
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        // Contenedor principal translúcido oscuro estilo glassmorphism avanzado
         background: "rgba(15, 23, 42, 0.65)", 
         backdropFilter: "blur(25px)",
         WebkitBackdropFilter: "blur(25px)",
@@ -288,36 +288,35 @@ export default function App() {
             />
           )}
         </div>
-
-        {/* MENÚ INFERIOR FIJO FLOTANTE (Sticky Glassmorphism) */}
-        {view !== "form" && (
-          <div style={{
-            position: "fixed",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 999,
-            display: "flex",
-            justifyContent: "center",
-            pointerEvents: "none",
-            paddingBottom: 16
-          }}>
-            <div style={{
-              pointerEvents: "auto",
-              background: "rgba(15, 23, 42, 0.85)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              borderRadius: 24,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-              maxWidth: 600,
-              width: "90%"
-            }}>
-              <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* MENÚ INFERIOR FIJO FLOTANTE (Sticky Glassmorphism Absoluto a la Pantalla) */}
+      {view !== "form" && (
+        <div style={{
+          position: "fixed",
+          bottom: 20,
+          left: 0,
+          right: 0,
+          zIndex: 9999, // Garantiza que flote siempre sobre cualquier lista larga o contenido
+          display: "flex",
+          justifyContent: "center",
+          pointerEvents: "none"
+        }}>
+          <div style={{
+            pointerEvents: "auto",
+            background: "rgba(15, 23, 42, 0.9)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: 24,
+            boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+            maxWidth: 480,
+            width: "90%"
+          }}>
+            <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />
+          </div>
+        </div>
+      )}
 
       {/* Modal flotante elegante */}
       {showMananaModal && (
@@ -325,7 +324,7 @@ export default function App() {
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
           background: "rgba(0, 0, 0, 0.7)", backdropFilter: "blur(8px)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 1000, padding: 16
+          zIndex: 10000, padding: 16
         }}>
           <div style={{
             background: "rgba(15, 23, 42, 0.95)", backdropFilter: "blur(25px)", 
