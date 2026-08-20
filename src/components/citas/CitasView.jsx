@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Calendar, Clock, Plus, CheckCircle, XCircle } from "lucide-react";
+import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText } from "lucide-react";
 import { C, inputStyle } from "../../styles/tokens";
 import { EmptyState } from "../ui/UIKit";
 
@@ -41,6 +41,13 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     e.preventDefault();
     if (!clienteId || !fecha) {
       alert("Por favor selecciona un cliente y una fecha.");
+      return;
+    }
+
+    // Validación defensiva por si la función no viene del componente padre
+    if (typeof onCrear !== "function") {
+      console.error("onCrear no es una función:", onCrear);
+      alert("Error crítico: La función 'onCrear' no está configurada en el componente principal.");
       return;
     }
 
@@ -162,6 +169,9 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             const nombreCompleto = `${nombres} ${apellidos}`.trim() || "Cliente sin nombre";
             const cedula = clienteFinal.id || idBuscado || "N/A";
             const direccion = clienteFinal.direccion || c.direccion || "Sin dirección registrada";
+            
+            // Extraemos la nota/observación de la cita o del cliente por respaldo
+            const notaCita = c.notas || clienteFinal.observaciones || "";
 
             return (
               <div
@@ -209,6 +219,28 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                     fontWeight: 600
                   }}>
                     <Clock size={12} /> <span>Fecha y Hora: {c.fecha_hora.replace("T", " ")}</span>
+                  </div>
+                )}
+
+                {/* BLOQUE DE NOTA / OBSERVACIÓN DE LA CITA */}
+                {notaCita && (
+                  <div style={{
+                    marginTop: 10,
+                    background: "#F8FAFC",
+                    borderLeft: "3px solid #3B82F6",
+                    padding: "8px 12px",
+                    borderRadius: "0 8px 8px 0",
+                    fontSize: 12.5,
+                    color: "#334155",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 8
+                  }}>
+                    <FileText size={14} color="#3B82F6" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <div>
+                      <strong style={{ color: "#1E293B", marginRight: 4 }}>Nota:</strong>
+                      <span style={{ fontStyle: "italic" }}>{notaCita}</span>
+                    </div>
                   </div>
                 )}
 
