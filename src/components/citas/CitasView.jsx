@@ -132,17 +132,15 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {citasFiltradas.map((c) => {
-            // Robustez total para encontrar el cliente y su dirección sin importar cómo venga la relación
-            const idBuscado = c.cliente_id || c.clienteId || (typeof c.cliente === "string" ? c.cliente : null);
+            const idBuscado = c.cliente_id || c.clienteId || c.id;
             const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
+            const clienteEnLista = clientes.find(cli => cli.id === idBuscado || String(cli.id) === String(idBuscado));
             
-            const cliente = clienteObjEnCita || clientes.find(cli => cli.id === idBuscado || String(cli.id) === String(idBuscado));
+            const clienteFinal = clienteObjEnCita || clienteEnLista || c;
             
-            const nombreCliente = cliente ? `${cliente.nombres || cliente.nombre || ""} ${cliente.apellidos || ""}`.trim() : (c.nombre_cliente || "Cliente sin nombre");
-            const cedulaCliente = cliente ? cliente.id : (idBuscado || "N/A");
-            
-            // Corrección aplicada aquí: evaluamos de manera segura si la dirección existe en el objeto cliente o en la cita
-            const direccionCliente = cliente?.direccion || c.direccion || "Sin dirección";
+            const nombreCliente = `${clienteFinal.nombres || clienteFinal.nombre || ""} ${clienteFinal.apellidos || ""}`.trim() || "Cliente sin nombre";
+            const cedulaCliente = clienteFinal.id || idBuscado || "N/A";
+            const direccionCliente = clienteFinal.direccion || c.direccion || "Sin dirección";
 
             return (
               <div
@@ -352,7 +350,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 style={{
                   width: "100%",
                   padding: "12px",
-                  borderRadius: 10,
+                  borderRadius: "10px",
                   border: "none",
                   background: C.coral,
                   color: "#fff",
