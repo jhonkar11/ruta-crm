@@ -11,7 +11,7 @@ import ClientCard from "./components/clientes/ClientCard";
 import MapaView from "./components/clientes/MapaView";
 import FormView from "./components/clientes/FormView";
 import CitasView from "./components/citas/CitasView";
-import { ViewHeader, EmptyState, ConfirmModal, TextInput } from "./components/ui/UIKit";
+import { ViewHeader, EmptyState, ConfirmModal, TextInput, FiltroChip } from "./components/ui/UIKit";
 import { Stamp, IconBtn } from "./components/ui/UIKit";
 
 export default function App() {
@@ -164,15 +164,15 @@ export default function App() {
       color: "#f8fafc",
       position: "relative",
       overflowX: "hidden",
-      paddingBottom: "100px"
+      paddingBottom: "120px"
     }}>
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        background: "rgba(11, 17, 32, 0.6)", 
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
+        background: "rgba(11, 17, 32, 0.75)", 
+        backdropFilter: "blur(15px)",
+        WebkitBackdropFilter: "blur(15px)",
         borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
         borderRight: "1px solid rgba(255, 255, 255, 0.1)",
         position: "relative", 
@@ -182,7 +182,7 @@ export default function App() {
       }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
-        <div style={{ padding: "24px 24px 120px" }}>
+        <div style={{ padding: "24px 24px 140px" }}>
           {error && (
             <div style={{ background: "rgba(239, 68, 68, 0.2)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: 12, borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
               Error cargando datos: {error}
@@ -224,7 +224,10 @@ export default function App() {
 
           {view === "mapa" && (
             <>
-              <ViewHeader title="Panel de Metas y Filtros" subtitle={`${records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos`} />
+              <ViewHeader 
+                title={<span style={{ color: "#ffffff", fontWeight: 700 }}>Panel de Metas y Filtros</span>} 
+                subtitle={<span style={{ color: "rgba(255, 255, 255, 0.85)" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</span>} 
+              />
               <MapaView records={records} onEdit={openEdit} />
             </>
           )}
@@ -242,9 +245,12 @@ export default function App() {
 
           {view === "buscar" && (
             <>
-              <ViewHeader title="Búsqueda rápida" subtitle="Por nombre o cédula" />
+              <ViewHeader 
+                title={<span style={{ color: "#ffffff", fontWeight: 700 }}>Búsqueda rápida</span>} 
+                subtitle={<span style={{ color: "rgba(255, 255, 255, 0.85)" }}>Por nombre o cédula</span>} 
+              />
               <div style={{ position: "relative", marginBottom: 16 }}>
-                <Search size={16} color="rgba(255,255,255,0.4)" style={{ position: "absolute", left: 14, top: 14 }} />
+                <Search size={16} color="rgba(255,255,255,0.6)" style={{ position: "absolute", left: 14, top: 14 }} />
                 <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Escribe un nombre o número de cédula…"
                   style={{ 
                     ...inputStyle(false), 
@@ -252,7 +258,7 @@ export default function App() {
                     background: "rgba(255, 255, 255, 0.07)", 
                     backdropFilter: "blur(10px)",
                     borderRadius: 14,
-                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
                     color: "#fff"
                   }} />
               </div>
@@ -265,7 +271,10 @@ export default function App() {
 
           {view === "todos" && (
             <>
-              <ViewHeader title="Base de datos de créditos" subtitle={`${todos.length} registros en total`} />
+              <ViewHeader 
+                title={<span style={{ color: "#ffffff", fontWeight: 700 }}>Base de datos de créditos</span>} 
+                subtitle={<span style={{ color: "rgba(255, 255, 255, 0.85)" }}>{todos.length} registros en total</span>} 
+              />
               <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
                 <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="✨ Todos" />
                 <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
@@ -294,139 +303,52 @@ export default function App() {
         </div>
       </div>
 
-      {/* MENÚ INFERIOR FIJO FLOTANTE */}
       {view !== "form" && (
         <div style={{
           position: "fixed",
-          bottom: 20,
+          bottom: 24,
           left: 0,
           right: 0,
-          zIndex: 9999,
+          zIndex: 99999,
           display: "flex",
           justifyContent: "center",
           pointerEvents: "none"
         }}>
           <div style={{
             pointerEvents: "auto",
-            background: "rgba(15, 23, 42, 0.9)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            borderRadius: 24,
-            boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+            background: "rgba(15, 23, 42, 0.95)",
+            backdropFilter: "blur(25px)",
+            WebkitBackdropFilter: "blur(25px)",
+            border: "1px solid rgba(255, 255, 255, 0.25)",
+            borderRadius: 28,
+            boxShadow: "0 20px 45px rgba(0,0,0,0.7)",
             maxWidth: 480,
-            width: "90%"
+            width: "90%",
+            color: "#ffffff"
           }}>
             <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />
           </div>
         </div>
       )}
 
-      {/* Modal flotante elegante */}
       {showMananaModal && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0, 0, 0, 0.7)", backdropFilter: "blur(8px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 10000, padding: 16
-        }}>
-          <div style={{
-            background: "rgba(15, 23, 42, 0.95)", backdropFilter: "blur(25px)", 
-            borderRadius: 20, width: "100%", maxWidth: 500,
-            maxHeight: "85vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 25px 50px rgba(0,0,0,0.7)", overflow: "hidden",
-            border: "1px solid rgba(255,255,255,0.15)"
-          }}>
-            <div style={{ padding: "18px 22px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(245, 158, 11, 0.1)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <BellRing size={20} color="#F59E0B" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#fef3c7" }}>
-                  Visitas para mañana ({citasManana.length})
-                </h3>
-              </div>
-              <button 
-                onClick={() => setShowMananaModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#fef3c7", display: "flex" }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "rgba(11, 15, 25, 0.6)" }}>
-              {citasManana.map((r) => {
-                const nombreCliente = `${r.nombres || ""} ${r.apellidos || ""}`.trim();
-                const nombreAsesor = profile?.nombre || "Asesor";
-                const textoMensaje = `Hola ${nombreCliente}, te saluda ${nombreAsesor} de Banco Caja Social. Como tu banco amigo, te recordamos que tenemos programada nuestra visita de seguimiento para el día de mañana. ¿Te queda bien el horario acordado para reunirnos? ¡Un amigo hoy, mañana y siempre!`;
-                const waClean = r.whatsapp || r.telefono ? String(r.whatsapp || r.telefono).replace(/\D/g, "") : "";
-                const waHref = waClean ? `https://wa.me/57${waClean}?text=${encodeURIComponent(textoMensaje)}` : undefined;
-
-                return (
-                  <div key={r.id} style={{ background: "rgba(255,255,255,0.06)", backdropFilter: "blur(10px)", borderRadius: 14, padding: 14, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: "#fff", textTransform: "uppercase" }}>
-                          {nombreCliente}
-                        </div>
-                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
-                          {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
-                        </div>
-                      </div>
-                      <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
-                    </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                      <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
-                      <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean} />
-                      <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,0.1)", background: "rgba(15, 23, 42, 0.9)", textAlign: "right" }}>
-              <button 
-                onClick={() => setShowMananaModal(false)}
-                style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)" }}
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal 
+          isOpen={showMananaModal}
+          onClose={() => setShowMananaModal(false)}
+          title="Ruta de mañana"
+          message={`Tienes ${citasManana.length} clientes agendados para el ${mananaISO}.`}
+        />
       )}
-
+      
       {confirmTarget && (
         <ConfirmModal
-          title={confirmTarget.type === "archive" ? "Archivar registro" : "Eliminar definitivamente"}
-          body={confirmTarget.type === "archive"
-            ? `${confirmTarget.record.nombres} ${confirmTarget.record.apellidos} se moverá a archivados. Podrás consultarlo luego, no se pierde el historial.`
-            : `Esta acción borrará para siempre el registro de ${confirmTarget.record.nombres} ${confirmTarget.record.apellidos}. No se puede deshacer.`}
-          confirmLabel={confirmTarget.type === "archive" ? "Archivar" : "Eliminar"}
-          danger={confirmTarget.type === "delete"}
+          isOpen={!!confirmTarget}
+          onClose={() => setConfirmTarget(null)}
           onConfirm={confirmAction}
-          onCancel={() => setConfirmTarget(null)}
+          title={`Confirmar ${confirmTarget.type === "archive" ? "Archivo" : "Eliminación"}`}
+          message={`¿Estás seguro de que deseas ${confirmTarget.type === "archive" ? "archivar" : "eliminar definitivamente"} a ${confirmTarget.record.nombres}?`}
         />
       )}
     </div>
-  );
-}
-
-function FiltroChip({ active, onClick, label }) {
-  return (
-    <button onClick={onClick} style={{
-      border: `1.5px solid ${active ? C.coral : "rgba(255, 255, 255, 0.15)"}`, 
-      background: active ? "rgba(225, 78, 42, 0.25)" : "rgba(255, 255, 255, 0.06)",
-      backdropFilter: "blur(10px)",
-      color: active ? "#ffb4a9" : "rgba(255, 255, 255, 0.8)", 
-      borderRadius: 20, 
-      padding: "6px 14px", 
-      fontSize: 12.5,
-      fontWeight: 600, 
-      cursor: "pointer",
-      boxShadow: active ? "0 4px 12px rgba(225, 78, 42, 0.3)" : "0 2px 5px rgba(0,0,0,0.2)",
-      transition: "all 0.2s ease"
-    }}>
-      {label}
-    </button>
   );
 }
