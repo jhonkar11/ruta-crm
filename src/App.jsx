@@ -301,33 +301,41 @@ export default function App() {
 
             {/* Lista de Clientes de Mañana */}
             <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "#f8fafc" }}>
-              {citasManana.map((r) => (
-                <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
-                        {r.nombres} {r.apellidos}
+              {citasManana.map((r) => {
+                const nombreCliente = `${r.nombres || ""} ${r.apellidos || ""}`.trim();
+                const nombreAsesor = profile?.nombre || "Asesor";
+                const textoMensaje = `Hola ${nombreCliente}, te saluda ${nombreAsesor} de Banco Caja Social. Como tu banco amigo, te recordamos que tenemos programada nuestra visita de seguimiento para el día de mañana. ¿Te queda bien el horario acordado para reunirnos? ¡Un amigo hoy, mañana y siempre!`;
+                const waClean = r.whatsapp || r.telefono ? String(r.whatsapp || r.telefono).replace(/\D/g, "") : "";
+                const waHref = waClean ? `https://wa.me/57${waClean}?text=${encodeURIComponent(textoMensaje)}` : undefined;
+
+                return (
+                  <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
+                          {nombreCliente}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
+                          {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
-                        {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
-                      </div>
+                      <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
                     </div>
-                    <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
+                      <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
+                      <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean} />
+                      <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
+                    </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
-                    <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
-                    <IconBtn icon={MessageCircle} label="WhatsApp" href={r.whatsapp ? `https://wa.me/57${r.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!r.whatsapp} />
-                    <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Pie del Modal */}
             <div style={{ padding: 12, borderTop: `1px solid ${C.line}`, background: "#fff", textAlign: "right" }}>
               <button 
                 onClick={() => setShowMananaModal(false)}
-                style={{ background: C.ink, color: "#fff", border: "none", padding: "8:px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "8px 16px" }}
+                style={{ background: C.ink, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
               >
                 Cerrar
               </button>

@@ -2,7 +2,7 @@ import { Phone, MessageCircle, Edit3, Archive, Trash2, Calendar } from "lucide-r
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
-export default function ClientCard({ client, r: clientProp, onEdit, onArchive, onDelete }) {
+export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete }) {
   const currentClient = client || clientProp;
   if (!currentClient) return null;
 
@@ -16,10 +16,14 @@ export default function ClientCard({ client, r: clientProp, onEdit, onArchive, o
   const telClean = formatPhone(currentClient.telefono);
   const waClean = formatPhone(currentClient.whatsapp || currentClient.telefono);
 
-  // Mensaje predeterminado personalizado para la ruta
+  // Nombre del cliente y del asesor logueado
   const nombreCliente = `${currentClient.nombres || ""} ${currentClient.apellidos || ""}`.trim();
-  const mensajeWa = encodeURIComponent(`Hola ${nombreCliente}, te saludamos de RUTA·CRM para coordinar los detalles de tu crédito y visita.`);
-  const waHref = waClean ? `https://wa.me/57${waClean}?text=${mensajeWa}` : undefined;
+  const nombreAsesor = profile?.nombre || "Asesor";
+
+  // Mensaje exacto institucional de Banco Caja Social
+  const textoMensaje = `Hola ${nombreCliente}, te saluda ${nombreAsesor} de Banco Caja Social. Como tu banco amigo, te recordamos que tenemos programada nuestra visita de seguimiento para el día de mañana. ¿Te queda bien el horario acordado para reunirnos? ¡Un amigo hoy, mañana y siempre!`;
+  
+  const waHref = waClean ? `https://wa.me/57${waClean}?text=${encodeURIComponent(textoMensaje)}` : undefined;
 
   return (
     <div style={{
