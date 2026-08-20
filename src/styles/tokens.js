@@ -41,15 +41,16 @@ export const todayISO = () => new Date().toISOString().slice(0, 10);
 
 export const inputStyle = (error) => ({
   width: "100%",
-  padding: "10px 12px",
-  borderRadius: 10,
+  padding: "12px 14px",
+  borderRadius: 12,
   fontSize: 14,
-  border: `1.5px solid ${error ? C.coral : C.line}`,
+  border: `1.5px solid ${error ? C.coral : "#CBD5E1"}`,
   outline: "none",
   fontFamily: "'Inter', sans-serif",
-  background: "#fff",
-  color: C.ink,
+  background: "#FFFFFF",
+  color: "#0F172A",
   boxSizing: "border-box",
+  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
 });
 
 // Contenedor flex reutilizable para alinear un ícono + texto de forma
@@ -58,5 +59,5 @@ export const iconRow = (gap = 6) => ({
   display: "inline-flex",
   alignItems: "center",
   gap,
-  lineHeight: 1,
+  lineId: 1,
 });
