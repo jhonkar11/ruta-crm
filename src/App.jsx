@@ -46,7 +46,8 @@ export default function App() {
       .map((r) => ({
         id: r.id,
         clienteId: r.id,
-        fecha_hora: `${r.fecha_seguimiento}T09:00:00`,
+        // Si ya incluye la hora (contiene "T"), se respeta; si no, se le asigna la de por defecto
+        fecha_hora: r.fecha_seguimiento.includes("T") ? r.fecha_seguimiento : `${r.fecha_seguimiento}T09:00:00`,
         estado: r.estado || "Programada",
         notas: r.observaciones || "Seguimiento programado",
         cliente: r,
@@ -64,7 +65,7 @@ export default function App() {
 
   const citasManana = useMemo(() => {
     if (!records) return [];
-    return records.filter(r => r && r.fecha_seguimiento === mananaISO && !["Archivado", "Visitado", "Cancelado"].includes(r.estado));
+    return records.filter(r => r && r.fecha_seguimiento && r.fecha_seguimiento.slice(0, 10) === mananaISO && !["Archivado", "Visitado", "Cancelado"].includes(r.estado));
   }, [records, mananaISO]);
 
   const buscados = useMemo(() => {
@@ -91,13 +92,13 @@ export default function App() {
     return (citas || []).filter((c) => c && c.estado === "Programada" && c.fecha_hora.slice(0, 10) <= hoy).length;
   }, [citas]);
 
-  // Función para crear/agendar la cita nueva
+  // Función para crear/agendar la cita nueva con hora exacta
   const crearCitaSimulada = async (payload) => {
     const clienteObj = records.find(r => r && r.id === payload.clienteId);
     if (!clienteObj) throw new Error("Cliente no encontrado en los registros.");
     await saveCliente({
       ...clienteObj,
-      fecha_seguimiento: payload.fechaHora.slice(0, 10),
+      fecha_seguimiento: payload.fechaHora, // Mantiene la hora exacta seleccionada (ej: "2026-08-27T14:30:00")
       observaciones: payload.notas || clienteObj.observaciones,
       estado: "Programada"
     }, false, user.id);
@@ -106,7 +107,7 @@ export default function App() {
   const posponerSimulado = async (cita, nuevaFecha) => {
     const clienteObj = records.find(r => r && r.id === (cita.clienteId || cita.id));
     if (!clienteObj) return;
-    await saveCliente({ ...clienteObj, fecha_seguimiento: nuevaFecha.slice(0, 10), estado: "Reprogramada" }, false, user.id);
+    await saveCliente({ ...clienteObj, fecha_seguimiento: nuevaFecha, estado: "Reprogramada" }, false, user.id);
   };
 
   const marcarCumplidaSimulada = async (cita) => {
@@ -234,7 +235,7 @@ export default function App() {
               <div style={{ flex: 1 }}>
                 <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s)) - Toca para ver</strong>
                 <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
-                  Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
+                   Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
                 </div>
               </div>
             </div>
