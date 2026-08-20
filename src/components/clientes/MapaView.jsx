@@ -37,7 +37,7 @@ export default function MapaView({ records = [], onEdit }) {
     : activos.filter(r => matchFiltro(r, filtroActivo));
 
   return (
-    <div style={{ padding: "4px 4px 110px 4px" }}>
+    <div style={{ padding: "4px 4px 120px 4px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: "#ffffff", margin: 0 }}>
@@ -104,24 +104,40 @@ export default function MapaView({ records = [], onEdit }) {
         )}
       </div>
 
-      {/* Tarjeta flotante inferior detallada al hacer clic en un cliente */}
+      {/* Tarjeta flotante inferior detallada completa con datos, llamada, WhatsApp y el botón de editar con lápiz */}
       {activeClient && (
-        <div style={{ marginTop: 16, background: "#fff", borderRadius: 16, border: `1.5px solid ${C.coral}`, padding: 16, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ 
+          marginTop: 16, 
+          background: "#ffffff", 
+          borderRadius: 16, 
+          border: `2px solid ${C.coral}`, 
+          padding: 16, 
+          boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+          animation: "fadeIn 0.2s ease-in-out"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: C.ink }}>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: C.ink, textTransform: "uppercase" }}>
                 {activeClient.nombres} {activeClient.apellidos}
               </div>
-              <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
-                {activeClient.direccion ? `${activeClient.direccion}, ${activeClient.barrio || ''}` : "Sin dirección registrada"}
+              <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#DC2626", fontWeight: 700, marginTop: 2 }}>
+                CC/NIT: {activeClient.id} {activeClient.tipo_negocio ? `• ${activeClient.tipo_negocio}` : ""}
               </div>
             </div>
             <Stamp estado={activeClient.estado || activeClient.categoria_cliente} size="sm" />
           </div>
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+
+          <div style={{ fontSize: 13, color: "rgba(15,23,42,0.8)", marginBottom: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+            <div>📍 <strong>Dirección:</strong> {activeClient.direccion ? `${activeClient.direccion}${activeClient.barrio ? `, ${activeClient.barrio}` : ''}` : "Sin dirección registrada"}</div>
+            <div>📞 <strong>Teléfono:</strong> {activeClient.telefono || "No registrado"}</div>
+          </div>
+
+          <div style={{ display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
             <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono} />
             <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${String(activeClient.whatsapp).replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp} />
-            <IconBtn icon={Edit3} tone="coral" label="Editar ficha" onClick={() => onEdit(activeClient)} />
+            <div style={{ marginLeft: "auto" }}>
+              <IconBtn icon={Edit3} tone="coral" label="Editar ficha" onClick={() => onEdit(activeClient)} />
+            </div>
           </div>
         </div>
       )}
