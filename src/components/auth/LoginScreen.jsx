@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { User, Lock, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { C } from "../../styles/tokens";
 import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginScreen() {
@@ -30,8 +29,7 @@ export default function LoginScreen() {
   return (
     <div style={{
       minHeight: "100vh",
-      // Fondo claro, elegante y moderno con un sutil gradiente gris/azulado luminoso
-      background: "linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 50%, #e2e8f0 100%)",
+      background: "#0B1120",
       display: "flex", 
       alignItems: "center", 
       justifyContent: "center", 
@@ -40,79 +38,82 @@ export default function LoginScreen() {
       overflow: "hidden",
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Destellos de luz difuminados en el fondo claro para dar volumen y realismo */}
+      {/* Blobs de luz CSS puros (Rápido, elegante y sin imágenes pesadas) */}
       <div style={{
         position: "absolute",
-        width: "500px",
-        height: "500px",
-        background: "radial-gradient(circle, rgba(234, 88, 12, 0.12) 0%, rgba(255, 255, 255, 0) 70%)",
-        top: "-100px",
-        left: "-100px",
-        borderRadius: "50%",
-        filter: "blur(70px)",
+        top: "-15%",
+        left: "-10%",
+        width: 800,
+        height: 800,
+        background: "radial-gradient(circle, rgba(59,130,246,0.25), transparent 70%)",
+        filter: "blur(80px)",
         zIndex: 0
       }} />
       <div style={{
         position: "absolute",
-        width: "600px",
-        height: "600px",
-        background: "radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0) 70%)",
-        bottom: "-150px",
-        right: "-150px",
-        borderRadius: "50%",
-        filter: "blur(90px)",
+        bottom: "-20%",
+        right: "-10%",
+        width: 700,
+        height: 700,
+        background: "radial-gradient(circle, rgba(225,78,42,0.22), transparent 70%)",
+        filter: "blur(80px)",
         zIndex: 0
       }} />
 
-      {/* Tarjeta Central Oscura y Elegante (Contraste alto para máxima presencia) */}
+      {/* Tarjeta Central Glassmorphism */}
       <div style={{ 
         width: "100%", 
         maxWidth: 440, 
         zIndex: 1,
-        background: "#0f172a",
+        background: "rgba(255, 255, 255, 0.05)",
+        backdropFilter: "blur(30px)",
+        WebkitBackdropFilter: "blur(30px)",
         border: "1px solid rgba(255, 255, 255, 0.12)",
-        borderRadius: 32,
-        padding: "40px 36px",
-        boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.05) inset"
+        borderRadius: 24,
+        padding: "36px 32px",
+        boxShadow: "0 20px 60px rgba(0, 0, 0, 0.5)"
       }}>
         {/* Cabecera / Logo */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div style={{ 
-            fontSize: 32, 
+            fontSize: 36, 
             fontWeight: 800, 
             color: "#fff", 
             letterSpacing: "-0.5px",
             fontFamily: "'Space Grotesk', sans-serif"
           }}>
-            RUTA<span style={{ color: C.coral }}>·</span>CRM
+            RUTA<span style={{ color: "#E14E2A" }}>·</span>CRM
           </div>
           <div style={{ 
             color: "rgba(255, 255, 255, 0.5)", 
             fontSize: 11, 
-            letterSpacing: "0.2em", 
+            letterSpacing: "0.15em", 
             textTransform: "uppercase", 
             marginTop: 6,
             fontWeight: 600
           }}>
             Gestión Inteligente de Campo
           </div>
-          <h2 style={{ 
+          <div style={{ 
             color: "#fff", 
             fontSize: 18, 
-            fontWeight: 600, 
-            marginTop: 24, 
-            marginBottom: 0 
+            fontWeight: 700, 
+            marginTop: 22, 
+            marginBottom: 4 
           }}>
             Iniciar sesión
-          </h2>
+          </div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
+            Accede a tu ruta comercial
+          </div>
         </div>
 
         {/* Formulario */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           
           {/* Campo Correo */}
           <div>
-            <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Correo electrónico o Usuario
             </label>
             <div style={{ position: "relative" }}>
@@ -125,10 +126,10 @@ export default function LoginScreen() {
                 placeholder="tu@empresa.com"
                 style={{
                   width: "100%",
-                  padding: "13px 14px 13px 44px",
+                  padding: "14px 14px 14px 44px",
                   background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  borderRadius: 14,
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: 12,
                   color: "#fff",
                   fontSize: 14,
                   outline: "none",
@@ -141,7 +142,7 @@ export default function LoginScreen() {
 
           {/* Campo Contraseña */}
           <div>
-            <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <label style={{ display: "block", fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.6)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Contraseña
             </label>
             <div style={{ position: "relative" }}>
@@ -154,10 +155,10 @@ export default function LoginScreen() {
                 placeholder="••••••••"
                 style={{
                   width: "100%",
-                  padding: "13px 44px 13px 44px",
+                  padding: "14px 44px 14px 44px",
                   background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  borderRadius: 14,
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
+                  borderRadius: 12,
                   color: "#fff",
                   fontSize: 14,
                   outline: "none",
@@ -177,7 +178,7 @@ export default function LoginScreen() {
           </div>
 
           {err && (
-            <div style={{ color: "#fb7185", fontSize: 13, display: "flex", alignItems: "center", gap: 6, background: "rgba(251, 113, 133, 0.1)", padding: "8px 12px", borderRadius: 8 }}>
+            <div style={{ color: "#fb7185", fontSize: 13, display: "flex", alignItems: "center", gap: 6, background: "rgba(251, 113, 133, 0.1)", padding: "10px 12px", borderRadius: 8 }}>
               <AlertCircle size={14} /> <span>{err}</span>
             </div>
           )}
@@ -189,31 +190,31 @@ export default function LoginScreen() {
             style={{
               width: "100%", 
               padding: "15px", 
-              borderRadius: 14, 
+              borderRadius: 12, 
               border: "none",
-              background: `linear-gradient(135deg, ${C.coral} 0%, #ea580c 100%)`, 
+              background: "linear-gradient(135deg, #E14E2A, #FF6B4A)", 
               color: "#fff", 
               fontWeight: 700, 
               fontSize: 15,
               cursor: loading ? "not-allowed" : "pointer", 
               opacity: loading ? 0.7 : 1,
-              marginTop: 10,
-              boxShadow: "0 10px 25px rgba(234, 88, 12, 0.4)",
+              marginTop: 6,
+              boxShadow: "0 0 30px rgba(225,78,42,0.4)",
               transition: "transform 0.1s ease, box-shadow 0.2s ease"
             }}
           >
-            {loading ? "Ingresando al Sistema…" : "Ingresar al Sistema"}
+            {loading ? "Ingresando..." : "Ingresar al Sistema"}
           </button>
         </div>
 
-        {/* Pie de página dentro de la tarjeta */}
+        {/* Pie de página */}
         <div style={{ 
           textAlign: "center", 
           color: "rgba(255, 255, 255, 0.35)", 
           fontSize: 11, 
-          marginTop: 32,
+          marginTop: 28,
           borderTop: "1px solid rgba(255, 255, 255, 0.06)",
-          paddingTop: 20
+          paddingTop: 16
         }}>
           © 2026 RUTA CRM · Gestión comercial de campo
         </div>
