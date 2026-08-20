@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, BellRing, X, Phone, MessageCircle, Edit3 } from "lucide-react";
+import { Search, BellRing, X, Phone, MessageCircle, Edit3, Sparkles } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
@@ -25,7 +25,6 @@ export default function App() {
   const [showArchived, setShowArchived] = useState(false);
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
   
-  // Estado para controlar el modal flotante de la alerta de mañana
   const [showMananaModal, setShowMananaModal] = useState(false);
 
   const profile = useMemo(() => {
@@ -141,7 +140,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: C.ink, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+      <div style={{ minHeight: "100vh", background: "#f8f5f0", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e293b", fontWeight: 600 }}>
         Cargando sesión…
       </div>
     );
@@ -150,21 +149,31 @@ export default function App() {
 
   if (recordsLoading || records === null) {
     return (
-      <div style={{ minHeight: "100vh", background: C.ink, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+      <div style={{ minHeight: "100vh", background: "#f8f5f0", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e293b", fontWeight: 600 }}>
         Cargando registros…
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f1f5f9", fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ 
+      minHeight: "100vh", 
+      // Fondo luminoso y elegante en tonos cálidos perla/champán con sutiles destellos visuales
+      background: "linear-gradient(135deg, #fdfbf7 0%, #f4ede2 50%, #eae1d3 100%)", 
+      fontFamily: "'Inter', sans-serif" 
+    }}>
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        background: C.paper, 
+        // Contenedor principal con efecto glass claro translúcido
+        background: "rgba(255, 255, 255, 0.75)", 
+        backdropFilter: "blur(25px)",
+        WebkitBackdropFilter: "blur(25px)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.6)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.6)",
         position: "relative", 
-        boxShadow: "0 0 40px rgba(0,0,0,0.08)" 
+        boxShadow: "0 0 50px rgba(180, 160, 140, 0.15)" 
       }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
@@ -179,27 +188,30 @@ export default function App() {
             <div 
               onClick={() => setShowMananaModal(true)}
               style={{ 
-                background: "#FEF3C7", 
-                border: "1.5px solid #F59E0B", 
+                background: "rgba(254, 243, 199, 0.85)", 
+                backdropFilter: "blur(10px)",
+                border: "1.5px solid rgba(245, 158, 11, 0.4)", 
                 color: "#92400E", 
                 padding: "14px 18px", 
-                borderRadius: 14, 
+                borderRadius: 16, 
                 marginBottom: 18, 
                 display: "flex", 
                 alignItems: "center", 
                 gap: 12,
-                boxShadow: "0 4px 12px rgba(245, 158, 11, 0.15)",
+                boxShadow: "0 8px 20px rgba(245, 158, 11, 0.12)",
                 cursor: "pointer",
                 transition: "transform 0.1s ease"
               }}
             >
-              <div style={{ background: "#F59E0B", color: "#fff", padding: 8, borderRadius: "50%", display: "flex" }}>
+              <div style={{ background: "#F59E0B", color: "#fff", padding: 8, borderRadius: "50%", display: "flex", boxShadow: "0 4px 10px rgba(245, 158, 11, 0.3)" }}>
                 <BellRing size={20} />
               </div>
               <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s)) - Toca para ver</strong>
+                <strong style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Sparkles size={15} /> ¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s))
+                </strong>
                 <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
-                  Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
+                  Tienes visitas próximas programadas para el {mananaISO}. Toca aquí para ver detalles.
                 </div>
               </div>
             </div>
@@ -227,9 +239,16 @@ export default function App() {
             <>
               <ViewHeader title="Búsqueda rápida" subtitle="Por nombre o cédula" />
               <div style={{ position: "relative", marginBottom: 16 }}>
-                <Search size={16} color={C.ink40} style={{ position: "absolute", left: 12, top: 13 }} />
+                <Search size={16} color={C.ink40} style={{ position: "absolute", left: 14, top: 14 }} />
                 <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Escribe un nombre o número de cédula…"
-                  style={{ ...inputStyle(false), paddingLeft: 36 }} />
+                  style={{ 
+                    ...inputStyle(false), 
+                    paddingLeft: 40, 
+                    background: "rgba(255, 255, 255, 0.8)", 
+                    backdropFilter: "blur(10px)",
+                    borderRadius: 14,
+                    border: "1px solid rgba(200, 190, 175, 0.4)"
+                  }} />
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
               {buscados.map((r) => (
@@ -241,13 +260,13 @@ export default function App() {
           {view === "todos" && (
             <>
               <ViewHeader title="Base de datos de créditos" subtitle={`${todos.length} registros en total`} />
-              <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-                <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="Todos" />
+              <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+                <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="✨ Todos" />
                 <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
                 <FiltroChip active={filtroActivo === "NO_LOCALIZADOS"} onClick={() => setFiltroActivo("NO_LOCALIZADOS")} label="❌ No localizados" />
                 <FiltroChip active={filtroActivo === "INTERESADOS"} onClick={() => setFiltroActivo("INTERESADOS")} label="⭐ Interesados / Preofertas" />
                 {profile.rol === "admin" && (
-                  <FiltroChip active={showArchived} onClick={() => setShowArchived(!showArchived)} label="Archivados" />
+                  <FiltroChip active={showArchived} onClick={() => setShowArchived(!showArchived)} label="📁 Archivados" />
                 )}
               </div>
 
@@ -271,22 +290,24 @@ export default function App() {
         {view !== "form" && <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />}
       </div>
 
-      {/* Modal flotante para los clientes con visita para mañana */}
+      {/* Modal flotante elegante */}
       {showMananaModal && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(40, 30, 20, 0.4)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 1000, padding: 16
         }}>
           <div style={{
-            background: "#fff", borderRadius: 16, width: "100%", maxWidth: 500,
+            background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(25px)", 
+            borderRadius: 20, width: "100%", maxWidth: 500,
             maxHeight: "85vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.15)", overflow: "hidden"
+            boxShadow: "0 20px 40px rgba(0,0,0,0.2)", overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.8)"
           }}>
-            {/* Cabecera del Modal */}
-            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FEF3C7" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <BellRing size={18} color="#D97706" />
+            <div style={{ padding: "18px 22px", borderBottom: `1px solid rgba(220,210,195,0.5)`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(254, 243, 199, 0.5)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <BellRing size={20} color="#D97706" />
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#92400E" }}>
                   Visitas para mañana ({citasManana.length})
                 </h3>
@@ -299,8 +320,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* Lista de Clientes de Mañana */}
-            <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "#f8fafc" }}>
+            <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "rgba(248, 245, 240, 0.6)" }}>
               {citasManana.map((r) => {
                 const nombreCliente = `${r.nombres || ""} ${r.apellidos || ""}`.trim();
                 const nombreAsesor = profile?.nombre || "Asesor";
@@ -309,19 +329,19 @@ export default function App() {
                 const waHref = waClean ? `https://wa.me/57${waClean}?text=${encodeURIComponent(textoMensaje)}` : undefined;
 
                 return (
-                  <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                  <div key={r.id} style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)", borderRadius: 14, padding: 14, border: "1px solid rgba(220,210,195,0.6)", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b", textTransform: "uppercase" }}>
                           {nombreCliente}
                         </div>
-                        <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
                           {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
                         </div>
                       </div>
                       <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
                     </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(220,210,195,0.4)" }}>
                       <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
                       <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean} />
                       <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
@@ -331,11 +351,10 @@ export default function App() {
               })}
             </div>
 
-            {/* Pie del Modal */}
-            <div style={{ padding: 12, borderTop: `1px solid ${C.line}`, background: "#fff", textAlign: "right" }}>
+            <div style={{ padding: 14, borderTop: "1px solid rgba(220,210,195,0.5)", background: "rgba(255,255,255,0.9)", textAlign: "right" }}>
               <button 
                 onClick={() => setShowMananaModal(false)}
-                style={{ background: C.ink, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                style={{ background: "#1e293b", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}
               >
                 Cerrar
               </button>
@@ -363,9 +382,19 @@ export default function App() {
 function FiltroChip({ active, onClick, label }) {
   return (
     <button onClick={onClick} style={{
-      border: `1.5px solid ${active ? C.coral : C.line}`, background: active ? "#FCEBE5" : "#fff",
-      color: active ? C.coralDark : C.ink70, borderRadius: 20, padding: "5px 12px", fontSize: 12,
-      fontWeight: 600, cursor: "pointer",
-    }}>{label}</button>
+      border: `1.5px solid ${active ? C.coral : "rgba(200, 190, 175, 0.5)"}`, 
+      background: active ? "#FCEBE5" : "rgba(255, 255, 255, 0.7)",
+      backdropFilter: "blur(10px)",
+      color: active ? C.coralDark : "#475569", 
+      borderRadius: 20, 
+      padding: "6px 14px", 
+      fontSize: 12.5,
+      fontWeight: 600, 
+      cursor: "pointer",
+      boxShadow: active ? "0 4px 12px rgba(225, 78, 42, 0.15)" : "0 2px 5px rgba(0,0,0,0.02)",
+      transition: "all 0.2s ease"
+    }}>
+      {label}
+    </button>
   );
 }
