@@ -5,12 +5,12 @@ import { Stamp, IconBtn } from "../ui/UIKit";
 export default function ClientCard({ client, onEdit, onArchive, onDelete }) {
   if (!client) return null;
 
-  // Unificamos el estado para que la etiqueta pequeña y la grande coincidan exactamente
+  // Tomamos el estado real unificado de manera segura
   const estadoReal = client.estado || client.categoria_cliente || "Registrado";
 
   const formatPhone = (phone) => {
     if (!phone) return "";
-    return phone.replace(/\D/g, "");
+    return String(phone).replace(/\D/g, "");
   };
 
   const telClean = formatPhone(client.telefono);
@@ -25,7 +25,8 @@ export default function ClientCard({ client, onEdit, onArchive, onDelete }) {
       boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
       display: "flex",
       flexDirection: "column",
-      gap: 10
+      gap: 10,
+      marginBottom: 8
     }}>
       {/* Cabecera de la tarjeta: Nombre y Estado Principal */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
@@ -48,7 +49,7 @@ export default function ClientCard({ client, onEdit, onArchive, onDelete }) {
         </div>
       )}
 
-      {/* Detalles secundarios (Tipo de negocio y Estado unificado coherente) */}
+      {/* Detalles secundarios sincronizados */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.ink70, flexWrap: "wrap" }}>
         {client.tipo_negocio && (
           <span style={{ background: "#f8fafc", padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.line}`, fontWeight: 500 }}>
@@ -87,7 +88,7 @@ export default function ClientCard({ client, onEdit, onArchive, onDelete }) {
           <IconBtn 
             icon={Edit3} 
             label="Editar" 
-            onClick={() => onEdit(client)} 
+            onClick={() => onEdit && onEdit(client)} 
           />
         </div>
         <div style={{ display: "flex", gap: 6 }}>
