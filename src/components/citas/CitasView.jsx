@@ -8,11 +8,11 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
   const [modalAgendar, setModalAgendar] = useState(false);
   const [modalReprogramar, setModalReprogramar] = useState(null);
 
-  // Estilo unificado para etiquetas en vinotinto de alta visibilidad
-  const labelStyleVinotinto = {
+  // Estilo ultra forzado en azul marino oscuro para máxima visibilidad
+  const labelStyleAzulOscuro = {
     fontSize: "11.5px",
-    fontWeight: 700,
-    color: "#4c0519",
+    fontWeight: "700 !important",
+    color: "#1e3a8a", // Azul marino profundo y llamativo
     display: "block",
     marginBottom: "6px",
     letterSpacing: "0.5px",
@@ -67,7 +67,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
   return (
     <div style={{ paddingBottom: 40 }}>
-      {/* Encabezado con título en blanco impecable */}
+      {/* Encabezado */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
           <h2 style={{ 
@@ -105,7 +105,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </button>
       </div>
 
-      {/* Pestañas de filtrado superior estilo chips */}
+      {/* Pestañas de filtrado */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
         {[
           { key: "TODAS", label: "Todas" },
@@ -133,17 +133,15 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         ))}
       </div>
 
-      {/* Listado de citas con la estructura limpia y robusta */}
+      {/* Listado */}
       {citasFiltradas.length === 0 ? (
         <EmptyState text="No hay citas registradas en esta vista." />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {citasFiltradas.map((c) => {
-            // Resolución infalible del cliente buscando tanto en la propiedad directa como en la lista general de clientes
             const idBuscado = c.clienteId || c.cliente_id || c.id;
             const clienteEnLista = clientes.find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
             const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
-            
             const clienteFinal = clienteObjEnCita || clienteEnLista || c;
 
             const nombres = clienteFinal.nombres || clienteFinal.nombre || "";
@@ -161,11 +159,9 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   padding: 20,
                   border: `1px solid #E2E8F0`,
                   boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
-                  position: "relative",
-                  transition: "transform 0.2s ease"
+                  position: "relative"
                 }}
               >
-                {/* Etiqueta de estado en la parte superior derecha */}
                 <div style={{ position: "absolute", top: 16, right: 20 }}>
                   <span style={{
                     fontSize: 11,
@@ -180,7 +176,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   </span>
                 </div>
 
-                {/* Cabecera de la tarjeta */}
                 <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#0F172A", paddingRight: 100 }}>
                   {nombreCompleto}
                 </div>
@@ -188,7 +183,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   CC/NIT: {cedula}
                 </div>
 
-                {/* Dirección y Horario */}
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 14, fontSize: 13, color: "#475569" }}>
                   <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span>📍</span> {direccion}
@@ -205,7 +199,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   </div>
                 )}
 
-                {/* Acciones */}
                 <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14 }}>
                   <button
                     onClick={() => setModalReprogramar(c)}
@@ -248,31 +241,39 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL NUEVA CITA */}
+      {/* MODAL NUEVA CITA CON RETOQUE VISUAL */}
       {modalAgendar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
           padding: 16
         }}>
           <div style={{
-            background: "#fff", borderRadius: 20, width: "100%", maxWidth: 460,
-            padding: 24, boxShadow: "0 10px 30px rgba(0,0,0,0.2)", position: "relative"
+            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460,
+            padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+            border: "1px solid #F1F5F9", position: "relative",
+            animation: "fadeIn 0.2s ease-out"
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: C.ink, margin: 0 }}>Agendar nueva cita</h3>
-              <button onClick={() => setModalAgendar(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink40 }}>
-                <XCircle size={22} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+                Agendar nueva cita
+              </h3>
+              <button 
+                onClick={() => setModalAgendar(false)} 
+                style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748B" }}
+              >
+                <XCircle size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCrearSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <form onSubmit={handleCrearSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label style={labelStyleVinotinto}>CLIENTE *</label>
+                <label style={labelStyleAzulOscuro}>CLIENTE *</label>
                 <select
                   value={clienteId}
                   onChange={(e) => setClienteId(e.target.value)}
-                  style={{ ...inputStyle(false), width: "100%", padding: "10px", borderRadius: 8 }}
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
                 >
                   <option value="">— Seleccionar —</option>
                   {clientes.map(cli => (
@@ -281,48 +282,48 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 </select>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={labelStyleVinotinto}>FECHA *</label>
+                  <label style={labelStyleAzulOscuro}>FECHA *</label>
                   <input
                     type="date"
                     value={fecha}
                     onChange={(e) => setFecha(e.target.value)}
-                    style={{ ...inputStyle(false), width: "100%", padding: "10px", borderRadius: 8 }}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
                   />
                 </div>
                 <div>
-                  <label style={labelStyleVinotinto}>HORA *</label>
+                  <label style={labelStyleAzulOscuro}>HORA *</label>
                   <input
                     type="time"
                     value={hora}
                     onChange={(e) => setHora(e.target.value)}
-                    style={{ ...inputStyle(false), width: "100%", padding: "10px", borderRadius: 8 }}
+                    style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, borderColor: "#CBD5E1" }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={labelStyleVinotinto}>NOTAS</label>
+                <label style={labelStyleAzulOscuro}>NOTAS</label>
                 <textarea
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
                   placeholder="Detalles de la cita..."
-                  style={{ ...inputStyle(false), width: "100%", padding: "10px", borderRadius: 8, height: 80, resize: "none" }}
+                  style={{ ...inputStyle(false), width: "100%", padding: "11px", borderRadius: 10, height: 84, resize: "none", borderColor: "#CBD5E1" }}
                 />
               </div>
 
-              <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                 <button
                   type="button"
                   onClick={() => setModalAgendar(false)}
-                  style={{ flex: 1, padding: "12px", borderRadius: 10, border: `1px solid ${C.line}`, background: "#fff", fontWeight: 600, cursor: "pointer" }}
+                  style={{ flex: 1, padding: "12px", borderRadius: 12, border: `1px solid #CBD5E1`, background: "#fff", color: "#334155", fontWeight: 600, cursor: "pointer" }}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  style={{ flex: 1, padding: "12px", borderRadius: 10, border: "none", background: C.ink, color: "#fff", fontWeight: 600, cursor: "pointer" }}
+                  style={{ flex: 1, padding: "12px", borderRadius: 12, border: "none", background: "#0F172A", color: "#fff", fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px rgba(15, 23, 42, 0.2)" }}
                 >
                   Agendar
                 </button>
@@ -336,28 +337,32 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       {modalReprogramar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
+          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
           padding: 16
         }}>
           <div style={{
-            background: "#fff", borderRadius: 20, width: "100%", maxWidth: 420,
-            padding: 24, boxShadow: "0 10px 30px rgba(0,0,0,0.2)", position: "relative"
+            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 420,
+            padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", position: "relative"
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: C.ink, margin: 0 }}>Nueva Fecha</h3>
-              <button onClick={() => setModalReprogramar(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.ink40 }}>
-                <XCircle size={22} />
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>Nueva Fecha</h3>
+              <button 
+                onClick={() => setModalReprogramar(null)} 
+                style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748B" }}
+              >
+                <XCircle size={18} />
               </button>
             </div>
 
             <form onSubmit={handleReprogramarSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={labelStyleVinotinto}>SELECCIONAR NUEVA FECHA</label>
+                <label style={labelStyleAzulOscuro}>SELECCIONAR NUEVA FECHA</label>
                 <input
                   type="date"
                   value={nuevaFechaReprogramar}
                   onChange={(e) => setNuevaFechaReprogramar(e.target.value)}
-                  style={{ ...inputStyle(false), width: "100%", padding: "12px", borderRadius: 10 }}
+                  style={{ ...inputStyle(false), width: "100%", padding: "12px", borderRadius: 10, borderColor: "#CBD5E1" }}
                 />
               </div>
 
@@ -366,7 +371,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 style={{
                   width: "100%",
                   padding: "12px",
-                  borderRadius: "10px",
+                  borderRadius: "12px",
                   border: "none",
                   background: C.coral,
                   color: "#fff",
