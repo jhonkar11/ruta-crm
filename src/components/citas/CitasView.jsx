@@ -1,12 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText, MapPin } from "lucide-react";
 import { C, inputStyle } from "../../styles/tokens";
 import { EmptyState } from "../ui/UIKit";
 
 export default function CitasView({ citas = [], clientes = [], currentUser, onCrear, onPosponer, onCumplida, onCancelar }) {
-  const [filtroTab, setFiltroTab] = useState("TODAS");
+  const [filtroTab, setFiltroTab] = useState(() => localStorage.getItem("citas_filtro_activo") || "TODAS");
   const [modalAgendar, setModalAgendar] = useState(false);
   const [modalReprogramar, setModalReprogramar] = useState(null);
+
+  // Guardar la pestaña activa en localStorage cada vez que cambie
+  useEffect(() => {
+    localStorage.setItem("citas_filtro_activo", filtroTab);
+  }, [filtroTab]);
 
   // Estilo robusto para los títulos de los campos
   const labelStyleAzulOscuro = {
