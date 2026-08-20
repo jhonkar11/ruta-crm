@@ -50,7 +50,7 @@ export function Field({ label, required, error, children }) {
     <div style={{ marginBottom: 14 }}>
       <div style={{
         fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.05em",
-        color: error ? C.coral : C.ink70, textTransform: "uppercase", marginBottom: 5,
+        color: error ? C.coral : "rgba(255, 255, 255, 0.8)", textTransform: "uppercase", marginBottom: 5,
         ...iconRow(4),
       }}>
         {label}{required && <span style={{ color: C.coral }}>*</span>}
@@ -66,8 +66,8 @@ export function Field({ label, required, error, children }) {
 }
 
 export function IconBtn({ icon: Icon, onClick, label, tone = "ink", href, disabled }) {
-  const bg = tone === "coral" ? C.coral : tone === "line" ? "transparent" : C.paper;
-  const fg = tone === "coral" ? "#fff" : disabled ? C.ink40 : C.ink;
+  const bg = tone === "coral" ? C.coral : tone === "line" ? "transparent" : "rgba(255, 255, 255, 0.1)";
+  const fg = tone === "coral" ? "#fff" : disabled ? "rgba(255, 255, 255, 0.3)" : "#ffffff";
   const Comp = href ? "a" : "button";
   return (
     <Comp
@@ -79,7 +79,7 @@ export function IconBtn({ icon: Icon, onClick, label, tone = "ink", href, disabl
       title={label}
       disabled={disabled}
       style={{
-        background: bg, color: fg, border: tone === "line" ? `1px solid ${C.line}` : "none",
+        background: bg, color: fg, border: tone === "line" ? "1px solid rgba(255, 255, 255, 0.2)" : "none",
         width: 36, height: 36, minWidth: 36, borderRadius: 10, ...iconRow(0),
         justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1, flexShrink: 0,
@@ -111,29 +111,29 @@ export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onC
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(18,32,61,0.55)", zIndex: 60,
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 60,
       display: "flex", alignItems: "flex-end", justifyContent: "center",
     }}>
       <div style={{
-        background: "#fff", borderRadius: "20px 20px 0 0", padding: 24, width: "100%",
-        maxWidth: 420, boxShadow: "0 -8px 30px rgba(0,0,0,0.2)", maxHeight: "85vh", overflowY: "auto",
+        background: "#0f172a", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "20px 20px 0 0", padding: 24, width: "100%",
+        maxWidth: 420, boxShadow: "0 -8px 30px rgba(0,0,0,0.5)", maxHeight: "85vh", overflowY: "auto", color: "#fff"
       }}>
-        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: C.ink, marginBottom: 8 }}>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#ffffff", marginBottom: 8 }}>
           {finalTitle}
         </div>
-        {finalBody && <div style={{ fontSize: 14, color: C.ink70, marginBottom: 20, lineHeight: 1.5 }}>{finalBody}</div>}
+        {finalBody && <div style={{ fontSize: 14, color: "rgba(255,255,255,0.8)", marginBottom: 20, lineHeight: 1.5 }}>{finalBody}</div>}
         {children}
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
           {onCancel && (
             <button onClick={onCancel} style={{
-              flex: 1, padding: "12px", borderRadius: 12, border: `1.5px solid ${C.line}`,
-              background: "#fff", color: C.ink, fontWeight: 600, cursor: "pointer",
+              flex: 1, padding: "12px", borderRadius: 12, border: "1.5px solid rgba(255,255,255,0.2)",
+              background: "transparent", color: "#ffffff", fontWeight: 600, cursor: "pointer",
             }}>Cancelar</button>
           )}
           {onConfirm && (
             <button onClick={onConfirm} style={{
               flex: 1, padding: "12px", borderRadius: 12, border: "none",
-              background: danger ? C.coral : C.ink, color: "#fff", fontWeight: 600, cursor: "pointer",
+              background: danger ? "#dc2626" : "#2563eb", color: "#fff", fontWeight: 600, cursor: "pointer",
             }}>{confirmLabel || "Aceptar"}</button>
           )}
         </div>
@@ -145,8 +145,8 @@ export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onC
 export function EmptyState({ text }) {
   return (
     <div style={{
-      textAlign: "center", padding: "40px 20px", color: C.ink40, fontSize: 13.5,
-      background: "#fff", borderRadius: 16, border: `1px dashed ${C.line}`,
+      textAlign: "center", padding: "40px 20px", color: "rgba(255,255,255,0.5)", fontSize: 13.5,
+      background: "rgba(15,23,42,0.6)", borderRadius: 16, border: "1px dashed rgba(255,255,255,0.2)",
     }}>{text}</div>
   );
 }
@@ -154,8 +154,8 @@ export function EmptyState({ text }) {
 export function ViewHeader({ title, subtitle }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.ink }}>{title}</div>
-      <div style={{ fontSize: 12.5, color: C.ink70, marginTop: 2 }}>{subtitle}</div>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: "#ffffff" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 12.5, color: "rgba(255, 255, 255, 0.8)", marginTop: 2 }}>{subtitle}</div>}
     </div>
   );
 }
@@ -163,9 +163,9 @@ export function ViewHeader({ title, subtitle }) {
 export function SectionLabel({ children }) {
   return (
     <div style={{
-      fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 13, color: C.coral,
+      fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 13, color: "#60a5fa",
       textTransform: "uppercase", letterSpacing: "0.04em", margin: "22px 0 10px",
-      borderBottom: `2px solid ${C.line}`, paddingBottom: 6,
+      borderBottom: "2px solid rgba(255,255,255,0.15)", paddingBottom: 6,
     }}>{children}</div>
   );
 }
@@ -174,20 +174,23 @@ export function NavTab({ icon: Icon, label, active, onClick, badge }) {
   return (
     <button onClick={onClick} style={{
       flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex",
-      flexDirection: "column", alignItems: "center", gap: 3, color: active ? C.coral : C.ink40, padding: "2px 0",
+      flexDirection: "column", alignItems: "center", gap: 3, 
+      // Activo toma el color coral (C.coral) y inactivo toma blanco puro bien visible (#ffffff)
+      color: active ? C.coral : "#ffffff", 
+      padding: "2px 0",
       position: "relative",
     }}>
       <span style={{ position: "relative" }}>
         <Icon size={18} />
         {badge > 0 && (
           <span style={{
-            position: "absolute", top: -4, right: -8, background: C.coral, color: "#fff",
+            position: "absolute", top: -4, right: -8, background: "#ef4444", color: "#fff",
             fontSize: 9, fontWeight: 700, borderRadius: 8, minWidth: 14, height: 14,
             display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
           }}>{badge > 9 ? "9+" : badge}</span>
         )}
       </span>
-      <span style={{ fontSize: 9.5, fontWeight: 600, fontFamily: "'IBM Plex Mono', monospace" }}>{label}</span>
+      <span style={{ fontSize: 9.5, fontWeight: active ? 700 : 600, fontFamily: "'IBM Plex Mono', monospace" }}>{label}</span>
     </button>
   );
 }
@@ -201,9 +204,9 @@ export function FiltroChip({ active, onClick, label }) {
         borderRadius: "20px",
         fontSize: "12.5px",
         fontWeight: "600",
-        background: active ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.05)",
-        border: active ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.1)",
-        color: active ? "#ffffff" : "rgba(255, 255, 255, 0.7)",
+        background: active ? "#2563eb" : "rgba(255, 255, 255, 0.05)",
+        border: active ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.15)",
+        color: "#ffffff",
         cursor: "pointer",
         backdropFilter: "blur(8px)",
         transition: "all 0.2s ease"
