@@ -143,8 +143,62 @@ export default function App() {
   if (recordsLoading || records === null) return <div style={{ minHeight: "100vh", background: "#080E1E", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>Cargando registros…</div>;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#080E1E", color: "#f8fafc", position: "relative" }}>
-      <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", background: "rgba(11, 17, 32, 0.75)", backdropFilter: "blur(15px)", borderLeft: "1px solid rgba(255, 255, 255, 0.1)", borderRight: "1px solid rgba(255, 255, 255, 0.1)", position: "relative", zIndex: 1, boxShadow: "0 0 60px rgba(0,0,0,0.6)" }}>
+    <div style={{
+      minHeight: "100vh",
+      background: "#080E1E",
+      position: "relative",
+      overflow: "hidden",
+      color: "#f8fafc"
+    }}>
+      {/* FONDO HERMOSO - 3 blobs difuminados */}
+      <div style={{
+        position: "fixed",
+        top: "-10%",
+        left: "-15%",
+        width: 900,
+        height: 900,
+        background: "radial-gradient(circle, rgba(37,99,235,0.35) 0%, rgba(59,130,246,0.15) 30%, transparent 70%)",
+        filter: "blur(80px)",
+        pointerEvents: "none",
+        zIndex: 0
+      }} />
+      <div style={{
+        position: "fixed",
+        bottom: "-15%",
+        right: "-10%",
+        width: 800,
+        height: 800,
+        background: "radial-gradient(circle, rgba(225,78,42,0.28) 0%, rgba(251,113,133,0.12) 35%, transparent 70%)",
+        filter: "blur(90px)",
+        pointerEvents: "none",
+        zIndex: 0
+      }} />
+      <div style={{
+        position: "fixed",
+        top: "40%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: 600,
+        height: 600,
+        background: "radial-gradient(circle, rgba(20,184,166,0.10) 0%, transparent 70%)",
+        filter: "blur(80px)",
+        pointerEvents: "none",
+        zIndex: 0
+      }} />
+
+      {/* CONTENEDOR PRINCIPAL DE LA PLATAFORMA */}
+      <div style={{
+        maxWidth: "1100px",
+        margin: "0 auto",
+        minHeight: "100vh",
+        background: "rgba(11, 17, 32, 0.75)",
+        backdropFilter: "blur(15px)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.1)",
+        position: "relative",
+        zIndex: 1,
+        boxShadow: "0 0 60px rgba(0,0,0,0.6)"
+      }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
         <div style={{ padding: "24px 24px 140px" }}>
           {error && <div style={{ background: "rgba(239, 68, 68, 0.2)", color: "#fca5a5", padding: 12, borderRadius: 10, marginBottom: 12 }}>Error: {error}</div>}
