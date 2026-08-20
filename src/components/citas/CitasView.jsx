@@ -8,6 +8,17 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
   const [modalAgendar, setModalAgendar] = useState(false);
   const [modalReprogramar, setModalReprogramar] = useState(null);
 
+  // Estilo unificado para etiquetas en vinotinto de alta visibilidad
+  const labelStyleVinotinto = {
+    fontSize: "11.5px",
+    fontWeight: 700,
+    color: "#4c0519",
+    display: "block",
+    marginBottom: "6px",
+    letterSpacing: "0.5px",
+    textTransform: "uppercase"
+  };
+
   // Estados del formulario para nueva cita
   const [clienteId, setClienteId] = useState("");
   const [fecha, setFecha] = useState("");
@@ -257,7 +268,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
             <form onSubmit={handleCrearSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 6 }}>CLIENTE *</label>
+                <label style={labelStyleVinotinto}>CLIENTE *</label>
                 <select
                   value={clienteId}
                   onChange={(e) => setClienteId(e.target.value)}
@@ -272,7 +283,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 6 }}>FECHA *</label>
+                  <label style={labelStyleVinotinto}>FECHA *</label>
                   <input
                     type="date"
                     value={fecha}
@@ -281,7 +292,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 6 }}>HORA *</label>
+                  <label style={labelStyleVinotinto}>HORA *</label>
                   <input
                     type="time"
                     value={hora}
@@ -292,7 +303,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 6 }}>NOTAS</label>
+                <label style={labelStyleVinotinto}>NOTAS</label>
                 <textarea
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
@@ -341,7 +352,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
             <form onSubmit={handleReprogramarSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: C.ink70, display: "block", marginBottom: 6 }}>SELECCIONAR NUEVA FECHA</label>
+                <label style={labelStyleVinotinto}>SELECCIONAR NUEVA FECHA</label>
                 <input
                   type="date"
                   value={nuevaFechaReprogramar}
