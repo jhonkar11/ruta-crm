@@ -30,8 +30,8 @@ export default function LoginScreen() {
   return (
     <div style={{
       minHeight: "100vh",
-      // Fondo corporativo elegante con tonos azulados y oscuros profundos
-      background: "#0b1329",
+      // Fondo claro, elegante y moderno con un sutil gradiente gris/azulado luminoso
+      background: "linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 50%, #e2e8f0 100%)",
       display: "flex", 
       alignItems: "center", 
       justifyContent: "center", 
@@ -40,42 +40,40 @@ export default function LoginScreen() {
       overflow: "hidden",
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Elementos de luz difuminada en el fondo (Efecto Mesh / Esferas de luz) */}
-      <div style={{
-        position: "absolute",
-        width: "450px",
-        height: "450px",
-        background: "radial-gradient(circle, rgba(234, 88, 12, 0.25) 0%, rgba(30, 58, 138, 0) 70%)",
-        top: "-100px",
-        left: "-100px",
-        borderRadius: "50%",
-        filter: "blur(60px)",
-        zIndex: 0
-      }} />
+      {/* Destellos de luz difuminados en el fondo claro para dar volumen y realismo */}
       <div style={{
         position: "absolute",
         width: "500px",
         height: "500px",
-        background: "radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, rgba(15, 23, 42, 0) 70%)",
+        background: "radial-gradient(circle, rgba(234, 88, 12, 0.12) 0%, rgba(255, 255, 255, 0) 70%)",
+        top: "-100px",
+        left: "-100px",
+        borderRadius: "50%",
+        filter: "blur(70px)",
+        zIndex: 0
+      }} />
+      <div style={{
+        position: "absolute",
+        width: "600px",
+        height: "600px",
+        background: "radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0) 70%)",
         bottom: "-150px",
         right: "-150px",
         borderRadius: "50%",
-        filter: "blur(80px)",
+        filter: "blur(90px)",
         zIndex: 0
       }} />
 
-      {/* Contenedor Principal con Glassmorphism Avanzado */}
+      {/* Tarjeta Central Oscura y Elegante (Contraste alto para máxima presencia) */}
       <div style={{ 
         width: "100%", 
         maxWidth: 440, 
         zIndex: 1,
-        background: "rgba(255, 255, 255, 0.03)",
-        backdropFilter: "blur(25px)",
-        WebkitBackdropFilter: "blur(25px)",
+        background: "#0f172a",
         border: "1px solid rgba(255, 255, 255, 0.12)",
         borderRadius: 32,
         padding: "40px 36px",
-        boxShadow: "0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+        boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.05) inset"
       }}>
         {/* Cabecera / Logo */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
@@ -128,7 +126,7 @@ export default function LoginScreen() {
                 style={{
                   width: "100%",
                   padding: "13px 14px 13px 44px",
-                  background: "rgba(0, 0, 0, 0.25)",
+                  background: "rgba(255, 255, 255, 0.06)",
                   border: "1px solid rgba(255, 255, 255, 0.1)",
                   borderRadius: 14,
                   color: "#fff",
@@ -157,7 +155,7 @@ export default function LoginScreen() {
                 style={{
                   width: "100%",
                   padding: "13px 44px 13px 44px",
-                  background: "rgba(0, 0, 0, 0.25)",
+                  background: "rgba(255, 255, 255, 0.06)",
                   border: "1px solid rgba(255, 255, 255, 0.1)",
                   borderRadius: 14,
                   color: "#fff",
