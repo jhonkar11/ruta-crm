@@ -36,6 +36,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       estado: "Pendiente",
       fecha_seguimiento: "",
       observaciones: "",
+      notas: "",
       foto_url: "" // Mapeado correctamente a la columna de Supabase
     }
   );
@@ -44,7 +45,13 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
   const fileInputRef = useRef(null);
 
   const handleChange = (field, val) => {
-    setForm((prev) => ({ ...prev, [field]: val }));
+    setForm((prev) => {
+      const updated = { ...prev, [field]: val };
+      // Sincronizamos notas y observaciones para asegurar la persistencia en cualquier vista
+      if (field === "observaciones") updated.notas = val;
+      if (field === "notas") updated.observaciones = val;
+      return updated;
+    });
   };
 
   const handleFileChange = (e) => {
@@ -214,11 +221,11 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Observaciones */}
+        {/* Observaciones y Notas */}
         <div>
           <label style={labelStyle}>Observaciones / Notas de la visita</label>
           <textarea
-            value={form.observaciones || ""}
+            value={form.observaciones || form.notas || ""}
             onChange={(e) => handleChange("observaciones", e.target.value)}
             placeholder="Escribe notas relevantes de la visita..."
             rows={3}
