@@ -140,7 +140,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#070b14", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
+      <div style={{ minHeight: "100vh", background: "#0b0f19", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
         Cargando sesión…
       </div>
     );
@@ -149,7 +149,7 @@ export default function App() {
 
   if (recordsLoading || records === null) {
     return (
-      <div style={{ minHeight: "100vh", background: "#070b14", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
+      <div style={{ minHeight: "100vh", background: "#0b0f19", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
         Cargando registros…
       </div>
     );
@@ -158,8 +158,8 @@ export default function App() {
   return (
     <div style={{ 
       minHeight: "100vh", 
-      // Fondo oscuro absoluto y envolvente para toda la ventana
-      background: "linear-gradient(135deg, #04060b 0%, #0d1322 50%, #172033 100%)", 
+      // Fondo oscuro profesional y sofisticado con gradiente nocturno
+      background: "linear-gradient(135deg, #090d16 0%, #111827 50%, #1e293b 100%)", 
       fontFamily: "'Inter', sans-serif",
       color: "#f8fafc"
     }}>
@@ -167,18 +167,18 @@ export default function App() {
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        // Panel contenedor central con efecto cristal oscuro de alto contraste
-        background: "rgba(13, 19, 34, 0.75)", 
+        // Contenedor principal translúcido oscuro estilo glassmorphism avanzado
+        background: "rgba(15, 23, 42, 0.65)", 
         backdropFilter: "blur(25px)",
         WebkitBackdropFilter: "blur(25px)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
-        borderRight: "1px solid rgba(255, 255, 255, 0.1)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
         position: "relative", 
-        boxShadow: "0 0 70px rgba(0,0,0,0.8)" 
+        boxShadow: "0 0 60px rgba(0,0,0,0.6)" 
       }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
-        <div style={{ padding: "24px 24px 130px" }}>
+        <div style={{ padding: "24px 24px 120px" }}>
           {error && (
             <div style={{ background: "rgba(239, 68, 68, 0.2)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: 12, borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
               Error cargando datos: {error}
@@ -289,7 +289,7 @@ export default function App() {
           )}
         </div>
 
-        {/* MENÚ INFERIOR FIJO Y FLOTANTE (Absolutamente estático para que nunca se pierda) */}
+        {/* MENÚ INFERIOR FIJO FLOTANTE (Sticky Glassmorphism) */}
         {view !== "form" && (
           <div style={{
             position: "fixed",
@@ -304,12 +304,12 @@ export default function App() {
           }}>
             <div style={{
               pointerEvents: "auto",
-              background: "rgba(11, 16, 28, 0.9)",
+              background: "rgba(15, 23, 42, 0.85)",
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 255, 255, 0.18)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
               borderRadius: 24,
-              boxShadow: "0 15px 35px rgba(0,0,0,0.6)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
               maxWidth: 600,
               width: "90%"
             }}>
@@ -323,16 +323,16 @@ export default function App() {
       {showMananaModal && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(8px)",
+          background: "rgba(0, 0, 0, 0.7)", backdropFilter: "blur(8px)",
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 1000, padding: 16
         }}>
           <div style={{
-            background: "rgba(13, 19, 34, 0.95)", backdropFilter: "blur(25px)", 
+            background: "rgba(15, 23, 42, 0.95)", backdropFilter: "blur(25px)", 
             borderRadius: 20, width: "100%", maxWidth: 500,
             maxHeight: "85vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 25px 50px rgba(0,0,0,0.8)", overflow: "hidden",
-            border: "1px solid rgba(255,255,255,0.18)"
+            boxShadow: "0 25px 50px rgba(0,0,0,0.7)", overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.15)"
           }}>
             <div style={{ padding: "18px 22px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(245, 158, 11, 0.1)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -349,7 +349,7 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "rgba(7, 11, 20, 0.6)" }}>
+            <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "rgba(11, 15, 25, 0.6)" }}>
               {citasManana.map((r) => {
                 const nombreCliente = `${r.nombres || ""} ${r.apellidos || ""}`.trim();
                 const nombreAsesor = profile?.nombre || "Asesor";
@@ -380,7 +380,7 @@ export default function App() {
               })}
             </div>
 
-            <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,0.1)", background: "rgba(13, 19, 34, 0.9)", textAlign: "right" }}>
+            <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,0.1)", background: "rgba(15, 23, 42, 0.9)", textAlign: "right" }}>
               <button 
                 onClick={() => setShowMananaModal(false)}
                 style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)" }}
