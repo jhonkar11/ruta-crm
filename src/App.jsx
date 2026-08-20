@@ -10,7 +10,7 @@ import BottomNav from "./components/layout/BottomNav";
 import ClientCard from "./components/clientes/ClientCard";
 import MapaView from "./components/clientes/MapaView";
 import FormView from "./components/clientes/FormView";
-import CitasView from "./components/citas/CitasView";
+import CitasView from "./components/clientes/CitasView";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput } from "./components/ui/UIKit";
 import { Stamp, IconBtn } from "./components/ui/UIKit";
 
@@ -25,7 +25,6 @@ export default function App() {
   const [showArchived, setShowArchived] = useState(false);
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
   
-  // Estado para controlar el modal flotante de la alerta de mañana
   const [showMananaModal, setShowMananaModal] = useState(false);
 
   const profile = useMemo(() => {
@@ -144,7 +143,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: C.ink, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+      <div style={{ minHeight: "100vh", background: "#1a0a3e", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         Cargando sesión…
       </div>
     );
@@ -153,7 +152,7 @@ export default function App() {
 
   if (recordsLoading || records === null) {
     return (
-      <div style={{ minHeight: "100vh", background: C.ink, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+      <div style={{ minHeight: "100vh", background: "#1a0a3e", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
         Cargando registros…
       </div>
     );
@@ -163,47 +162,33 @@ export default function App() {
     <div style={{
       minHeight: "100vh",
       width: "100%",
-      background: "#080E1E",
       position: "relative",
+      background: "#1a0a3e",
       overflowX: "hidden",
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Blob azul - izquierda */}
+      {/* Fondo de ondas exacto idéntico al login */}
       <div style={{
         position: "fixed",
-        top: 0,
-        left: 0,
-        width: "600px",
-        height: "600px",
-        background: "radial-gradient(circle at 30% 30%, rgba(59,130,246,0.25) 0%, transparent 60%)",
-        filter: "blur(60px)",
-        pointerEvents: "none",
-        zIndex: 0
-      }} />
-      
-      {/* Blob naranja - derecha */}
-      <div style={{
-        position: "fixed",
-        bottom: 0,
-        right: 0,
-        width: "700px",
-        height: "700px",
-        background: "radial-gradient(circle at 70% 70%, rgba(225,78,42,0.20) 0%, transparent 60%)",
-        filter: "blur(80px)",
-        pointerEvents: "none",
-        zIndex: 0
-      }} />
-
-      {/* Contenedor principal de la app sobre los blobs */}
-      <div style={{ 
-        maxWidth: "1100px", 
-        margin: "0 auto", 
-        minHeight: "100vh", 
-        background: "transparent", 
-        position: "relative", 
-        zIndex: 1,
-        boxShadow: "0 0 40px rgba(0,0,0,0.2)" 
+        inset: 0,
+        zIndex: 0,
+        background: `
+          radial-gradient(ellipse at 20% 30%, rgba(180,80,20,0.5) 0%, transparent 50%),
+          radial-gradient(ellipse at 80% 20%, rgba(120,40,200,0.6) 0%, transparent 50%),
+          radial-gradient(ellipse at 10% 80%, rgba(15,120,130,0.6) 0%, transparent 50%),
+          linear-gradient(135deg, #2d1b69 0%, #1e0f4a 100%)
+        `,
+        pointerEvents: "none"
       }}>
+        <svg style={{ position: "absolute", width: "100%", height: "100%" }} viewBox="0 0 1000 1000" preserveAspectRatio="none">
+          <path d="M0,200 Q250,100 500,250 T1000,200 L1000,0 L0,0 Z" fill="rgba(200,90,20,0.25)" />
+          <path d="M0,600 Q300,500 600,650 T1000,600 L1000,0 L0,0 Z" fill="rgba(80,30,180,0.4)" />
+          <path d="M0,700 Q400,600 800,750 T1000,700 L1000,1000 L0,1000 Z" fill="rgba(15,100,120,0.5)" />
+        </svg>
+      </div>
+
+      {/* Contenedor principal del dashboard sobre las ondas */}
+      <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
         <div style={{ padding: "24px 24px 100px" }}>
@@ -228,8 +213,7 @@ export default function App() {
                 gap: 12,
                 boxShadow: "0 4px 12px rgba(245, 158, 11, 0.15)",
                 cursor: "pointer",
-                backdropFilter: "blur(8px)",
-                transition: "transform 0.1s ease"
+                backdropFilter: "blur(8px)"
               }}
             >
               <div style={{ background: "#F59E0B", color: "#fff", padding: 8, borderRadius: "50%", display: "flex" }}>
@@ -246,7 +230,10 @@ export default function App() {
 
           {view === "mapa" && (
             <>
-              <ViewHeader title="Panel de Metas y Filtros" subtitle={`${records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos`} />
+              <div style={{ color: "#ffffff", marginBottom: 16 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Panel de Metas y Filtros</h2>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</p>
+              </div>
               <MapaView records={records} onEdit={openEdit} />
             </>
           )}
@@ -264,7 +251,10 @@ export default function App() {
 
           {view === "buscar" && (
             <>
-              <ViewHeader title="Búsqueda rápida" subtitle="Por nombre o cédula" />
+              <div style={{ color: "#ffffff", marginBottom: 16 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Búsqueda rápida</h2>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>Por nombre o cédula</p>
+              </div>
               <div style={{ position: "relative", marginBottom: 16 }}>
                 <Search size={16} color={C.ink40} style={{ position: "absolute", left: 12, top: 13 }} />
                 <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Escribe un nombre o número de cédula…"
@@ -279,9 +269,11 @@ export default function App() {
 
           {view === "todos" && (
             <>
-              <ViewHeader title="Base de datos de créditos" subtitle={`${todos.length} registros en total`} />
+              <div style={{ color: "#ffffff", marginBottom: 16 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Base de datos de créditos</h2>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{todos.length} registros en total</p>
+              </div>
               
-              {/* Botones de filtros rápidos */}
               <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
                 <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="Todos" />
                 <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
@@ -312,7 +304,6 @@ export default function App() {
         {view !== "form" && <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />}
       </div>
 
-      {/* Modal flotante para los clientes con visita para mañana */}
       {showMananaModal && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -393,9 +384,15 @@ export default function App() {
 function FiltroChip({ active, onClick, label }) {
   return (
     <button onClick={onClick} style={{
-      border: `1.5px solid ${active ? C.coral : C.line}`, background: active ? "#FCEBE5" : "rgba(255,255,255,0.9)",
-      color: active ? C.coralDark : C.ink70, borderRadius: 20, padding: "5px 12px", fontSize: 12,
-      fontWeight: 600, cursor: "pointer", backdropFilter: "blur(4px)"
+      border: `1.5px solid ${active ? C.coral : "rgba(255,255,255,0.2)"}`, 
+      background: active ? "#FCEBE5" : "rgba(26, 10, 62, 0.6)",
+      color: active ? C.coralDark : "#ffffff", 
+      borderRadius: 20, 
+      padding: "6px 14px", 
+      fontSize: 12.5,
+      fontWeight: 600, 
+      cursor: "pointer", 
+      backdropFilter: "blur(4px)"
     }}>{label}</button>
   );
 }
