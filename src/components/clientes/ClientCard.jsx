@@ -3,7 +3,6 @@ import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
 export default function ClientCard({ client, r: clientProp, onEdit, onArchive, onDelete }) {
-  // Soportamos tanto 'client' como 'r' para evitar cualquier desajuste con App.jsx
   const currentClient = client || clientProp;
   if (!currentClient) return null;
 
@@ -16,6 +15,11 @@ export default function ClientCard({ client, r: clientProp, onEdit, onArchive, o
 
   const telClean = formatPhone(currentClient.telefono);
   const waClean = formatPhone(currentClient.whatsapp || currentClient.telefono);
+
+  // Mensaje predeterminado personalizado para la ruta
+  const nombreCliente = `${currentClient.nombres || ""} ${currentClient.apellidos || ""}`.trim();
+  const mensajeWa = encodeURIComponent(`Hola ${nombreCliente}, te saludamos de RUTA·CRM para coordinar los detalles de tu crédito y visita.`);
+  const waHref = waClean ? `https://wa.me/57${waClean}?text=${mensajeWa}` : undefined;
 
   return (
     <div style={{
@@ -33,7 +37,7 @@ export default function ClientCard({ client, r: clientProp, onEdit, onArchive, o
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div>
           <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 700, color: C.ink, margin: 0, textTransform: "uppercase" }}>
-            {currentClient.nombres} {currentClient.apellidos}
+            {nombreCliente}
           </h3>
           <p style={{ fontSize: 11.5, color: C.ink70, margin: "2px 0 0 0" }}>
             CC/NIT: {currentClient.id || currentClient.cedula || "S/N"}
@@ -83,7 +87,7 @@ export default function ClientCard({ client, r: clientProp, onEdit, onArchive, o
           <IconBtn 
             icon={MessageCircle} 
             label="WhatsApp" 
-            href={waClean ? `https://wa.me/57${waClean}` : undefined} 
+            href={waHref} 
             disabled={!waClean} 
           />
           <IconBtn 
