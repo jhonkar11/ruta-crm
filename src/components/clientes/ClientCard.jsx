@@ -2,19 +2,20 @@ import { Phone, MessageCircle, Edit3, Archive, Trash2, Calendar } from "lucide-r
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
-export default function ClientCard({ client, onEdit, onArchive, onDelete }) {
-  if (!client) return null;
+export default function ClientCard({ client, r: clientProp, onEdit, onArchive, onDelete }) {
+  // Soportamos tanto 'client' como 'r' para evitar cualquier desajuste con App.jsx
+  const currentClient = client || clientProp;
+  if (!currentClient) return null;
 
-  // Tomamos el estado real unificado de manera segura
-  const estadoReal = client.estado || client.categoria_cliente || "Registrado";
+  const estadoReal = currentClient.estado || currentClient.categoria_cliente || "Registrado";
 
   const formatPhone = (phone) => {
     if (!phone) return "";
     return String(phone).replace(/\D/g, "");
   };
 
-  const telClean = formatPhone(client.telefono);
-  const waClean = formatPhone(client.whatsapp || client.telefono);
+  const telClean = formatPhone(currentClient.telefono);
+  const waClean = formatPhone(currentClient.whatsapp || currentClient.telefono);
 
   return (
     <div style={{
@@ -32,39 +33,39 @@ export default function ClientCard({ client, onEdit, onArchive, onDelete }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div>
           <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 700, color: C.ink, margin: 0, textTransform: "uppercase" }}>
-            {client.nombres} {client.apellidos}
+            {currentClient.nombres} {currentClient.apellidos}
           </h3>
           <p style={{ fontSize: 11.5, color: C.ink70, margin: "2px 0 0 0" }}>
-            CC/NIT: {client.id || client.cedula || "S/N"}
+            CC/NIT: {currentClient.id || currentClient.cedula || "S/N"}
           </p>
         </div>
         <Stamp estado={estadoReal} size="sm" />
       </div>
 
       {/* Dirección */}
-      {client.direccion && (
+      {currentClient.direccion && (
         <div style={{ fontSize: 12, color: C.ink, display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ color: C.coral }}>📍</span>
-          <span>{client.direccion} {client.barrio ? `- ${client.barrio}` : ""}</span>
+          <span>{currentClient.direccion} {currentClient.barrio ? `- ${currentClient.barrio}` : ""}</span>
         </div>
       )}
 
       {/* Detalles secundarios sincronizados */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5, color: C.ink70, flexWrap: "wrap" }}>
-        {client.tipo_negocio && (
+        {currentClient.tipo_negocio && (
           <span style={{ background: "#f8fafc", padding: "2px 8px", borderRadius: 6, border: `1px solid ${C.line}`, fontWeight: 500 }}>
-            {client.tipo_negocio}
+            {currentClient.tipo_negocio}
           </span>
         )}
         <span>•</span>
         <span style={{ color: C.coral, fontWeight: 600 }}>
           {estadoReal}
         </span>
-        {client.fecha_seguimiento && (
+        {currentClient.fecha_seguimiento && (
           <>
             <span>•</span>
             <span style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff7ed", padding: "2px 6px", borderRadius: 6, color: "#9a3412" }}>
-              <Calendar size={12} /> Seguimiento: {client.fecha_seguimiento}
+              <Calendar size={12} /> Seguimiento: {currentClient.fecha_seguimiento}
             </span>
           </>
         )}
@@ -88,19 +89,19 @@ export default function ClientCard({ client, onEdit, onArchive, onDelete }) {
           <IconBtn 
             icon={Edit3} 
             label="Editar" 
-            onClick={() => onEdit && onEdit(client)} 
+            onClick={() => onEdit && onEdit(currentClient)} 
           />
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <IconBtn 
             icon={Archive} 
             label="Archivar" 
-            onClick={() => onArchive && onArchive(client)} 
+            onClick={() => onArchive && onArchive(currentClient)} 
           />
           <IconBtn 
             icon={Trash2} 
             label="Eliminar" 
-            onClick={() => onDelete && onDelete(client.id)} 
+            onClick={() => onDelete && onDelete(currentClient.id)} 
           />
         </div>
       </div>
