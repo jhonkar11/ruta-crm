@@ -140,7 +140,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f8f5f0", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e293b", fontWeight: 600 }}>
+      <div style={{ minHeight: "100vh", background: "#070b14", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
         Cargando sesión…
       </div>
     );
@@ -149,7 +149,7 @@ export default function App() {
 
   if (recordsLoading || records === null) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f8f5f0", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e293b", fontWeight: 600 }}>
+      <div style={{ minHeight: "100vh", background: "#070b14", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
         Cargando registros…
       </div>
     );
@@ -158,28 +158,29 @@ export default function App() {
   return (
     <div style={{ 
       minHeight: "100vh", 
-      // Fondo luminoso y elegante en tonos cálidos perla/champán con sutiles destellos visuales
-      background: "linear-gradient(135deg, #fdfbf7 0%, #f4ede2 50%, #eae1d3 100%)", 
-      fontFamily: "'Inter', sans-serif" 
+      // Fondo oscuro absoluto y envolvente para toda la ventana
+      background: "linear-gradient(135deg, #04060b 0%, #0d1322 50%, #172033 100%)", 
+      fontFamily: "'Inter', sans-serif",
+      color: "#f8fafc"
     }}>
       <div style={{ 
         maxWidth: "1100px", 
         margin: "0 auto", 
         minHeight: "100vh", 
-        // Contenedor principal con efecto glass claro translúcido
-        background: "rgba(255, 255, 255, 0.75)", 
+        // Panel contenedor central con efecto cristal oscuro de alto contraste
+        background: "rgba(13, 19, 34, 0.75)", 
         backdropFilter: "blur(25px)",
         WebkitBackdropFilter: "blur(25px)",
-        borderLeft: "1px solid rgba(255, 255, 255, 0.6)",
-        borderRight: "1px solid rgba(255, 255, 255, 0.6)",
+        borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+        borderRight: "1px solid rgba(255, 255, 255, 0.1)",
         position: "relative", 
-        boxShadow: "0 0 50px rgba(180, 160, 140, 0.15)" 
+        boxShadow: "0 0 70px rgba(0,0,0,0.8)" 
       }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
-        <div style={{ padding: "24px 24px 100px" }}>
+        <div style={{ padding: "24px 24px 130px" }}>
           {error && (
-            <div style={{ background: "#FCEBE5", color: C.coralDark, padding: 12, borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
+            <div style={{ background: "rgba(239, 68, 68, 0.2)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.4)", padding: 12, borderRadius: 10, fontSize: 13, marginBottom: 12 }}>
               Error cargando datos: {error}
             </div>
           )}
@@ -188,29 +189,29 @@ export default function App() {
             <div 
               onClick={() => setShowMananaModal(true)}
               style={{ 
-                background: "rgba(254, 243, 199, 0.85)", 
-                backdropFilter: "blur(10px)",
+                background: "rgba(245, 158, 11, 0.15)", 
+                backdropFilter: "blur(12px)",
                 border: "1.5px solid rgba(245, 158, 11, 0.4)", 
-                color: "#92400E", 
+                color: "#fde68a", 
                 padding: "14px 18px", 
                 borderRadius: 16, 
                 marginBottom: 18, 
                 display: "flex", 
                 alignItems: "center", 
                 gap: 12,
-                boxShadow: "0 8px 20px rgba(245, 158, 11, 0.12)",
+                boxShadow: "0 8px 20px rgba(0, 0, 0, 0.3)",
                 cursor: "pointer",
                 transition: "transform 0.1s ease"
               }}
             >
-              <div style={{ background: "#F59E0B", color: "#fff", padding: 8, borderRadius: "50%", display: "flex", boxShadow: "0 4px 10px rgba(245, 158, 11, 0.3)" }}>
+              <div style={{ background: "#F59E0B", color: "#111827", padding: 8, borderRadius: "50%", display: "flex", boxShadow: "0 4px 10px rgba(245, 158, 11, 0.4)" }}>
                 <BellRing size={20} />
               </div>
               <div style={{ flex: 1 }}>
-                <strong style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                <strong style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 6, color: "#fef3c7" }}>
                   <Sparkles size={15} /> ¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s))
                 </strong>
-                <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
+                <div style={{ fontSize: 12.5, marginTop: 2, color: "rgba(254, 243, 199, 0.8)" }}>
                   Tienes visitas próximas programadas para el {mananaISO}. Toca aquí para ver detalles.
                 </div>
               </div>
@@ -239,15 +240,16 @@ export default function App() {
             <>
               <ViewHeader title="Búsqueda rápida" subtitle="Por nombre o cédula" />
               <div style={{ position: "relative", marginBottom: 16 }}>
-                <Search size={16} color={C.ink40} style={{ position: "absolute", left: 14, top: 14 }} />
+                <Search size={16} color="rgba(255,255,255,0.4)" style={{ position: "absolute", left: 14, top: 14 }} />
                 <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Escribe un nombre o número de cédula…"
                   style={{ 
                     ...inputStyle(false), 
                     paddingLeft: 40, 
-                    background: "rgba(255, 255, 255, 0.8)", 
+                    background: "rgba(255, 255, 255, 0.07)", 
                     backdropFilter: "blur(10px)",
                     borderRadius: 14,
-                    border: "1px solid rgba(200, 190, 175, 0.4)"
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#fff"
                   }} />
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
@@ -287,40 +289,67 @@ export default function App() {
           )}
         </div>
 
-        {view !== "form" && <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />}
+        {/* MENÚ INFERIOR FIJO Y FLOTANTE (Absolutamente estático para que nunca se pierda) */}
+        {view !== "form" && (
+          <div style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 999,
+            display: "flex",
+            justifyContent: "center",
+            pointerEvents: "none",
+            paddingBottom: 16
+          }}>
+            <div style={{
+              pointerEvents: "auto",
+              background: "rgba(11, 16, 28, 0.9)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(255, 255, 255, 0.18)",
+              borderRadius: 24,
+              boxShadow: "0 15px 35px rgba(0,0,0,0.6)",
+              maxWidth: 600,
+              width: "90%"
+            }}>
+              <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal flotante elegante */}
       {showMananaModal && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(40, 30, 20, 0.4)", backdropFilter: "blur(8px)",
+          background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(8px)",
           display: "flex", alignItems: "center", justifyContent: "center",
           zIndex: 1000, padding: 16
         }}>
           <div style={{
-            background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(25px)", 
+            background: "rgba(13, 19, 34, 0.95)", backdropFilter: "blur(25px)", 
             borderRadius: 20, width: "100%", maxWidth: 500,
             maxHeight: "85vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.2)", overflow: "hidden",
-            border: "1px solid rgba(255,255,255,0.8)"
+            boxShadow: "0 25px 50px rgba(0,0,0,0.8)", overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.18)"
           }}>
-            <div style={{ padding: "18px 22px", borderBottom: `1px solid rgba(220,210,195,0.5)`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(254, 243, 199, 0.5)" }}>
+            <div style={{ padding: "18px 22px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(245, 158, 11, 0.1)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <BellRing size={20} color="#D97706" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#92400E" }}>
+                <BellRing size={20} color="#F59E0B" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#fef3c7" }}>
                   Visitas para mañana ({citasManana.length})
                 </h3>
               </div>
               <button 
                 onClick={() => setShowMananaModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#92400E", display: "flex" }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#fef3c7", display: "flex" }}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "rgba(248, 245, 240, 0.6)" }}>
+            <div style={{ padding: 18, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "rgba(7, 11, 20, 0.6)" }}>
               {citasManana.map((r) => {
                 const nombreCliente = `${r.nombres || ""} ${r.apellidos || ""}`.trim();
                 const nombreAsesor = profile?.nombre || "Asesor";
@@ -329,19 +358,19 @@ export default function App() {
                 const waHref = waClean ? `https://wa.me/57${waClean}?text=${encodeURIComponent(textoMensaje)}` : undefined;
 
                 return (
-                  <div key={r.id} style={{ background: "rgba(255,255,255,0.85)", backdropFilter: "blur(10px)", borderRadius: 14, padding: 14, border: "1px solid rgba(220,210,195,0.6)", boxShadow: "0 4px 12px rgba(0,0,0,0.03)" }}>
+                  <div key={r.id} style={{ background: "rgba(255,255,255,0.06)", backdropFilter: "blur(10px)", borderRadius: 14, padding: 14, border: "1px solid rgba(255,255,255,0.1)", boxShadow: "0 4px 12px rgba(0,0,0,0.2)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b", textTransform: "uppercase" }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: "#fff", textTransform: "uppercase" }}>
                           {nombreCliente}
                         </div>
-                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", marginTop: 2 }}>
                           {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
                         </div>
                       </div>
                       <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
                     </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(220,210,195,0.4)" }}>
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.08)" }}>
                       <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
                       <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean} />
                       <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
@@ -351,10 +380,10 @@ export default function App() {
               })}
             </div>
 
-            <div style={{ padding: 14, borderTop: "1px solid rgba(220,210,195,0.5)", background: "rgba(255,255,255,0.9)", textAlign: "right" }}>
+            <div style={{ padding: 14, borderTop: "1px solid rgba(255,255,255,0.1)", background: "rgba(13, 19, 34, 0.9)", textAlign: "right" }}>
               <button 
                 onClick={() => setShowMananaModal(false)}
-                style={{ background: "#1e293b", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}
+                style={{ background: "#3b82f6", color: "#fff", border: "none", padding: "8px 18px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)" }}
               >
                 Cerrar
               </button>
@@ -382,16 +411,16 @@ export default function App() {
 function FiltroChip({ active, onClick, label }) {
   return (
     <button onClick={onClick} style={{
-      border: `1.5px solid ${active ? C.coral : "rgba(200, 190, 175, 0.5)"}`, 
-      background: active ? "#FCEBE5" : "rgba(255, 255, 255, 0.7)",
+      border: `1.5px solid ${active ? C.coral : "rgba(255, 255, 255, 0.15)"}`, 
+      background: active ? "rgba(225, 78, 42, 0.25)" : "rgba(255, 255, 255, 0.06)",
       backdropFilter: "blur(10px)",
-      color: active ? C.coralDark : "#475569", 
+      color: active ? "#ffb4a9" : "rgba(255, 255, 255, 0.8)", 
       borderRadius: 20, 
       padding: "6px 14px", 
       fontSize: 12.5,
       fontWeight: 600, 
       cursor: "pointer",
-      boxShadow: active ? "0 4px 12px rgba(225, 78, 42, 0.15)" : "0 2px 5px rgba(0,0,0,0.02)",
+      boxShadow: active ? "0 4px 12px rgba(225, 78, 42, 0.3)" : "0 2px 5px rgba(0,0,0,0.2)",
       transition: "all 0.2s ease"
     }}>
       {label}
