@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ViewHeader, TextInput, Stamp } from "../ui/UIKit";
 import { C, inputStyle } from "../../styles/tokens";
-import { Camera, Upload } from "lucide-react";
+import { Camera, Upload, CheckCircle2 } from "lucide-react";
 
 const inputDarkStyle = {
   ...inputStyle,
@@ -39,8 +39,21 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     }
   );
 
+  const fileInputRef = useRef(null);
+
   const handleChange = (field, val) => {
     setForm((prev) => ({ ...prev, [field]: val }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        handleChange("foto", reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -54,10 +67,14 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
 
   return (
     <div>
-      <ViewHeader 
-        title={initial ? "Editar Cliente / Registro" : "Nuevo Cliente / Registro"} 
-        action={<Stamp text={initial ? "Modificando" : "Creando"} />}
-      />
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#ffffff", margin: 0 }}>
+          {initial ? "Editar Cliente / Registro" : "Nuevo Cliente / Registro"}
+        </h2>
+        <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.85)", marginTop: 2 }}>
+          {initial ? "Modificando información del registro" : "Creando nuevo prospecto en ruta"}
+        </p>
+      </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
         {/* Cédula y Teléfono */}
@@ -204,30 +221,47 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           />
         </div>
 
-        {/* Foto de la Visita */}
+        {/* FOTO DE LA VISITA (Cámara / Galería nativa) */}
         <div>
           <label style={labelStyle}>Foto de la Visita</label>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: "none" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <button
               type="button"
-              onClick={() => alert("Función de cámara / subida de foto activada")}
+              onClick={() => fileInputRef.current?.click()}
               style={{
                 background: "rgba(255,255,255,0.08)",
                 border: "1px solid rgba(255,255,255,0.2)",
                 color: "#fff",
-                padding: "8px 16px",
-                borderRadius: "8px",
+                padding: "10px 18px",
+                borderRadius: "10px",
                 fontSize: "13px",
+                fontWeight: 600,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: 8
               }}
             >
-              <Camera size={16} /> Subir foto
+              <Camera size={18} /> Tomar foto / Elegir de galería
             </button>
-            {form.foto && <span style={{ fontSize: "12px", color: "#10b981" }}>Foto cargada ✓</span>}
+            {form.foto && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#34d399", fontSize: "13px", fontWeight: 600 }}>
+                <CheckCircle2 size={16} /> Foto cargada correctamente
+              </div>
+            )}
           </div>
+          {form.foto && (
+            <div style={{ marginTop: 10 }}>
+              <img src={form.foto} alt="Vista previa" style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 8, border: "1px solid rgba(255,255,255,0.2)" }} />
+            </div>
+          )}
         </div>
 
         {/* Botones de acción */}
@@ -252,13 +286,14 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             type="submit"
             style={{
               flex: 1,
-              background: C.coral || "#f97316",
+              background: "#2563eb",
               color: "#fff",
               border: "none",
               padding: "12px",
               borderRadius: "10px",
               fontWeight: 600,
-              cursor: "pointer"
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(37,99,235,0.4)"
             }}
           >
             Guardar registro
