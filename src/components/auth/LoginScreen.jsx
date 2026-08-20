@@ -38,7 +38,7 @@ export default function LoginScreen() {
       padding: 20,
       fontFamily: "'Inter', sans-serif"
     }}>
-      {/* Blobs de luz ambiental de alta intensidad (CSS puro) */}
+      {/* Blobs de luz ambiental */}
       <div style={{
         position: "absolute",
         top: "-15%",
@@ -119,13 +119,13 @@ export default function LoginScreen() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Campo Correo con Icono */}
+          {/* Campo Correo */}
           <div>
             <label style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "block", fontWeight: 600 }}>
               Correo electrónico
             </label>
             <div style={{ position: "relative" }}>
-              <Mail size={18} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.45)", pointerEvents: "none" }} />
+              <Mail size={18} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", zIndex: 2 }} />
               <input
                 type="email"
                 value={email}
@@ -136,9 +136,9 @@ export default function LoginScreen() {
                   width: "100%",
                   padding: "14px 14px 14px 44px",
                   borderRadius: 12,
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  color: "#fff",
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  color: "#0F172A",
                   outline: "none",
                   fontSize: 14,
                   boxSizing: "border-box"
@@ -147,13 +147,13 @@ export default function LoginScreen() {
             </div>
           </div>
 
-          {/* Campo Contraseña con Icono y Toggle de Visibilidad */}
+          {/* Campo Contraseña */}
           <div style={{ marginBottom: 4 }}>
             <label style={{ fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.6)", marginBottom: 8, display: "block", fontWeight: 600 }}>
               Contraseña
             </label>
             <div style={{ position: "relative" }}>
-              <Lock size={18} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.45)", pointerEvents: "none" }} />
+              <Lock size={18} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", zIndex: 2 }} />
               <input
                 type={showP ? "text" : "password"}
                 value={p}
@@ -164,9 +164,9 @@ export default function LoginScreen() {
                   width: "100%",
                   padding: "14px 44px 14px 44px",
                   borderRadius: 12,
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.12)",
-                  color: "#fff",
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  color: "#0F172A",
                   outline: "none",
                   fontSize: 14,
                   boxSizing: "border-box"
@@ -183,9 +183,10 @@ export default function LoginScreen() {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "rgba(255,255,255,0.45)",
+                  color: "#94A3B8",
                   display: "flex",
-                  padding: 0
+                  padding: 0,
+                  zIndex: 2
                 }}
               >
                 {showP ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -199,7 +200,7 @@ export default function LoginScreen() {
             </div>
           )}
 
-          {/* Botón con Glow Fuerte */}
+          {/* Botón Principal con Glow */}
           <button
             onClick={submit}
             disabled={loading}
