@@ -9,76 +9,46 @@ export default function MapaView({ records = [], onEdit }) {
 
   // Filtrar registros activos (excluyendo archivados)
   const activos = records.filter((r) => r && r.estado !== "Archivado");
-
-  // Contadores estrictos y limpios para cada tarjeta
   const total = activos.length;
-  
-  const interesados = activos.filter(r => 
-    (r.categoria_cliente || "").trim().toLowerCase() === "interesado" || 
-    (r.estado || "").trim().toLowerCase() === "interesado"
-  ).length;
-  
-  const enTramite = activos.filter(r => {
-    const cat = (r.categoria_cliente || "").trim();
-    const est = (r.estado || "").trim();
-    return cat === "En trámite / Pendiente" || 
-           est === "En trámite" || 
-           est === "Pendiente" ||
-           est === "En trámite / Pendiente";
-  }).length;
-  
-  const contactados = activos.filter(r => 
-    (r.categoria_cliente || "").trim().toLowerCase() === "contactado" || 
-    (r.estado || "").trim().toLowerCase() === "contactado"
-  ).length;
-  
-  const noLocalizados = activos.filter(r => 
-    (r.categoria_cliente || "").trim().toLowerCase() === "no localizado" || 
-    (r.estado || "").trim().toLowerCase() === "no localizado"
-  ).length;
-  
-  const reprogramados = activos.filter(r => {
-    const cat = (r.categoria_cliente || "").trim().toLowerCase();
-    const est = (r.estado || "").trim().toLowerCase();
-    return cat === "reprogramada" || cat === "reprogramado" || 
-           est === "reprogramada" || est === "reprogramado";
-  }).length;
-  
-  const creditosOk = activos.filter(r => {
-    const cat = (r.categoria_cliente || "").trim().toLowerCase();
-    const est = (r.estado || "").trim().toLowerCase();
-    const validosOk = ["aprobado", "crédito ok", "credito ok", "desembolsado", "cumplida", "crédito cumplido", "credito cumplido"];
-    return validosOk.includes(cat) || validosOk.includes(est);
-  }).length;
 
-  // Filtrado estricto al hacer clic en cada tarjeta de resumen
+  // Evaluamos unificadamente tanto estado como categoría para mayor precisión
+  const matchFiltro = (r, tipo) => {
+    const est = (r.estado || "").trim().toLowerCase();
+    const cat = (r.categoria_cliente || "").trim().toLowerCase();
+
+    if (tipo === "Interesado") {
+      return est === "interesado" || cat === "interesado";
+    }
+    if (tipo === "En trámite / Pendiente") {
+      return est.includes("trámite") || est.includes("pendiente") || cat.includes("trámite") || cat.includes("pendiente");
+    }
+    if (tipo === "Contactado") {
+      return est === "contactado" || cat === "contactado";
+    }
+    if (tipo === "No localizado") {
+      return est.includes("no localizado") || cat.includes("no localizado");
+    }
+    if (tipo === "Reprogramada") {
+      return est.includes("reprogramada") || est.includes("reprogramado") || cat.includes("reprogramada");
+    }
+    if (tipo === "Créditos OK") {
+      return est === "cumplida" || est === "crédito ok" || est === "aprobado" || est === "desembolsado" || cat === "cumplida" || cat === "crédito ok";
+    }
+    return false;
+  };
+
+  // Contadores estrictos para las tarjetas del panel
+  const interesados = activos.filter(r => matchFiltro(r, "Interesado")).length;
+  const enTramite = activos.filter(r => matchFiltro(r, "En trámite / Pendiente")).length;
+  const contactados = activos.filter(r => matchFiltro(r, "Contactado")).length;
+  const noLocalizados = activos.filter(r => matchFiltro(r, "No localizado")).length;
+  const reprogramados = activos.filter(r => matchFiltro(r, "Reprogramada")).length;
+  const creditosOk = activos.filter(r => matchFiltro(r, "Créditos OK")).length;
+
+  // Filtrado de la lista al hacer clic en las tarjetas
   const filtrados = categoriaFiltro === "TODOS" 
     ? activos 
-    : activos.filter(r => {
-        const cat = (r.categoria_cliente || "").trim().toLowerCase();
-        const est = (r.estado || "").trim().toLowerCase();
-
-        if (categoriaFiltro === "Interesado") {
-          return cat === "interesado" || est === "interesado";
-        }
-        if (categoriaFiltro === "En trámite / Pendiente") {
-          return cat === "en trámite / pendiente" || est === "en trámite" || est === "pendiente" || est === "en trámite / pendiente";
-        }
-        if (categoriaFiltro === "Contactado") {
-          return cat === "contactado" || est === "contactado";
-        }
-        if (categoriaFiltro === "No localizado") {
-          return cat === "no localizado" || est === "no localizado";
-        }
-        if (categoriaFiltro === "Reprogramada") {
-          return cat === "reprogramada" || cat === "reprogramado" || est === "reprogramada" || est === "reprogramado";
-        }
-        if (categoriaFiltro === "Créditos OK") {
-          const validosOk = ["aprobado", "crédito ok", "credito ok", "desembolsado", "cumplida", "crédito cumplido", "credito cumplido"];
-          return validosOk.includes(cat) || validosOk.includes(est);
-        }
-        return false;
-      });
+    : activos.filter(r => matchFiltro(r, categoriaFiltro));
 
   return (
     <div style={{ padding: "4px 4px 90px 4px" }}>
@@ -191,7 +161,7 @@ export default function MapaView({ records = [], onEdit }) {
                   <span>{r.tipo_negocio || "Comercio"}</span>
                 </div>
               </div>
-              <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
+              <Stamp estado={r.estado || r.categoria_cliente} size="sm" />
             </div>
           ))
         )}
@@ -209,7 +179,7 @@ export default function MapaView({ records = [], onEdit }) {
                 {activeClient.direccion ? `${activeClient.direccion}, ${activeClient.barrio || ''}` : "Sin dirección registrada"}
               </div>
             </div>
-            <Stamp estado={activeClient.categoria_cliente || activeClient.estado} size="sm" />
+            <Stamp estado={activeClient.estado || activeClient.categoria_cliente} size="sm" />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono} />
