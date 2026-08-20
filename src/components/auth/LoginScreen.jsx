@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { User, Lock, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { C, inputStyle, iconRow } from "../../styles/tokens";
+import { C, inputStyle } from "../../styles/tokens";
 import { Field, TextInput } from "../ui/UIKit";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -15,7 +15,7 @@ export default function LoginScreen() {
   const submit = async () => {
     setErr("");
     if (!email.trim() || !p) {
-      setErr("Ingresa tu correo y contraseña.");
+      setErr("Ingresa tus credenciales.");
       return;
     }
     setLoading(true);
@@ -30,74 +30,81 @@ export default function LoginScreen() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: `linear-gradient(160deg, ${C.ink} 0%, ${C.inkSoft} 70%)`,
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-      position: "relative", overflow: "hidden",
+      minHeight: "100vh",
+      // Gradiente oscuro profundo y profesional
+      background: "radial-gradient(circle at top right, #1e293b, #0f172a)",
+      display: "flex", 
+      alignItems: "center", 
+      justifyContent: "center", 
+      padding: 20,
+      position: "relative",
     }}>
-      <div style={{
-        position: "absolute", top: "8%", right: "-8%", width: 260, height: 260,
-        border: "3px solid rgba(255,255,255,0.12)", borderRadius: 16,
-        transform: "rotate(18deg)", display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        <span style={{
-          fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.14)",
-          fontSize: 22, fontWeight: 700, letterSpacing: "0.15em",
-        }}>EN RUTA</span>
-      </div>
+      {/* Elementos decorativos de fondo para dar profundidad */}
+      <div style={{ position: "absolute", width: "400px", height: "400px", background: C.coral, opacity: "0.05", filter: "blur(100px)", borderRadius: "50%", top: "-100px", left: "-100px" }}></div>
 
-      <div style={{ width: "100%", maxWidth: 380, position: "relative", zIndex: 1 }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{
-            fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 30,
-            color: "#fff", letterSpacing: "-0.02em",
-          }}>RUTA<span style={{ color: C.coral }}>·</span>CRM</div>
-          <div style={{
-            fontFamily: "'IBM Plex Mono', monospace", color: "rgba(255,255,255,0.55)",
-            fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", marginTop: 4,
-          }}>Gestión comercial de campo</div>
+      <div style={{ width: "100%", maxWidth: 400, zIndex: 1 }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: "#fff", letterSpacing: "-1px" }}>
+            RUTA<span style={{ color: C.coral }}>CRM</span>
+          </div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13, letterSpacing: "0.2em", textTransform: "uppercase", marginTop: 8 }}>
+            Gestión Inteligente de Campo
+          </div>
         </div>
 
-        <div style={{ background: "#fff", borderRadius: 20, padding: 26, boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}>
-          <Field label="Correo electrónico">
+        {/* Contenedor con efecto Glassmorphism */}
+        <div style={{ 
+          background: "rgba(255, 255, 255, 0.05)", 
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: 24, 
+          padding: 32, 
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" 
+        }}>
+          <Field label={<span style={{color: "#fff", opacity: 0.8}}>Correo electrónico</span>}>
             <div style={{ position: "relative" }}>
-              <User size={16} color={C.ink40} style={{ position: "absolute", left: 12, top: 12 }} />
+              <User size={18} color="#94a3b8" style={{ position: "absolute", left: 12, top: 12 }} />
               <TextInput value={email} onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
-                placeholder="tu@correo.com" style={{ ...inputStyle(false), paddingLeft: 36 }} />
+                placeholder="usuario@empresa.com" 
+                style={{ ...inputStyle(false), paddingLeft: 40, background: "rgba(255,255,255,0.08)", border: "none", color: "#fff" }} />
             </div>
           </Field>
-          <Field label="Contraseña">
+
+          <Field label={<span style={{color: "#fff", opacity: 0.8}}>Contraseña</span>}>
             <div style={{ position: "relative" }}>
-              <Lock size={16} color={C.ink40} style={{ position: "absolute", left: 12, top: 12 }} />
+              <Lock size={18} color="#94a3b8" style={{ position: "absolute", left: 12, top: 12 }} />
               <input
                 type={showP ? "text" : "password"} value={p}
                 onChange={(e) => setP(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit()}
                 placeholder="••••••••"
-                style={{ ...inputStyle(false), paddingLeft: 36, paddingRight: 36 }}
+                style={{ ...inputStyle(false), paddingLeft: 40, paddingRight: 40, background: "rgba(255,255,255,0.08)", border: "none", color: "#fff", width: "100%", boxSizing: "border-box" }}
               />
               <button onClick={() => setShowP(!showP)} style={{
-                position: "absolute", right: 8, top: 8, background: "none", border: "none", cursor: "pointer", color: C.ink40,
-                ...iconRow(0), justifyContent: "center", width: 20, height: 20,
-              }}>{showP ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                position: "absolute", right: 12, top: 10, background: "none", border: "none", cursor: "pointer", color: "#94a3b8",
+              }}>{showP ? <EyeOff size={18} /> : <Eye size={18} />}</button>
             </div>
           </Field>
 
           {err && (
-            <div style={{ color: C.coral, fontSize: 13, marginBottom: 12, ...iconRow(6) }}>
+            <div style={{ color: "#fb7185", fontSize: 13, marginBottom: 16, display: "flex", alignItems: "center", gap: 6 }}>
               <AlertCircle size={14} /> <span>{err}</span>
             </div>
           )}
 
           <button onClick={submit} disabled={loading} style={{
-            width: "100%", padding: "13px", borderRadius: 12, border: "none",
-            background: C.coral, color: "#fff", fontWeight: 700, fontSize: 15,
+            width: "100%", padding: "14px", borderRadius: 12, border: "none",
+            background: C.coral, color: "#fff", fontWeight: 700, fontSize: 16,
             cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1,
-            fontFamily: "'Space Grotesk', sans-serif",
-          }}>{loading ? "Ingresando…" : "Ingresar"}</button>
+            marginTop: 8, transition: "transform 0.2s, background 0.2s"
+          }}>
+            {loading ? "Autenticando..." : "Ingresar al Sistema"}
+          </button>
         </div>
-        <div style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 16 }}>
-          Los usuarios se crean desde el panel de Supabase (Authentication → Users)
+        
+        <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", fontSize: 11, marginTop: 24 }}>
+          Acceso exclusivo para personal autorizado
         </div>
       </div>
     </div>
