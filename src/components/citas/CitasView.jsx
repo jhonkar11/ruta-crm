@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { Calendar, Clock, Plus, CheckCircle, XCircle, AlertCircle, CalendarDays, Search } from "lucide-react";
 import { C, inputStyle } from "../../styles/tokens";
-import { ViewHeader, EmptyState, TextInput } from "../ui/UIKit";
+import { EmptyState, TextInput } from "../ui/UIKit";
 
 export default function CitasView({ citas = [], clientes = [], currentUser, onCrear, onPosponer, onCumplida, onCancelar }) {
   const [filtroTab, setFiltroTab] = useState("TODAS");
   const [modalAgendar, setModalAgendar] = useState(false);
-  const [modalReprogramar, setModalReprogramar] = useState(null); // guarda la cita a reprogramar
+  const [modalReprogramar, setModalReprogramar] = useState(null);
 
   // Estados del formulario para nueva cita
   const [clienteId, setClienteId] = useState("");
@@ -56,9 +56,27 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
   return (
     <div style={{ paddingBottom: 40 }}>
-      {/* Encabezado con el botón Agendar original arriba a la derecha */}
+      {/* Encabezado con título en blanco impecable */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <ViewHeader title="Citas y visitas" subtitle={`${citas.length} programadas en total`} />
+        <div>
+          <h2 style={{ 
+            fontFamily: "'Space Grotesk', sans-serif", 
+            fontSize: 22, 
+            fontWeight: 700, 
+            color: "#ffffff", 
+            margin: 0,
+            marginBottom: 4 
+          }}>
+            Citas y visitas
+          </h2>
+          <p style={{ 
+            fontSize: 13, 
+            color: "rgba(255, 255, 255, 0.8)", 
+            margin: 0 
+          }}>
+            {citas.length} programadas en total
+          </p>
+        </div>
         <button
           onClick={() => setModalAgendar(true)}
           style={{
@@ -114,14 +132,19 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {citasFiltradas.map((c) => {
-            const cliente = c.cliente || clientes.find(cli => cli.id === c.clienteId);
-            const nombreCliente = cliente ? `${cliente.nombres || ""} ${cliente.apellidos || ""}`.trim() : "Cliente sin nombre";
-            const cedulaCliente = cliente ? cliente.id : c.clienteId;
-            const direccionCliente = cliente ? cliente.direccion : "Sin dirección";
+            // Robustez para encontrar el cliente sin importar cómo venga la relación desde la base de datos
+            const idBuscado = c.cliente_id || c.clienteId || (typeof c.cliente === "string" ? c.cliente : null);
+            const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
+            
+            const cliente = clienteObjEnCita || clientes.find(cli => cli.id === idBuscado || String(cli.id) === String(idBuscado));
+            
+            const nombreCliente = cliente ? `${cliente.nombres || cliente.nombre || ""} ${cliente.apellidos || ""}`.trim() : (c.nombre_cliente || "Cliente sin nombre");
+            const cedulaCliente = cliente ? cliente.id : (idBuscado || "N/A");
+            const direccionCliente = cliente ? cliente.direccion : (c.direccion || "Sin dirección");
 
             return (
               <div
-                key={c.id}
+                key={c.id || Math.random()}
                 style={{
                   background: "#fff",
                   borderRadius: 14,
@@ -159,8 +182,8 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 </div>
 
                 <div style={{ fontSize: 12.5, color: C.ink70, display: "flex", alignItems: "center", gap: 12, background: "#F8FAFC", padding: "8px 12px", borderRadius: 8 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={14} color={C.coral} /> {c.fecha_hora.slice(0, 10)}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Clock size={14} color={C.coral} /> {c.fecha_hora.slice(11, 16)}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={14} color={C.coral} /> {c.fecha_hora ? c.fecha_hora.slice(0, 10) : ""}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Clock size={14} color={C.coral} /> {c.fecha_hora ? c.fecha_hora.slice(11, 16) : ""}</span>
                 </div>
 
                 {/* Botones de acción inferiores */}
