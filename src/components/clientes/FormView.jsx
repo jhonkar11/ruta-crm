@@ -68,11 +68,12 @@ export default function FormView({ initial, currentUser, onSave, onCancel }) {
     boxShadow: "0 8px 20px rgba(0, 0, 0, 0.2)"
   };
 
+  // Etiquetas optimizadas con alto contraste (naranja claro)
   const labelStyle = {
     fontFamily: "'IBM Plex Mono', monospace", 
-    fontSize: 11, 
+    fontSize: 11.5, 
     fontWeight: 700, 
-    color: "#94a3b8", // Texto claro mejorado para contraste
+    color: "#fdba74", 
     textTransform: "uppercase", 
     display: "block", 
     marginBottom: 6,
