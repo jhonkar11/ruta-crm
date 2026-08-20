@@ -1,26 +1,87 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;700&display=swap');
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body, #root {
+body {
   margin: 0;
-  padding: 0;
   min-height: 100vh;
+  background-color: #080E1E;
+  background-image: url('/fondo-ruta.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   font-family: 'Inter', sans-serif;
-  -webkit-tap-highlight-color: transparent;
+  color: #f8fafc;
+  overflow-x: hidden;
 }
 
-::placeholder { color: rgba(18, 32, 61, 0.4); }
-img { max-width: 100%; display: block; }
-button { font-family: inherit; }
-
-.icon-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  line-height: 1;
+#root {
+  min-height: 100vh;
+  background: transparent !important;
 }
 
-@media (max-width: 360px) {
-  .icon-row { gap: 4px; }
+/* Forzar que títulos y subtítulos generales se vean siempre blancos y nítidos */
+h1, h2, h3, h4, h5, h6, .view-title {
+  color: #ffffff !important;
+}
+
+p, span.description, .subtitle {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Tarjetas glass premium */
+.glass-card {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 1px 0 rgba(255, 255, 255, 0.6) inset !important;
+  border-radius: 16px;
+  color: #1e293b !important; /* Asegura que el texto sea oscuro sobre la tarjeta blanca */
+}
+
+/* Menú inferior flotante fijo y con contraste nítido */
+.floating-bottom-nav {
+  position: fixed;
+  bottom: 25px;
+  left: 0;
+  right: 0;
+  z-index: 99999;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.floating-bottom-nav > div {
+  pointer-events: auto;
+  background: rgba(15, 23, 42, 0.92) !important;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 28px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+  max-width: 480px;
+  width: 90%;
+  padding: 8px;
+}
+
+/* Mejora de contraste para iconos del menú */
+.floating-bottom-nav svg {
+  color: #ffffff !important; /* Iconos blancos para alto contraste */
+  stroke-width: 2.5;
+}
+
+.floating-bottom-nav span {
+  color: #ffffff !important; /* Texto del menú en blanco */
+  font-weight: 600;
+}
+
+/* Etiquetas de formulario (Cédula, NIT, etc.) en color cálido para resaltar */
+label, .input-label, .field-title {
+  color: #fdba74 !important; /* Naranja claro visible sobre el fondo azul */
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  font-size: 0.75rem;
 }
