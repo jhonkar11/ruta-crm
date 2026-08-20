@@ -42,11 +42,11 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         <Stamp estado={estadoReal} size="sm" />
       </div>
 
-      {/* Cabecera de la tarjeta: Nombre y Cédula */}
+      {/* Cabecera de la tarjeta: Nombre y Cédula con contraste */}
       <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#0F172A", paddingRight: 100 }}>
         {nombreCliente}
       </div>
-      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#64748B", marginTop: 4 }}>
+      <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#DC2626", fontWeight: 600, marginTop: 4 }}>
         CC/NIT: {currentClient.id || currentClient.cedula || "N/A"}
       </div>
 
@@ -61,12 +61,12 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
       {/* Detalles del negocio y categoría */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 12, fontSize: 13, color: "#475569" }}>
         {currentClient.tipo_negocio && (
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <Building2 size={14} color={C.coral} />
+          <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#DC2626", fontWeight: 600 }}>
+            <Building2 size={14} color="#DC2626" />
             {currentClient.tipo_negocio}
           </span>
         )}
-        <span style={{ color: "#CBD5E1" }}>|</span>
+        {currentClient.tipo_negocio && <span style={{ color: "#CBD5E1" }}>|</span>}
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Tag size={14} color={C.coral} />
           <span style={{ fontWeight: 600, color: "#1E293B" }}>{estadoReal}</span>
