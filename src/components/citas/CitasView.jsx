@@ -51,6 +51,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     setModalAgendar(false);
     setClienteId("");
     setFecha("");
+    setHora("09:00");
     setNotas("");
   };
 
@@ -293,7 +294,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 </div>
                 <div>
                   <div style={labelStyleAzulOscuro}>HORA *</div>
-                  {/* Input de tipo time con estilo controlado para permitir cualquier minuto exacto */}
+                  {/* Selector con opción manual para asegurar captura exacta de cualquier minuto */}
                   <input
                     type="time"
                     value={hora}
