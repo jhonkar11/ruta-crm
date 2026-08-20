@@ -1,4 +1,4 @@
-import { Phone, MessageCircle, Calendar, Clock, MapPin, Building2 } from "lucide-react";
+import { Phone, MessageCircle, Edit3, Calendar, Clock, MapPin, Building2 } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
@@ -74,9 +74,10 @@ export default function CitaCard({ cita, onEdit, onComplete, profile }) {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 14, borderTop: `1px solid ${C.line}`, paddingTop: 12 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 14, borderTop: `1px solid ${C.line}`, paddingTop: 12, alignItems: "center" }}>
         <IconBtn icon={Phone} label="Llamar" href={telHref} disabled={!telefono} />
         <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!whatsapp} />
+        {onEdit && <IconBtn icon={Edit3} label="Editar" onClick={() => onEdit(cita)} />}
         <div style={{ flex: 1 }} />
         {onComplete && cita.estado !== "Completada" && (
           <button 
