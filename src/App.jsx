@@ -107,14 +107,26 @@ export default function App() {
 
   // MODIFICACIÓN APLICADA AQUÍ: Recibe los datos actualizados y limpios desde CitasView
   const posponerSimulado = async (citaOriginal, datosActualizados) => {
-    const clienteId = citaOriginal.id || citaOriginal.cliente_id || citaOriginal.clienteId;
+    // Aseguramos capturar el ID real del cliente sin importar cómo venga el objeto
+    const clienteId = citaOriginal?.id || citaOriginal?.clienteId || citaOriginal?.cliente?.id;
     const clienteObj = records.find(r => r && r.id === clienteId);
-    if (!clienteObj) return;
     
-    // Combinamos el cliente existente con los datos actualizados limpios (fecha_seguimiento, observaciones, estado)
+    if (!clienteObj) {
+      alert("No se encontró el registro del cliente para actualizar.");
+      return;
+    }
+
+    // Limpiamos el objeto para enviar únicamente campos que existen en la tabla 'clientes' de Supabase
+    const payloadLimpio = {
+      fecha_seguimiento: datosActualizados.fecha_seguimiento || clienteObj.fecha_seguimiento,
+      observaciones: datosActualizados.observaciones || clienteObj.observaciones,
+      direccion: datosActualizados.direccion || clienteObj.direccion,
+      estado: "Reprogramada"
+    };
+
     await saveCliente({ 
       ...clienteObj, 
-      ...datosActualizados 
+      ...payloadLimpio 
     }, false, user.id);
   };
 
