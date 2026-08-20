@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { Calendar, Clock, Plus, CheckCircle, XCircle, AlertCircle, CalendarDays, Search } from "lucide-react";
+import { Calendar, Clock, Plus, CheckCircle, XCircle } from "lucide-react";
 import { C, inputStyle } from "../../styles/tokens";
-import { EmptyState, TextInput } from "../ui/UIKit";
+import { EmptyState } from "../ui/UIKit";
 
 export default function CitasView({ citas = [], clientes = [], currentUser, onCrear, onPosponer, onCumplida, onCancelar }) {
   const [filtroTab, setFiltroTab] = useState("TODAS");
@@ -69,11 +69,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
           }}>
             Citas y visitas
           </h2>
-          <p style={{ 
-            fontSize: 13, 
-            color: "rgba(255, 255, 255, 0.8)", 
-            margin: 0 
-          }}>
+          <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", margin: 0 }}>
             {citas.length} programadas en total
           </p>
         </div>
@@ -126,38 +122,39 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         ))}
       </div>
 
-      {/* Listado de citas */}
+      {/* Listado de citas con la estructura limpia y robusta */}
       {citasFiltradas.length === 0 ? (
         <EmptyState text="No hay citas registradas en esta vista." />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {citasFiltradas.map((c) => {
-            const idBuscado = c.cliente_id || c.clienteId || c.id;
+            // Resolución infalible del cliente buscando tanto en la propiedad directa como en la lista general de clientes
+            const idBuscado = c.clienteId || c.cliente_id || c.id;
+            const clienteEnLista = clientes.find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
             const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
-            const clienteEnLista = clientes.find(cli => cli.id === idBuscado || String(cli.id) === String(idBuscado));
             
             const clienteFinal = clienteObjEnCita || clienteEnLista || c;
-            
-            const nombreCliente = `${clienteFinal.nombres || clienteFinal.nombre || ""} ${clienteFinal.apellidos || ""}`.trim() || "Cliente sin nombre";
-            const cedulaCliente = clienteFinal.id || idBuscado || "N/A";
-            const direccionCliente = clienteFinal.direccion || c.direccion || "Sin dirección";
+
+            const nombres = clienteFinal.nombres || clienteFinal.nombre || "";
+            const apellidos = clienteFinal.apellidos || "";
+            const nombreCompleto = `${nombres} ${apellidos}`.trim() || "Cliente sin nombre";
+            const cedula = clienteFinal.id || idBuscado || "N/A";
+            const direccion = clienteFinal.direccion || c.direccion || "Sin dirección registrada";
 
             return (
               <div
                 key={c.id || Math.random()}
                 style={{
-                  background: "#fff",
-                  borderRadius: 14,
-                  padding: "16px 20px",
-                  border: `1px solid ${C.line}`,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                  position: "relative"
+                  background: "#FFFFFF",
+                  borderRadius: 12,
+                  padding: 20,
+                  border: `1px solid #E2E8F0`,
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+                  position: "relative",
+                  transition: "transform 0.2s ease"
                 }}
               >
-                {/* Badge de estado superior derecho */}
+                {/* Etiqueta de estado en la parte superior derecha */}
                 <div style={{ position: "absolute", top: 16, right: 20 }}>
                   <span style={{
                     fontSize: 11,
@@ -168,26 +165,37 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                     color: c.estado === "Cumplida" || c.estado === "Visitado" ? "#065F46" : c.estado === "Reprogramada" ? "#1E40AF" : "#92400E",
                     textTransform: "uppercase"
                   }}>
-                    {c.estado}
+                    {c.estado || "Programada"}
                   </span>
                 </div>
 
-                <div>
-                  <h4 style={{ fontSize: 15, fontWeight: 700, color: C.ink, margin: 0 }}>{nombreCliente}</h4>
-                  <span style={{ fontSize: 12, color: C.ink40 }}>CC/NIT {cedulaCliente}</span>
+                {/* Cabecera de la tarjeta */}
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#0F172A", paddingRight: 100 }}>
+                  {nombreCompleto}
+                </div>
+                <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#64748B", marginTop: 4 }}>
+                  CC/NIT: {cedula}
                 </div>
 
-                <div style={{ fontSize: 13, color: C.ink70, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span>📍</span> {direccionCliente}
+                {/* Dirección y Horario */}
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 14, fontSize: 13, color: "#475569" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span>📍</span> {direccion}
+                  </span>
                 </div>
 
-                <div style={{ fontSize: 12.5, color: C.ink70, display: "flex", alignItems: "center", gap: 12, background: "#F8FAFC", padding: "8px 12px", borderRadius: 8 }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={14} color={C.coral} /> {c.fecha_hora ? c.fecha_hora.slice(0, 10) : ""}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Clock size={14} color={C.coral} /> {c.fecha_hora ? c.fecha_hora.slice(11, 16) : ""}</span>
-                </div>
+                {c.fecha_hora && (
+                  <div style={{
+                    marginTop: 12, fontSize: 11.5, color: "#92400E", background: "#FEF3C7",
+                    padding: "5px 10px", borderRadius: 6, width: "fit-content", display: "flex", alignItems: "center", gap: 6,
+                    fontWeight: 600
+                  }}>
+                    <Clock size={12} /> <span>Fecha y Hora: {c.fecha_hora.replace("T", " ")}</span>
+                  </div>
+                )}
 
-                {/* Botones de acción inferiores */}
-                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                {/* Acciones */}
+                <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14 }}>
                   <button
                     onClick={() => setModalReprogramar(c)}
                     style={{
@@ -198,10 +206,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                       borderRadius: 8,
                       fontSize: 12,
                       fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4
+                      cursor: "pointer"
                     }}
                   >
                     Reprogramar
@@ -232,7 +237,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL NUEVA CITA (AGENDAR) */}
+      {/* MODAL NUEVA CITA */}
       {modalAgendar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -316,7 +321,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL REPROGRAMAR (NUEVA FECHA) */}
+      {/* MODAL REPROGRAMAR */}
       {modalReprogramar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
