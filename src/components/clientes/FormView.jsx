@@ -35,8 +35,8 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       tipo_negocio: "Comercio",
       estado: "Pendiente",
       fecha_seguimiento: "",
-      observaciones: "",
-      foto_url: "" // Mapeado correctamente a la columna de Supabase
+      observaciones: "", // Único campo válido para notas en la base de datos
+      foto_url: ""
     }
   );
 
@@ -52,7 +52,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        // Se guarda en foto_url para que coincida exactamente con Supabase
         handleChange("foto_url", reader.result);
       };
       reader.readAsDataURL(file);
@@ -214,7 +213,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Observaciones */}
+        {/* Observaciones (Mapeado directo a la BD) */}
         <div>
           <label style={labelStyle}>Observaciones / Notas de la visita</label>
           <textarea
