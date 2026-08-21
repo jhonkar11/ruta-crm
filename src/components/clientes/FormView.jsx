@@ -67,6 +67,13 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     onSave(form, !initial);
   };
 
+  // Función segura para manejar la cancelación sin romper la aplicación
+  const handleCancel = () => {
+    if (typeof onCancel === "function") {
+      onCancel();
+    }
+  };
+
   const fotoActual = form.foto_url || form.foto;
 
   return (
@@ -213,7 +220,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Observaciones (Mapeado directo a la BD) */}
+        {/* Observaciones */}
         <div>
           <label style={labelStyle}>Observaciones / Notas de la visita</label>
           <textarea
@@ -308,7 +315,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
             style={{
               flex: 1,
               background: "rgba(255,255,255,0.08)",
