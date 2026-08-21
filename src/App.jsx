@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search, BellRing, X, Phone, MessageCircle, Edit3 } from "lucide-react";
+import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
@@ -105,9 +105,7 @@ export default function App() {
     }, false, user.id);
   };
 
-  // MODIFICACIÓN APLICADA AQUÍ: Recibe los datos actualizados y limpios desde CitasView
   const posponerSimulado = async (citaOriginal, datosActualizados) => {
-    // Aseguramos capturar el ID real del cliente sin importar cómo venga el objeto
     const clienteId = citaOriginal?.id || citaOriginal?.clienteId || citaOriginal?.cliente?.id;
     const clienteObj = records.find(r => r && r.id === clienteId);
     
@@ -116,10 +114,8 @@ export default function App() {
       return;
     }
 
-    // Unificamos las notas que vienen del modal (pueden venir como 'notas' o 'observaciones')
     const textoObservacion = datosActualizados.observaciones || datosActualizados.notas || clienteObj.observaciones;
 
-    // Preparamos el payload limpio con los nombres de columnas exactos que espera Supabase
     const payloadLimpio = {
       fecha_seguimiento: datosActualizados.fecha_seguimiento || clienteObj.fecha_seguimiento,
       observaciones: textoObservacion,
@@ -256,7 +252,7 @@ export default function App() {
               <div style={{ flex: 1 }}>
                 <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s)) - Toca para ver</strong>
                 <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
-                    Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
+                  Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
                 </div>
               </div>
             </div>
@@ -366,18 +362,51 @@ export default function App() {
             </div>
 
             <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "#f8fafc" }}>
-              {citasManana.map((r) => {
-                const nombreCliente = `${r.nombres || ""} ${r.apellidos || ""}`;
-                return (
-                  <div key={r.id} style={{ background: "#fff", padding: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}>
-                    <strong>{nombreCliente}</strong>
-                    <div style={{ fontSize: 12, color: "#64748B" }}>Dir: {r.direccion || "Sin dirección"}</div>
+              {citasManana.map((r) => (
+                <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
+                        {r.nombres} {r.apellidos}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
+                        {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
+                      </div>
+                    </div>
+                    <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
                   </div>
-                );
-              })}
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
+                    <IconBtn icon={PhoneCall} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
+                    <IconBtn icon={MessageSquareText} label="WhatsApp" href={r.whatsapp ? `https://wa.me/57${r.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!r.whatsapp} />
+                    <IconBtn icon={PencilLine} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: 12, borderTop: `1px solid ${C.line}`, background: "#fff", textAlign: "right" }}>
+              <button 
+                onClick={() => setShowMananaModal(false)}
+                style={{ background: C.ink, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
+      )}
+
+      {confirmTarget && (
+        <ConfirmModal
+          title={confirmTarget.type === "archive" ? "Archivar registro" : "Eliminar definitivamente"}
+          body={confirmTarget.type === "archive"
+            ? `${confirmTarget.record.nombres} ${confirmTarget.record.apellidos} se moverá a archivados. Podrás consultarlo luego, no se pierde el historial.`
+            : `Esta acción borrará para siempre el registro de ${confirmTarget.record.nombres} ${confirmTarget.record.apellidos}. No se puede deshacer.`}
+          confirmLabel={confirmTarget.type === "archive" ? "Archivar" : "Eliminar"}
+          danger={confirmTarget.type === "delete"}
+          onConfirm={confirmAction}
+          onCancel={() => setConfirmTarget(null)}
+        />
       )}
     </div>
   );
