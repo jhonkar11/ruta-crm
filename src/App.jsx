@@ -105,9 +105,7 @@ export default function App() {
     }, false, user.id);
   };
 
-  // MODIFICACIÓN APLICADA AQUÍ: Recibe los datos actualizados y limpios desde CitasView
   const posponerSimulado = async (citaOriginal, datosActualizados) => {
-    // Aseguramos capturar el ID real del cliente sin importar cómo venga el objeto
     const clienteId = citaOriginal?.id || citaOriginal?.clienteId || citaOriginal?.cliente?.id;
     const clienteObj = records.find(r => r && r.id === clienteId);
     
@@ -116,10 +114,8 @@ export default function App() {
       return;
     }
 
-    // Unificamos las notas que vienen del modal (pueden venir como 'notas' o 'observaciones')
     const textoObservacion = datosActualizados.observaciones || datosActualizados.notas || clienteObj.observaciones;
 
-    // Preparamos el payload limpio con los nombres de columnas exactos que espera Supabase
     const payloadLimpio = {
       fecha_seguimiento: datosActualizados.fecha_seguimiento || clienteObj.fecha_seguimiento,
       observaciones: textoObservacion,
@@ -164,18 +160,6 @@ export default function App() {
 
   const handleArchive = (r) => setConfirmTarget({ type: "archive", record: r });
   const handleDelete = (r) => setConfirmTarget({ type: "delete", record: r });
-
-  const confirmAction = async () => {
-    if (!confirmTarget) return;
-    const { type, record } = confirmTarget;
-    try {
-      if (type === "archive") await archivar(record.id);
-      else await eliminar(record.id);
-    } catch (e) {
-      alert("No se pudo completar la acción: " + e.message);
-    }
-    setConfirmTarget(null);
-  };
 
   if (authLoading) {
     return (
