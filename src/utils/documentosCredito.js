@@ -18,6 +18,28 @@ export function calcularProgreso(checklist = {}, documentos = DOCUMENTOS_CREDITO
   return Math.round((completados / documentos.length) * 100);
 }
 
+// Función auxiliar requerida por ClientCard.jsx para mostrar conteo y porcentaje
+export function calcularProgresoCredito(documentosState = {}, documentos = DOCUMENTOS_CREDITO_DEFAULT) {
+  const total = documentos.length;
+  let completados = 0;
+
+  documentos.forEach(doc => {
+    // Soporta tanto booleano simple como objeto de estado de documento
+    const estadoDoc = documentosState[doc.id];
+    if (estadoDoc === true || estadoDoc?.estado === "completado" || estadoDoc === "completado") {
+      completados++;
+    }
+  });
+
+  const porcentaje = total > 0 ? Math.round((completados / total) * 100) : 0;
+
+  return {
+    total,
+    completados,
+    porcentaje
+  };
+}
+
 export function documentosFaltantes(checklist = {}, documentos = DOCUMENTOS_CREDITO_DEFAULT) {
   return documentos.filter((d) => !checklist[d.id]).map((d) => d.label);
 }
@@ -40,7 +62,7 @@ export const ESTADOS_CREDITO = [
   "Rechazado",
 ];
 
-// Mismo formato {bg, fg} que ya usa el resto de la app (ver Stamp en UIKit.jsx),
+// Mismo formato {bg, fg} que ya usa el resto de la app (ver Stamp in UIKit.jsx),
 // para que un <Stamp estado={...} /> se vea idéntico a los demás badges.
 export const ESTADO_CREDITO_STYLE = {
   "Documentación Pendiente": { bg: "#FEF3C7", fg: "#D97706" },
