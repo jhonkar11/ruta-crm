@@ -22,9 +22,10 @@ export async function getProfile(userId) {
     .from("usuarios")
     .select("id, nombre, rol, telefono")
     .eq("id", userId)
-    .single();
+    .maybeSingle(); // Usamos maybeSingle en lugar de single para evitar excepciones si no existe
+
   if (error) throw error;
-  return data;
+  return data; // Si no lo encuentra, devolverá null en lugar de romper
 }
 
 export function onAuthStateChange(callback) {
