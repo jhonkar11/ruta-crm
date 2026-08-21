@@ -22,21 +22,20 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     textTransform: "uppercase"
   };
 
-  // Estados del formulario para nueva cita
   const [clienteId, setClienteId] = useState("");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("09:00");
   const [direccionNueva, setDireccionNueva] = useState("");
   const [notas, setNotas] = useState("");
 
-  // Estados para el formulario de reprogramación avanzada
   const [nuevaFechaReprogramar, setNuevaFechaReprogramar] = useState("");
   const [nuevaHoraReprogramar, setNuevaHoraReprogramar] = useState("09:00");
   const [nuevaNotaReprogramar, setNuevaNotaReprogramar] = useState("");
   const [nuevaDireccionReprogramar, setNuevaDireccionReprogramar] = useState("");
 
   const citasFiltradas = useMemo(() => {
-    return citas.filter(c => {
+    return (citas || []).filter(c => {
+      if (!c) return false;
       if (filtroTab === "PROGRAMADAS") return c.estado === "Programada" || c.estado === "Pendiente";
       if (filtroTab === "CUMPLIDAS") return c.estado === "Cumplida" || c.estado === "Visitado";
       if (filtroTab === "REPROGRAMADAS") return c.estado === "Reprogramada";
@@ -44,7 +43,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     });
   }, [citas, filtroTab]);
 
-  // Función clave: Al seleccionar un cliente, autocompletamos sus datos pero permitiendo editarlos
   const handleClienteSelectChange = (e) => {
     const idSeleccionado = e.target.value;
     setClienteId(idSeleccionado);
@@ -55,7 +53,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       return;
     }
 
-    const clienteEncontrado = clientes.find(cli => cli && (cli.id === idSeleccionado || String(cli.id) === String(idSeleccionado)));
+    const clienteEncontrado = (clientes || []).find(cli => cli && (cli.id === idSeleccionado || String(cli.id) === String(idSeleccionado)));
     if (clienteEncontrado) {
       setDireccionNueva(clienteEncontrado.direccion || "");
       setNotas(clienteEncontrado.observaciones || clienteEncontrado.notas || "");
@@ -117,7 +115,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
     setNuevaNotaReprogramar(c.observaciones || c.notas || "");
 
     const idBuscado = c.clienteId || c.cliente_id || c.id;
-    const clienteEnLista = clientes.find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
+    const clienteEnLista = (clientes || []).find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
     const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
     const clienteFinal = clienteObjEnCita || clienteEnLista || c;
     setNuevaDireccionReprogramar(clienteFinal.direccion || c.direccion || "");
@@ -146,7 +144,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
   return (
     <div style={{ paddingBottom: 40 }}>
-      {/* Encabezado */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, color: "#ffffff", margin: 0, marginBottom: 4 }}>
@@ -168,7 +165,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </button>
       </div>
 
-      {/* Pestañas de filtrado */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, overflowX: "auto", paddingBottom: 4 }}>
         {[
           { key: "TODAS", label: "Todas" },
@@ -182,8 +178,8 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             style={{
               padding: "6px 16px", borderRadius: 20, fontSize: 12.5, fontWeight: 600,
               border: `1.5px solid ${filtroTab === tab.key ? C.coral : C.line}`,
-              background: filtroTab === tab ? "#FCEBE5" : "#fff",
-              color: filtroTab === tab ? C.coralDark : C.ink70,
+              background: filtroTab === tab.key ? "#FCEBE5" : "#fff",
+              color: filtroTab === tab.key ? C.coralDark : C.ink70,
               cursor: "pointer"
             }}
           >
@@ -192,14 +188,14 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         ))}
       </div>
 
-      {/* Listado de tarjetas */}
       {citasFiltradas.length === 0 ? (
         <EmptyState text="No hay citas registradas en esta vista." />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {citasFiltradas.map((c) => {
+            if (!c) return null;
             const idBuscado = c.clienteId || c.cliente_id || c.id;
-            const clienteEnLista = clientes.find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
+            const clienteEnLista = (clientes || []).find(cli => cli && (cli.id === idBuscado || String(cli.id) === String(idBuscado)));
             const clienteObjEnCita = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
             const clienteFinal = clienteObjEnCita || clienteEnLista || c;
 
@@ -283,7 +279,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL NUEVA CITA CON CAMPOS EDITABLES AUTOCOMPLETADOS */}
       {modalAgendar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -312,7 +307,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   style={{ ...inputStyle(false), width: "100%", padding: "10px", borderRadius: 10, borderColor: "#CBD5E1" }}
                 >
                   <option value="">— Seleccionar —</option>
-                  {clientes.map(cli => (
+                  {(clientes || []).map(cli => cli && (
                     <option key={cli.id} value={cli.id}>{cli.nombres} {cli.apellidos} ({cli.id})</option>
                   ))}
                 </select>
@@ -340,7 +335,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
               </div>
 
               <div>
-                <div style={labelStyleAzulOscuro}>DIRECCIÓN (AUTOCARREGADA / EDITABLE)</div>
+                <div style={labelStyleAzulOscuro}>DIRECCIÓN</div>
                 <input
                   type="text"
                   value={direccionNueva}
@@ -380,7 +375,6 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
         </div>
       )}
 
-      {/* MODAL REPROGRAMAR */}
       {modalReprogramar && (
         <div style={{
           position: "fixed", top: 0, left: 0, right: 0, bottom: 0,

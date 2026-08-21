@@ -7,11 +7,9 @@ import ShareEstadoWhatsApp from "../share/ShareEstadoWhatsApp";
 import { calcularProgresoCredito } from "../../utils/documentosCredito";
 
 export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, canDelete, onUpdateClient }) {
-  // Soporte universal para ambas formas en que las vistas pasan el registro
   const currentClient = client || clientProp;
   if (!currentClient) return null;
 
-  // Estado para controlar el Modal de Documentos
   const [showDocumentosModal, setShowDocumentosModal] = useState(false);
 
   const estadoReal = currentClient.estado || currentClient.categoria_cliente || "Registrado";
@@ -24,16 +22,13 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
   const telClean = formatPhone(currentClient.telefono);
   const waClean = formatPhone(currentClient.whatsapp || currentClient.telefono);
 
-  // Nombre del cliente y del asesor logueado
   const nombreCliente = `${currentClient.nombres || ""} ${currentClient.apellidos || ""}`.trim() || "Cliente sin nombre";
   const nombreAsesor = profile?.nombre || "Jhon Alexander Vasquez Revelo";
 
-  // Mensaje optimizado para Banco Caja Social
   const textoMensaje = `Hola ${nombreCliente}, te saluda ${nombreAsesor} de Banco Caja Social. Como tu banco amigo, te recordamos nuestra visita de seguimiento. ¿Te queda bien el horario acordado? ¡Un amigo hoy, mañana y siempre!`;
   
   const waHref = waClean ? `https://wa.me/57${waClean}?text=${encodeURIComponent(textoMensaje)}` : undefined;
 
-  // Cálculo del progreso de documentos de crédito
   const documentosState = currentClient.documentos_credito || {};
   const progreso = calcularProgresoCredito(documentosState);
 
@@ -57,7 +52,6 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
       position: "relative",
       transition: "transform 0.2s ease"
     }}>
-      {/* Cabecera de la tarjeta: Nombre y Stamp (Badge) de Estado alineados */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, paddingRight: 10 }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#0F172A", lineHeight: 1.2 }}>
           {nombreCliente}
@@ -68,10 +62,9 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
       </div>
 
       <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#DC2626", fontWeight: 600, marginTop: 4 }}>
-        CC/NIT: {currentClient.id || currentClient.cedula || "N/A"}
+        CC/NIT: {currentClient?.cedula || currentClient?.id || "N/A"}
       </div>
 
-      {/* Dirección */}
       {currentClient.direccion && (
         <div style={{ fontSize: 13, color: "#475569", display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
           <span style={{ color: C.coral }}>📍</span>
@@ -79,7 +72,6 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         </div>
       )}
 
-      {/* Detalles del negocio y categoría */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 12, fontSize: 13, color: "#475569" }}>
         {currentClient.tipo_negocio && (
           <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#DC2626", fontWeight: 600 }}>
@@ -94,7 +86,6 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         </span>
       </div>
 
-      {/* Barra de progreso de Documentos de Crédito */}
       <div 
         onClick={() => setShowDocumentosModal(true)}
         style={{
@@ -122,7 +113,6 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         </div>
       </div>
 
-      {/* Fecha de seguimiento destacada */}
       {currentClient.fecha_seguimiento && !["Archivado"].includes(currentClient.estado) && (
         <div style={{
           marginTop: 12, fontSize: 11.5, color: "#92400E", background: "#FEF3C7",
@@ -133,7 +123,6 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         </div>
       )}
 
-      {/* Sección de Observaciones o última notificación */}
       {(currentClient.observaciones || currentClient.notas) && (
         <div style={{
           marginTop: 12,
@@ -150,7 +139,6 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         </div>
       )}
 
-      {/* Botones de acción inferior */}
       <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14, alignItems: "center" }}>
         <IconBtn icon={Phone} label="Llamar" href={telClean ? `tel:${telClean}` : undefined} disabled={!telClean} />
         <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean} />
@@ -162,7 +150,6 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         {canDelete && <IconBtn icon={Trash2} label="Eliminar" tone="line" onClick={() => onDelete && onDelete(currentClient)} />}
       </div>
 
-      {/* Modal de Documentos de Crédito */}
       <DocumentosModal
         isOpen={showDocumentosModal}
         onClose={() => setShowDocumentosModal(false)}
