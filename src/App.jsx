@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Search, BellRing, X, Phone, MessageCircle, Edit3 } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
@@ -11,13 +11,14 @@ import ClientCard from "./components/clientes/ClientCard";
 import MapaView from "./components/clientes/MapaView";
 import FormView from "./components/clientes/FormView";
 import CitasView from "./components/citas/CitasView";
-import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
+import { ViewHeader, EmptyState, ConfirmModal, TextInput } from "./components/ui/UIKit";
+import { Stamp, IconBtn } from "./components/ui/UIKit";
 
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
   const { records, loading: recordsLoading, error, saveCliente, archivar, eliminar } = useClientes();
 
-  const [view, setView] = useState(() => localStorage.getItem("crm_view") || "mapa");
+  const [view, setView] = useState("mapa");
   const [editing, setEditing] = useState(undefined);
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState(null);
@@ -25,10 +26,6 @@ export default function App() {
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
   
   const [showMananaModal, setShowMananaModal] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("crm_view", view);
-  }, [view]);
 
   const profile = useMemo(() => {
     if (!rawProfile) return null;
@@ -49,7 +46,7 @@ export default function App() {
       .map((r) => ({
         id: r.id,
         clienteId: r.id,
-        fecha_hora: r.fecha_seguimiento.includes("T") ? r.fecha_seguimiento : `${r.fecha_seguimiento}T09:00:00`,
+        fecha_hora: `${r.fecha_seguimiento}T09:00:00`,
         estado: r.estado || "Programada",
         notas: r.observaciones || "Seguimiento programado",
         cliente: r,
@@ -67,7 +64,7 @@ export default function App() {
 
   const citasManana = useMemo(() => {
     if (!records) return [];
-    return records.filter(r => r && r.fecha_seguimiento && r.fecha_seguimiento.slice(0, 10) === mananaISO && !["Archivado", "Visitado", "Cancelado"].includes(r.estado));
+    return records.filter(r => r && r.fecha_seguimiento === mananaISO && !["Archivado", "Visitado", "Cancelado"].includes(r.estado));
   }, [records, mananaISO]);
 
   const buscados = useMemo(() => {
@@ -94,39 +91,10 @@ export default function App() {
     return (citas || []).filter((c) => c && c.estado === "Programada" && c.fecha_hora.slice(0, 10) <= hoy).length;
   }, [citas]);
 
-  const crearCitaSimulada = async (payload) => {
-    const clienteObj = records.find(r => r && r.id === payload.clienteId);
-    if (!clienteObj) throw new Error("Cliente no encontrado en los registros.");
-    await saveCliente({
-      ...clienteObj,
-      fecha_seguimiento: payload.fechaHora,
-      observaciones: payload.notas || clienteObj.observaciones,
-      estado: "Programada"
-    }, false, user.id);
-  };
-
-  const posponerSimulado = async (citaOriginal, datosActualizados) => {
-    const clienteId = citaOriginal?.id || citaOriginal?.clienteId || citaOriginal?.cliente?.id;
-    const clienteObj = records.find(r => r && r.id === clienteId);
-    
-    if (!clienteObj) {
-      alert("No se encontró el registro del cliente para actualizar.");
-      return;
-    }
-
-    const textoObservacion = datosActualizados.observaciones || datosActualizados.notas || clienteObj.observaciones;
-
-    const payloadLimpio = {
-      fecha_seguimiento: datosActualizados.fecha_seguimiento || clienteObj.fecha_seguimiento,
-      observaciones: textoObservacion,
-      direccion: datosActualizados.direccion || clienteObj.direccion,
-      estado: "Reprogramada"
-    };
-
-    await saveCliente({ 
-      ...clienteObj, 
-      ...payloadLimpio 
-    }, false, user.id);
+  const posponerSimulado = async (cita, nuevaFecha) => {
+    const clienteObj = records.find(r => r && r.id === (cita.clienteId || cita.id));
+    if (!clienteObj) return;
+    await saveCliente({ ...clienteObj, fecha_seguimiento: nuevaFecha.slice(0, 10), estado: "Reprogramada" }, false, user.id);
   };
 
   const marcarCumplidaSimulada = async (cita) => {
@@ -161,6 +129,18 @@ export default function App() {
   const handleArchive = (r) => setConfirmTarget({ type: "archive", record: r });
   const handleDelete = (r) => setConfirmTarget({ type: "delete", record: r });
 
+  const confirmAction = async () => {
+    if (!confirmTarget) return;
+    const { type, record } = confirmTarget;
+    try {
+      if (type === "archive") await archivar(record.id);
+      else await eliminar(record.id);
+    } catch (e) {
+      alert("No se pudo completar la acción: " + e.message);
+    }
+    setConfirmTarget(null);
+  };
+
   if (authLoading) {
     return (
       <div style={{ minHeight: "100vh", background: "#1a0a3e", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
@@ -187,6 +167,7 @@ export default function App() {
       overflowX: "hidden",
       fontFamily: "'Inter', sans-serif"
     }}>
+      {/* Fondo de ondas exacto idéntico al login */}
       <div style={{
         position: "fixed",
         inset: 0,
@@ -206,6 +187,7 @@ export default function App() {
         </svg>
       </div>
 
+      {/* Contenedor principal del dashboard sobre las ondas */}
       <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
         <TopBar profile={profile} userId={user.id} onLogout={logout} />
 
@@ -240,7 +222,7 @@ export default function App() {
               <div style={{ flex: 1 }}>
                 <strong style={{ fontSize: 14 }}>¡Alerta de ruta para mañana! ({citasManana.length} cliente(s) agendado(s)) - Toca para ver</strong>
                 <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.9 }}>
-                    Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
+                  Tienes visitas próximas programadas para el {mananaISO}. No olvides confirmar la asistencia con cada cliente.
                 </div>
               </div>
             </div>
@@ -261,7 +243,6 @@ export default function App() {
               citas={citas}
               clientes={records ? records.filter((r) => r && r.estado !== "Archivado") : []}
               currentUser={{ id: user.id, nombre: profile.nombre }}
-              onCrear={crearCitaSimulada}
               onPosponer={posponerSimulado}
               onCumplida={marcarCumplidaSimulada}
               onCancelar={cancelarSimulado}
@@ -334,35 +315,84 @@ export default function App() {
             maxHeight: "85vh", display: "flex", flexDirection: "column",
             boxShadow: "0 10px 25px rgba(0,0,0,0.25)", overflow: "hidden"
           }}>
-            <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#4c0519" }}>
+            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FEF3C7" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <BellRing size={18} color="#f43f5e" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#ffffff" }}>
+                <BellRing size={18} color="#D97706" />
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#92400E" }}>
                   Visitas para mañana ({citasManana.length})
                 </h3>
               </div>
               <button 
                 onClick={() => setShowMananaModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#ffffff", display: "flex", opacity: 0.8 }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#92400E", display: "flex" }}
               >
                 <X size={20} />
               </button>
             </div>
 
             <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "#f8fafc" }}>
-              {citasManana.map((r) => {
-                const nombreCliente = `${r.nombres || ""} ${r.apellidos || ""}`;
-                return (
-                  <div key={r.id} style={{ background: "#fff", padding: 12, borderRadius: 10, border: "1px solid #e2e8f0" }}>
-                    <strong>{nombreCliente}</strong>
-                    <div style={{ fontSize: 12, color: "#64748B" }}>Dir: {r.direccion || "Sin dirección"}</div>
+              {citasManana.map((r) => (
+                <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
+                        {r.nombres} {r.apellidos}
+                      </div>
+                      <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
+                        {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
+                      </div>
+                    </div>
+                    <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
                   </div>
-                );
-              })}
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
+                    <IconBtn icon={Phone} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
+                    <IconBtn icon={MessageCircle} label="WhatsApp" href={r.whatsapp ? `https://wa.me/57${r.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!r.whatsapp} />
+                    <IconBtn icon={Edit3} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: 12, borderTop: `1px solid ${C.line}`, background: "#fff", textAlign: "right" }}>
+              <button 
+                onClick={() => setShowMananaModal(false)}
+                style={{ background: C.ink, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {confirmTarget && (
+        <ConfirmModal
+          title={confirmTarget.type === "archive" ? "Archivar registro" : "Eliminar definitivamente"}
+          body={confirmTarget.type === "archive"
+            ? `${confirmTarget.record.nombres} ${confirmTarget.record.apellidos} se moverá a archivados. Podrás consultarlo luego, no se pierde el historial.`
+            : `Esta acción borrará para siempre el registro de ${confirmTarget.record.nombres} ${confirmTarget.record.apellidos}. No se puede deshacer.`}
+          confirmLabel={confirmTarget.type === "archive" ? "Archivar" : "Eliminar"}
+          danger={confirmTarget.type === "delete"}
+          onConfirm={confirmAction}
+          onCancel={() => setConfirmTarget(null)}
+        />
+      )}
     </div>
+  );
+}
+
+function FiltroChip({ active, onClick, label }) {
+  return (
+    <button onClick={onClick} style={{
+      border: `1.5px solid ${active ? C.coral : "rgba(255,255,255,0.2)"}`, 
+      background: active ? "#FCEBE5" : "rgba(26, 10, 62, 0.6)",
+      color: active ? C.coralDark : "#ffffff", 
+      borderRadius: 20, 
+      padding: "6px 14px", 
+      fontSize: 12.5,
+      fontWeight: 600, 
+      cursor: "pointer", 
+      backdropFilter: "blur(4px)"
+    }}>{label}</button>
   );
 }

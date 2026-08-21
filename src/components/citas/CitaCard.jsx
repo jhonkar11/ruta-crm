@@ -5,12 +5,14 @@ import { Stamp, IconBtn } from "../ui/UIKit";
 export default function CitaCard({ cita, onEdit, onComplete, profile }) {
   if (!cita) return null;
 
+  // Extraer de forma segura el teléfono y datos del cliente asociado
   const cliente = cita.cliente || {};
   const telefono = cliente.telefono || cita.telefono || "";
   const whatsapp = cliente.whatsapp || cita.whatsapp || telefono;
   const nombres = cliente.nombres || cita.nombres || "Cliente";
   const apellidos = cliente.apellidos || cita.apellidos || "";
 
+  // Solución inteligente para el nombre del asesor según el usuario logueado
   let nombreAsesor = "Asesor";
   
   if (typeof profile === "string") {

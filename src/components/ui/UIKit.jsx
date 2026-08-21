@@ -9,22 +9,13 @@ export function Stamp({ estado, size = "md", rotate = true, kind = "cliente" }) 
 
   if (est.includes("no localizado") || est.includes("cancelado")) {
     bg = "#FEE2E2"; fg = "#DC2626";
-  } else if (est.includes("rechazado")) { // NUEVO
-    bg = "#FEE2E2"; fg = "#B91C1C";       // NUEVO
   } else if (est.includes("trámite") || est.includes("pendiente")) {
     bg = "#FEF3C7"; fg = "#D97706";
-  } else if (est.includes("estudio")) {   // NUEVO
-    bg = "#DBEAFE"; fg = "#1D4ED8";       // NUEVO
   } else if (est.includes("preoferta") || est.includes("interesado")) {
     bg = "#DBEAFE"; fg = "#2563EB";
   } else if (est.includes("programada")) {
     bg = "#2563EB"; fg = "#FFFFFF";
-  } else if (est.includes("aprobado")) {  // NUEVO
-    bg = "#DCFCE7"; fg = "#16A34A";       // NUEVO
-  } else if (
-    est.includes("contactado") || est.includes("cumplida") ||
-    est.includes("visitado") || est.includes("desembolsado")
-  ) {
+  } else if (est.includes("contactado") || est.includes("cumplida") || est.includes("visitado")) {
     bg = "#0D9488"; fg = "#FFFFFF";
   }
 
@@ -75,6 +66,7 @@ export function Field({ label, required, error, children }) {
 }
 
 export function IconBtn({ icon: Icon, onClick, label, tone = "ink", href, disabled }) {
+  // Ajuste para garantizar contraste perfecto tanto en fondos oscuros como en tarjetas blancas
   let bg = tone === "coral" ? C.coral : tone === "line" ? "transparent" : "rgba(15, 23, 42, 0.06)";
   let fg = tone === "coral" ? "#fff" : tone === "line" ? "#0F172A" : "#0F172A";
   

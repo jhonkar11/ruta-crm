@@ -14,28 +14,14 @@ export function useAuth() {
       setLoading(false);
       return;
     }
-
+    setUser(session.user);
     try {
       const prof = await getProfile(session.user.id);
-      
-      // Si el usuario tiene sesión activa pero fue borrado de la tabla 'usuarios'
-      if (!prof) {
-        console.warn("El usuario autenticado no existe en la tabla de perfiles. Cerrando sesión...");
-        await signOut(); // Limpiamos la sesión corrupta
-        setUser(null);
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-
-      setUser(session.user);
       setProfile(prof);
     } catch (e) {
       console.error("No se pudo cargar el perfil del usuario:", e.message);
-      setUser(null);
       setProfile(null);
     }
-    
     setLoading(false);
   }, []);
 

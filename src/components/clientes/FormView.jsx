@@ -35,8 +35,8 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       tipo_negocio: "Comercio",
       estado: "Pendiente",
       fecha_seguimiento: "",
-      observaciones: "", // Único campo válido para notas en la base de datos
-      foto_url: ""
+      observaciones: "",
+      foto_url: "" // Mapeado correctamente a la columna de Supabase
     }
   );
 
@@ -52,6 +52,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
+        // Se guarda en foto_url para que coincida exactamente con Supabase
         handleChange("foto_url", reader.result);
       };
       reader.readAsDataURL(file);
@@ -65,13 +66,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       return;
     }
     onSave(form, !initial);
-  };
-
-  // Función segura para manejar la cancelación sin romper la aplicación
-  const handleCancel = () => {
-    if (typeof onCancel === "function") {
-      onCancel();
-    }
   };
 
   const fotoActual = form.foto_url || form.foto;
@@ -315,7 +309,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
           <button
             type="button"
-            onClick={handleCancel}
+            onClick={onCancel}
             style={{
               flex: 1,
               background: "rgba(255,255,255,0.08)",
