@@ -5,9 +5,9 @@ function ItemAlerta({ r, sublabel, onEdit }) {
   const waNumero = String(r.whatsapp || r.telefono || "").replace(/\D/g, "");
   return (
     <div style={{
-      background: "rgba(255, 255, 255, 0.06)",
-      border: "1px solid rgba(255, 255, 255, 0.12)",
-      borderRadius: 16,
+      background: "rgba(255, 255, 255, 0.07)",
+      border: "1px solid rgba(255, 255, 255, 0.15)",
+      borderRadius: 14,
       padding: "12px 14px",
       marginBottom: 10,
       display: "flex",
@@ -19,21 +19,22 @@ function ItemAlerta({ r, sublabel, onEdit }) {
         <div style={{ fontSize: 13.5, fontWeight: 700, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {r.nombres} {r.apellidos}
         </div>
-        <div style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.75)", marginTop: 3 }}>{sublabel}</div>
+        {/* Sublabel (fecha) con color de alta visibilidad */}
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: "#FDE68A", marginTop: 3 }}>{sublabel}</div>
       </div>
       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
         <a href={r.telefono ? `tel:${r.telefono}` : undefined} style={{
-          width: 32, height: 32, borderRadius: 10, background: "rgba(255,255,255,0.08)",
+          width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.1)",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
           opacity: r.telefono ? 1 : 0.35, pointerEvents: r.telefono ? "auto" : "none",
         }}><Phone size={14} /></a>
         <a href={waNumero ? `https://wa.me/57${waNumero}` : undefined} target="_blank" rel="noreferrer" style={{
-          width: 32, height: 32, borderRadius: 10, background: "rgba(37,211,102,0.2)",
+          width: 32, height: 32, borderRadius: 8, background: "rgba(37,211,102,0.2)",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#25D366",
           opacity: waNumero ? 1 : 0.35, pointerEvents: waNumero ? "auto" : "none",
         }}><MessageCircle size={14} /></a>
         <button onClick={() => onEdit(r)} style={{
-          width: 32, height: 32, borderRadius: 10, background: "#E14E2A", border: "none",
+          width: 32, height: 32, borderRadius: 8, background: "#E14E2A", border: "none",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", cursor: "pointer",
         }}><Edit3 size={14} /></button>
       </div>
@@ -55,7 +56,8 @@ function Seccion({ icon: Icon, color, titulo, items, render, emptyText }) {
         }}>{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: "rgba(255, 255, 255, 0.6)", fontStyle: "italic", paddingLeft: 4 }}>{emptyText}</div>
+        {/* Texto de sección vacía con tono claro y alta legibilidad */}
+        <div style={{ fontSize: 13, color: "#E2E8F0", fontStyle: "italic", paddingLeft: 4, fontWeight: 500 }}>{emptyText}</div>
       ) : items.map((r) => render(r))}
     </div>
   );
@@ -71,9 +73,9 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       left: 0,
       width: "100vw",
       height: "100vh",
-      background: "rgba(15, 10, 25, 0.6)",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
+      background: "rgba(11, 17, 32, 0.65)",
+      backdropFilter: "blur(10px)",
+      WebkitBackdropFilter: "blur(10px)",
       zIndex: 9999,
       display: "flex",
       alignItems: "center",
@@ -81,17 +83,16 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       padding: 16,
       boxSizing: "border-box"
     }}>
-      {/* Contenedor con el estilo exacto de la tarjeta de inicio de sesión */}
       <div style={{
-        background: "linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%)",
-        backdropFilter: "blur(25px)",
-        WebkitBackdropFilter: "blur(25px)",
-        border: "1px solid rgba(255, 255, 255, 0.18)",
-        borderRadius: 28,
+        background: "rgba(255, 255, 255, 0.07)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.15)",
+        borderRadius: 24,
         padding: 32,
         width: "100%",
         maxWidth: 520,
-        boxShadow: "0 25px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25)",
+        boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
         maxHeight: "88vh",
         overflowY: "auto",
         color: "#fff",
@@ -99,13 +100,13 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <AlertTriangle size={22} color="#F59E0B" />
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", color: "#FFFFFF" }}>
+            <AlertTriangle size={20} color="#F59E0B" />
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" }}>
               Centro de alertas
             </span>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12,
+            background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12,
             width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", cursor: "pointer", flexShrink: 0,
           }}>
