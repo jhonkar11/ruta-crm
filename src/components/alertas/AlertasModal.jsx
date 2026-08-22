@@ -19,7 +19,6 @@ function ItemAlerta({ r, sublabel, onEdit }) {
         <div style={{ fontSize: 13.5, fontWeight: 700, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {r.nombres} {r.apellidos}
         </div>
-        {/* Sublabel (fecha) con color de alta visibilidad */}
         <div style={{ fontSize: 12.5, fontWeight: 600, color: "#FDE68A", marginTop: 3 }}>{sublabel}</div>
       </div>
       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -56,7 +55,6 @@ function Seccion({ icon: Icon, color, titulo, items, render, emptyText }) {
         }}>{items.length}</span>
       </div>
       {items.length === 0 ? (
-        {/* Texto de sección vacía con tono claro y alta legibilidad */}
         <div style={{ fontSize: 13, color: "#E2E8F0", fontStyle: "italic", paddingLeft: 4, fontWeight: 500 }}>{emptyText}</div>
       ) : items.map((r) => render(r))}
     </div>
