@@ -2,7 +2,7 @@ import { X, AlertTriangle, FileWarning, Hourglass, CalendarClock, Phone, Message
 import { C } from "../../styles/tokens";
 
 function ItemAlerta({ r, sublabel, onEdit }) {
-  const waNumero = String(r.whatsapp || r.telefono || "").replace(/\D/g, "");
+  const waNumero = String(r?.whatsapp || r?.telefono || "").replace(/\D/g, "");
   return (
     <div style={{
       background: "rgba(255, 255, 255, 0.07)",
@@ -17,15 +17,15 @@ function ItemAlerta({ r, sublabel, onEdit }) {
     }}>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: 13.5, fontWeight: 700, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {r.nombres} {r.apellidos}
+          {r?.nombres} {r?.apellidos}
         </div>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: "#FDE68A", marginTop: 3 }}>{sublabel}</div>
       </div>
       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-        <a href={r.telefono ? `tel:${r.telefono}` : undefined} style={{
+        <a href={r?.telefono ? `tel:${r.telefono}` : undefined} style={{
           width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.1)",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-          opacity: r.telefono ? 1 : 0.35, pointerEvents: r.telefono ? "auto" : "none",
+          opacity: r?.telefono ? 1 : 0.35, pointerEvents: r?.telefono ? "auto" : "none",
         }}><Phone size={14} /></a>
         <a href={waNumero ? `https://wa.me/57${waNumero}` : undefined} target="_blank" rel="noreferrer" style={{
           width: 32, height: 32, borderRadius: 8, background: "rgba(37,211,102,0.2)",
@@ -41,7 +41,8 @@ function ItemAlerta({ r, sublabel, onEdit }) {
   );
 }
 
-function Seccion({ icon: Icon, color, titulo, items, render, emptyText }) {
+function Seccion({ icon: Icon, color, titulo, items = [], render, emptyText }) {
+  const listaSegura = Array.isArray(items) ? items : [];
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -52,17 +53,17 @@ function Seccion({ icon: Icon, color, titulo, items, render, emptyText }) {
         <span style={{
           background: `${color}33`, color, fontSize: 11.5, fontWeight: 700, borderRadius: 20,
           padding: "2px 8px", marginLeft: "auto",
-        }}>{items.length}</span>
+        }}>{listaSegura.length}</span>
       </div>
-      {items.length === 0 ? (
+      {listaSegura.length === 0 ? (
         <div style={{ fontSize: 13, color: "#E2E8F0", fontStyle: "italic", paddingLeft: 4, fontWeight: 500 }}>{emptyText}</div>
-      ) : items.map((r) => render(r))}
+      ) : listaSegura.map((r) => render(r))}
     </div>
   );
 }
 
-export default function AlertasModal({ alertas, onClose, onEdit }) {
-  const { documentosPendientes, estudioEstancado, seguimientosRetrasados } = alertas;
+export default function AlertasModal({ alertas = {}, onClose, onEdit }) {
+  const { documentosPendientes = [], estudioEstancado = [], seguimientosRetrasados = [] } = alertas || {};
 
   return (
     <div style={{
@@ -116,8 +117,8 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
           icon={CalendarClock} color="#EF4444" titulo="Seguimientos retrasados"
           items={seguimientosRetrasados} emptyText="No hay seguimientos atrasados. 🎉"
           render={(r) => (
-            <ItemAlerta key={r.id} r={r} onEdit={onEdit}
-              sublabel={`Debía contactarse el ${r.fecha_seguimiento}`} />
+            <ItemAlerta key={r?.id || Math.random()} r={r} onEdit={onEdit}
+              sublabel={`Debía contactarse el ${r?.fecha_seguimiento || "N/A"}`} />
           )}
         />
 
@@ -125,8 +126,8 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
           icon={FileWarning} color="#F59E0B" titulo="Documentos estancados"
           items={documentosPendientes} emptyText="Ningún expediente lleva demasiado tiempo pendiente."
           render={(r) => (
-            <ItemAlerta key={r.id} r={r} onEdit={onEdit}
-              sublabel={`Documentación pendiente hace ${r._dias} día${r._dias === 1 ? "" : "s"}`} />
+            <ItemAlerta key={r?.id || Math.random()} r={r} onEdit={onEdit}
+              sublabel={`Documentación pendiente hace ${r?._dias || 0} día${r?._dias === 1 ? "" : "s"}`} />
           )}
         />
 
@@ -134,8 +135,8 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
           icon={Hourglass} color="#60A5FA" titulo="En estudio sin respuesta"
           items={estudioEstancado} emptyText="Ningún crédito lleva demasiado tiempo en estudio."
           render={(r) => (
-            <ItemAlerta key={r.id} r={r} onEdit={onEdit}
-              sublabel={`En estudio hace ${r._dias} día${r._dias === 1 ? "" : "s"}`} />
+            <ItemAlerta key={r?.id || Math.random()} r={r} onEdit={onEdit}
+              sublabel={`En estudio hace ${r?._dias || 0} día${r?._dias === 1 ? "" : "s"}`} />
           )}
         />
       </div>
