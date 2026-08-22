@@ -5,9 +5,9 @@ function ItemAlerta({ r, sublabel, onEdit }) {
   const waNumero = String(r.whatsapp || r.telefono || "").replace(/\D/g, "");
   return (
     <div style={{
-      background: "rgba(255, 255, 255, 0.04)",
-      border: "1px solid rgba(255, 255, 255, 0.12)",
-      borderRadius: 12,
+      background: "rgba(255, 255, 255, 0.07)",
+      border: "1px solid rgba(255, 255, 255, 0.15)",
+      borderRadius: 14,
       padding: "12px 14px",
       marginBottom: 10,
       display: "flex",
@@ -23,7 +23,7 @@ function ItemAlerta({ r, sublabel, onEdit }) {
       </div>
       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
         <a href={r.telefono ? `tel:${r.telefono}` : undefined} style={{
-          width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.08)",
+          width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.1)",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
           opacity: r.telefono ? 1 : 0.35, pointerEvents: r.telefono ? "auto" : "none",
         }}><Phone size={14} /></a>
@@ -55,7 +55,7 @@ function Seccion({ icon: Icon, color, titulo, items, render, emptyText }) {
         }}>{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: "rgba(255, 255, 255, 0.5)", fontStyle: "italic", paddingLeft: 4 }}>{emptyText}</div>
+        <div style={{ fontSize: 12.5, color: "rgba(255, 255, 255, 0.6)", fontStyle: "italic", paddingLeft: 4 }}>{emptyText}</div>
       ) : items.map((r) => render(r))}
     </div>
   );
@@ -71,8 +71,9 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       left: 0,
       width: "100vw",
       height: "100vh",
-      background: "rgba(0, 0, 0, 0.75)",
-      backdropFilter: "blur(4px)",
+      background: "rgba(11, 17, 32, 0.65)",
+      backdropFilter: "blur(10px)",
+      WebkitBackdropFilter: "blur(10px)",
       zIndex: 9999,
       display: "flex",
       alignItems: "center",
@@ -81,28 +82,29 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       boxSizing: "border-box"
     }}>
       <div style={{
-        background: "linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.92) 100%)",
-        border: "1px solid rgba(255, 255, 255, 0.18)",
+        background: "rgba(255, 255, 255, 0.07)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.15)",
         borderRadius: 24,
         padding: 24,
         width: "100%",
         maxWidth: 480,
-        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
-        backdropFilter: "blur(12px)",
+        boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
         maxHeight: "88vh",
         overflowY: "auto",
         color: "#fff",
         boxSizing: "border-box"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <AlertTriangle size={20} color="#F59E0B" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 19, letterSpacing: "-0.01em" }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 19 }}>
               Centro de alertas
             </span>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255, 255, 255, 0.1)", border: "none", borderRadius: 10,
+            background: "rgba(255, 255, 255, 0.08)", border: "none", borderRadius: 10,
             width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", cursor: "pointer", flexShrink: 0,
           }}>
