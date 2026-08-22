@@ -4,7 +4,6 @@ import { C, inputStyle } from "../../styles/tokens";
 import { Camera, Upload, CheckCircle2, X } from "lucide-react";
 import { ESTADOS_CREDITO } from "../../utils/documentosCredito";
 
-// Estilo con fondo blanco puro y texto negro oscuro de alta visibilidad
 const inputLightStyle = {
   ...inputStyle,
   background: "#FFFFFF",
@@ -37,7 +36,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       estado: "Pendiente",
       estado_credito: "",
       fecha_seguimiento: "",
-      observaciones: "", // Único campo válido para notas en la base de datos
+      observaciones: "",
       foto_url: ""
     }
   );
@@ -83,7 +82,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16, marginTop: 16 }}>
-        {/* Cédula y Teléfono */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <label style={labelStyle}>Cédula / NIT *</label>
@@ -106,7 +104,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Nombres y Apellidos */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <label style={labelStyle}>Nombres *</label>
@@ -128,7 +125,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* WhatsApp y Correo Electrónico */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <label style={labelStyle}>WhatsApp</label>
@@ -151,7 +147,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Dirección */}
         <div>
           <label style={labelStyle}>Dirección</label>
           <TextInput
@@ -162,7 +157,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           />
         </div>
 
-        {/* Resultado/Categoría y Tipo de Negocio */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <label style={labelStyle}>Resultado / Categoría</label>
@@ -190,7 +184,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Estado y Próximo Seguimiento */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           <div>
             <label style={labelStyle}>Estado</label>
@@ -215,8 +208,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         </div>
 
-        {/* Etapa del crédito (independiente del estado comercial de arriba;
-            el detalle de documentos se administra desde la tarjeta del cliente) */}
         <div>
           <label style={labelStyle}>Etapa del Crédito</label>
           <select
@@ -231,7 +222,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </select>
         </div>
 
-        {/* Observaciones (Mapeado directo a la BD) */}
         <div>
           <label style={labelStyle}>Observaciones / Notas de la visita</label>
           <textarea
@@ -243,7 +233,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           />
         </div>
 
-        {/* FOTO DE LA VISITA */}
         <div>
           <label style={labelStyle}>Foto de la Visita</label>
           <input
@@ -293,7 +282,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           )}
         </div>
 
-        {/* Modal para ampliar la foto */}
         {modalFoto && fotoActual && (
           <div
             onClick={() => setModalFoto(false)}
@@ -322,7 +310,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           </div>
         )}
 
-        {/* Botones de acción */}
         <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
           <button
             type="button"
