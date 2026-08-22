@@ -67,7 +67,21 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       alert("Por favor completa al menos la cédula/NIT y los nombres.");
       return;
     }
-    onSave(form, !initial);
+
+    // Preparamos los datos limpios para enviarlos a Supabase sin columnas fantasma
+    const datosFinales = { ...form };
+
+    if (datosFinales.categoria_cliente === "Otro" && datosFinales.categoria_otro) {
+      datosFinales.categoria_cliente = datosFinales.categoria_otro;
+    }
+    if (datosFinales.tipo_negocio === "Otro" && datosFinales.tipo_negocio_otro) {
+      datosFinales.tipo_negocio = datosFinales.tipo_negocio_otro;
+    }
+
+    delete datosFinales.categoria_otro;
+    delete datosFinales.tipo_negocio_otro;
+
+    onSave(datosFinales, !initial);
   };
 
   const fotoActual = form.foto_url || form.foto;
