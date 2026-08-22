@@ -9,7 +9,7 @@ function ItemAlerta({ r, sublabel, onEdit }) {
       borderRadius: 10, padding: "10px 12px", marginBottom: 8,
       display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
     }}>
-      <div style={{ minWidth: 0 }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {r.nombres} {r.apellidos}
         </div>
@@ -60,16 +60,33 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 75,
-      display: "flex", alignItems: "flex-end", justifyContent: "center",
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100vw",
+      height: "100vh",
+      background: "rgba(0,0,0,0.75)",
+      zIndex: 9999,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 16,
+      boxSizing: "border-box"
     }}>
       <div style={{
-        background: "#0f172a", border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 460,
-        boxShadow: "0 -8px 30px rgba(0,0,0,0.5)", maxHeight: "88vh", overflowY: "auto",
+        background: "#0f172a",
+        border: "1px solid rgba(255,255,255,0.15)",
+        borderRadius: 20,
+        padding: 24,
+        width: "100%",
+        maxWidth: 460,
+        boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
+        maxHeight: "85vh",
+        overflowY: "auto",
         color: "#fff",
+        boxSizing: "border-box"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <AlertTriangle size={18} color="#F59E0B" />
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18 }}>
