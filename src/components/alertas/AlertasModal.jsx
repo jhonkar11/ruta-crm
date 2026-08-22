@@ -33,7 +33,7 @@ function ItemAlerta({ r, sublabel, onEdit }) {
           opacity: waNumero ? 1 : 0.35, pointerEvents: waNumero ? "auto" : "none",
         }}><MessageCircle size={14} /></a>
         <button onClick={() => onEdit(r)} style={{
-          width: 32, height: 32, borderRadius: 8, background: C.coral, border: "none",
+          width: 32, height: 32, borderRadius: 8, background: "#E14E2A", border: "none",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", cursor: "pointer",
         }}><Edit3 size={14} /></button>
       </div>
@@ -81,31 +81,32 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       padding: 16,
       boxSizing: "border-box"
     }}>
+      {/* Tarjeta con el estilo idéntico al Glassmorphism del Login */}
       <div style={{
         background: "rgba(255, 255, 255, 0.07)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         border: "1px solid rgba(255, 255, 255, 0.15)",
         borderRadius: 24,
-        padding: 24,
+        padding: 32,
         width: "100%",
-        maxWidth: 480,
+        maxWidth: 520,
         boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
         maxHeight: "88vh",
         overflowY: "auto",
         color: "#fff",
         boxSizing: "border-box"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <AlertTriangle size={20} color="#F59E0B" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 19 }}>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" }}>
               Centro de alertas
             </span>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255, 255, 255, 0.08)", border: "none", borderRadius: 10,
-            width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12,
+            width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", cursor: "pointer", flexShrink: 0,
           }}>
             <X size={18} />
