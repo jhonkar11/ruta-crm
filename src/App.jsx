@@ -445,7 +445,7 @@ export default function App() {
 
       {showAlertas && (
         <AlertasModal
-          records={records}
+          alertas={alertas}
           onClose={() => setShowAlertas(false)}
           onEdit={openEdit}
         />
