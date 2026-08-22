@@ -75,7 +75,7 @@ export default function App() {
 
   const citasManana = useMemo(() => {
     if (!records) return [];
-    return records.filter(r => r && r.fecha_seguimiento && r.fecha_seguimiento.slice(0, 10) === mananaISO && !["Archivado", "Visitado", "Cancelado"].includes(r.estado));
+    return records.filter(r => r && r.fecha_seguimiento && r.fecha_seguimiento.slice(0, 10) === mananaISO && !["Archivado", "Visitado", "Cumplida", "Cancelada"].includes(r.estado));
   }, [records, mananaISO]);
 
   const buscados = useMemo(() => {
@@ -89,9 +89,10 @@ export default function App() {
     return records
       .filter((r) => r && (showArchived || r.estado !== "Archivado"))
       .filter((r) => {
-        if (filtroActivo === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cancelado"].includes(r.estado);
+        if (filtroActivo === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cumplida", "Cancelado"].includes(r.estado);
         if (filtroActivo === "NO_LOCALIZADOS") return r.categoria_cliente === "No localizado" || r.estado === "No localizado";
-        if (filtroActivo === "INTERESADOS") return ["Interesado", "Preoferta", "En trámite / Pendiente"].includes(r.categoria_cliente || r.estado);
+        if (filtroActivo === "INTERESADOS") return ["Interesado", "En trámite"].includes(r.categoria_cliente || r.estado);
+        if (filtroActivo === "NEGADOS") return r.categoria_cliente === "Negado";
         if (filtroActivo === "DOCS_FALTAN") return calcularProgresoCredito(r.documentos_json || {}) < 100;
         if (filtroActivo === "DOCS_COMPLETO") return calcularProgresoCredito(r.documentos_json || {}) === 100;
         return true;
@@ -100,11 +101,6 @@ export default function App() {
   }, [records, showArchived, filtroActivo]);
 
   const alertas = useMemo(() => calcularAlertas(records, todayISO()), [records]);
-
-  const citasHoyCount = useMemo(() => {
-    const hoy = todayISO();
-    return (citas || []).filter((c) => c && c.estado === "Programada" && c.fecha_hora.slice(0, 10) <= hoy).length;
-  }, [citas]);
 
   const crearCitaSimulada = async (payload) => {
     const clienteObj = records.find(r => r && r.id === payload.clienteId);
@@ -404,90 +400,67 @@ export default function App() {
                 <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="Todos" />
                 <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
                 <FiltroChip active={filtroActivo === "NO_LOCALIZADOS"} onClick={() => setFiltroActivo("NO_LOCALIZADOS")} label="❌ No localizados" />
-                <FiltroChip active={filtroActivo === "INTERESADOS"} onClick={() => setFiltroActivo("INTERESADOS")} label="⭐ Interesados / Preofertas" />
+                <FiltroChip active={filtroActivo === "INTERESADOS"} onClick={() => setFiltroActivo("INTERESADOS")} label="⭐ Interesados / En trámite" />
+                <FiltroChip active={filtroActivo === "NEGADOS"} onClick={() => setFiltroActivo("NEGADOS")} label="🚫 Negados" />
                 <FiltroChip active={filtroActivo === "DOCS_FALTAN"} onClick={() => setFiltroActivo("DOCS_FALTAN")} label="🗂️ Faltan documentos" />
                 <FiltroChip active={filtroActivo === "DOCS_COMPLETO"} onClick={() => setFiltroActivo("DOCS_COMPLETO")} label="✅ Expediente completo" />
-                {profile.rol === "admin" && (
-                  <FiltroChip active={showArchived} onClick={() => setShowArchived(!showArchived)} label="Archivados" />
-                )}
               </div>
 
-              {todos.length === 0 && <EmptyState text="No hay registros para este filtro." />}
-              {todos.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
-              ))}
+              {todos.length === 0 ? (
+                <EmptyState text="No hay registros en este filtro." />
+              ) : (
+                todos.map((r) => (
+                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                ))
+              )}
             </>
-          )}
-
-          {view === "form" && (
-            <FormView 
-              initial={editing} 
-              currentUser={{ id: user.id, nombre: profile.nombre }} 
-              onSave={handleSave} 
-              onCancel={() => { setEditing(undefined); setView("todos"); }} 
-            />
           )}
         </div>
 
-        {view !== "form" && <BottomNav view={view} setView={setView} onNew={openNew} citasHoyCount={citasHoyCount} />}
+        <BottomNav view={view} setView={setView} citasHoyCount={citasHoyCount} onNew={openNew} />
       </div>
 
-      {showMananaModal && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 1000, padding: 16
-        }}>
-          <div style={{
-            background: "#fff", borderRadius: 16, width: "100%", maxWidth: 500,
-            maxHeight: "85vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 10px 25px rgba(0,0,0,0.25)", overflow: "hidden"
-          }}>
-            <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#4c0519" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <BellRing size={18} color="#f43f5e" />
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#ffffff" }}>
-                  Visitas para mañana ({citasManana.length})
-                </h3>
-              </div>
-              <button 
-                onClick={() => setShowMananaModal(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#ffffff", display: "flex", opacity: 0.8 }}
-              >
-                <X size={20} />
-              </button>
-            </div>
+      {docsCliente && (
+        <DocumentosModal
+          cliente={docsCliente}
+          onClose={() => setDocsCliente(null)}
+          onUpdateChecklist={handleChangeChecklist}
+          onUpdateEstadoCredito={handleChangeEstadoCredito}
+        />
+      )}
 
-            <div style={{ padding: 16, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, background: "#f8fafc" }}>
-              {citasManana.map((r) => (
-                <div key={r.id} style={{ background: "#fff", borderRadius: 12, padding: 14, border: `1px solid ${C.line}`, boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
-                        {r.nombres} {r.apellidos}
-                      </div>
-                      <div style={{ fontSize: 12, color: C.ink70, marginTop: 2 }}>
-                        {r.direccion ? `${r.direccion}, ${r.barrio || ''}` : "Sin dirección registrada"}
-                      </div>
-                    </div>
-                    <Stamp estado={r.categoria_cliente || r.estado} size="sm" />
+      {showAlertas && (
+        <AlertasModal
+          records={records}
+          onClose={() => setShowAlertas(false)}
+          onEdit={openEdit}
+        />
+      )}
+
+      {historialCliente && (
+        <HistorialClienteModal
+          cliente={historialCliente}
+          onClose={() => setHistorialCliente(null)}
+        />
+      )}
+
+      {showMananaModal && (
+        <div onClick={() => setShowMananaModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#1e1035", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 500, color: "#fff", maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18 }}>Visitas programadas para mañana ({mananaISO})</h3>
+              <button onClick={() => setShowMananaModal(false)} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer" }}><X size={20} /></button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {citasManana.map(r => (
+                <div key={r.id} style={{ background: "rgba(255,255,255,0.06)", padding: 12, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{r.nombres} {r.apellidos}</div>
+                    <div style={{ fontSize: 12, opacity: 0.8 }}>Dir: {r.direccion || "Sin dirección"}</div>
                   </div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.line}` }}>
-                    <IconBtn icon={PhoneCall} label="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined} disabled={!r.telefono} />
-                    <IconBtn icon={MessageSquareText} label="WhatsApp" href={r.whatsapp ? `https://wa.me/57${r.whatsapp.replace(/\D/g, "")}` : undefined} disabled={!r.whatsapp} />
-                    <IconBtn icon={PencilLine} label="Ver ficha" onClick={() => { setShowMananaModal(false); openEdit(r); }} />
-                  </div>
+                  <button onClick={() => { setShowMananaModal(false); openEdit(r); }} style={{ background: "#2563eb", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Ver</button>
                 </div>
               ))}
-            </div>
-
-            <div style={{ padding: 12, borderTop: `1px solid ${C.line}`, background: "#fff", textAlign: "right" }}>
-              <button 
-                onClick={() => setShowMananaModal(false)}
-                style={{ background: C.ink, color: "#fff", border: "none", padding: "8px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-              >
-                Cerrar
-              </button>
             </div>
           </div>
         </div>
@@ -495,41 +468,10 @@ export default function App() {
 
       {confirmTarget && (
         <ConfirmModal
-          title={confirmTarget.type === "archive" ? "Archivar registro" : "Eliminar definitivamente"}
-          body={confirmTarget.type === "archive"
-            ? `${confirmTarget.record.nombres} ${confirmTarget.record.apellidos} se moverá a archivados. Podrás consultarlo luego, no se pierde el historial.`
-            : `Esta acción borrará para siempre el registro de ${confirmTarget.record.nombres} ${confirmTarget.record.apellidos}. No se puede deshacer.`}
-          confirmLabel={confirmTarget.type === "archive" ? "Archivar" : "Eliminar"}
-          danger={confirmTarget.type === "delete"}
+          title={confirmTarget.type === "archive" ? "¿Archivar cliente?" : "¿Eliminar registro permanentemente?"}
+          message={confirmTarget.type === "archive" ? `El cliente ${confirmTarget.record.nombres} pasará a la papelera o archivo.` : `Esta acción no se puede deshacer. Se borrarán los datos de ${confirmTarget.record.nombres}.`}
           onConfirm={confirmAction}
           onCancel={() => setConfirmTarget(null)}
-        />
-      )}
-
-      {docsCliente && (
-        <DocumentosModal
-          cliente={docsCliente}
-          asesorNombre={profile?.nombre}
-          onChangeChecklist={handleChangeChecklist}
-          onChangeEstadoCredito={handleChangeEstadoCredito}
-          onClose={() => setDocsCliente(null)}
-        />
-      )}
-
-      {showAlertas && (
-        <AlertasModal
-          alertas={alertas}
-          onClose={() => setShowAlertas(false)}
-          onEdit={(r) => { setShowAlertas(false); openEdit(r); }}
-        />
-      )}
-
-      {historialCliente && (
-        <HistorialClienteModal
-          cliente={historialCliente}
-          asesorNombre={profile?.nombre}
-          asesorId={user.id}
-          onClose={() => setHistorialCliente(null)}
         />
       )}
     </div>
