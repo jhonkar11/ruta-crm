@@ -32,7 +32,9 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       correo: "",
       direccion: "",
       categoria_cliente: "Interesado",
+      categoria_otro: "",
       tipo_negocio: "Comercio",
+      tipo_negocio_otro: "",
       estado: "Pendiente",
       estado_credito: "",
       fecha_seguimiento: "",
@@ -69,6 +71,9 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
   };
 
   const fotoActual = form.foto_url || form.foto;
+
+  const categoriasDisponibles = ["Contactado", "No localizado", "Interesado", "No interesado", "En trámite", "Negado", "Otro"];
+  const tiposNegocioDisponibles = ["Comercio", "Servicios", "Independiente", "Empresa", "Industria", "Transporte", "Otro"];
 
   return (
     <div>
@@ -161,26 +166,56 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           <div>
             <label style={labelStyle}>Resultado / Categoría</label>
             <select
-              value={form.categoria_cliente || "Interesado"}
-              onChange={(e) => handleChange("categoria_cliente", e.target.value)}
+              value={categoriasDisponibles.includes(form.categoria_cliente) ? form.categoria_cliente : "Otro"}
+              onChange={(e) => {
+                const val = e.target.value;
+                handleChange("categoria_cliente", val);
+                if (val !== "Otro") handleChange("categoria_otro", "");
+              }}
               style={{ ...inputLightStyle, width: "100%", cursor: "pointer", height: "46px", borderRadius: "12px", padding: "0 12px" }}
             >
-              {["Nuevo", "Interesado", "Preoferta", "En trámite", "No localizado", "Cancelado"].map(opt => (
+              {categoriasDisponibles.map(opt => (
                 <option key={opt} value={opt} style={{ background: "#FFFFFF", color: "#0F172A" }}>{opt}</option>
               ))}
             </select>
+            {(!categoriasDisponibles.slice(0, -1).includes(form.categoria_cliente)) && (
+              <TextInput
+                value={form.categoria_otro || ""}
+                onChange={(e) => {
+                  handleChange("categoria_otro", e.target.value);
+                  handleChange("categoria_cliente", e.target.value);
+                }}
+                placeholder="Especifica otra categoría..."
+                style={{ ...inputLightStyle, marginTop: 8 }}
+              />
+            )}
           </div>
           <div>
             <label style={labelStyle}>Tipo de Negocio</label>
             <select
-              value={form.tipo_negocio || "Comercio"}
-              onChange={(e) => handleChange("tipo_negocio", e.target.value)}
+              value={tiposNegocioDisponibles.includes(form.tipo_negocio) ? form.tipo_negocio : "Otro"}
+              onChange={(e) => {
+                const val = e.target.value;
+                handleChange("tipo_negocio", val);
+                if (val !== "Otro") handleChange("tipo_negocio_otro", "");
+              }}
               style={{ ...inputLightStyle, width: "100%", cursor: "pointer", height: "46px", borderRadius: "12px", padding: "0 12px" }}
             >
-              {["Comercio", "Servicios", "Independiente", "Empresa", "Otro"].map(opt => (
+              {tiposNegocioDisponibles.map(opt => (
                 <option key={opt} value={opt} style={{ background: "#FFFFFF", color: "#0F172A" }}>{opt}</option>
               ))}
             </select>
+            {form.tipo_negocio === "Otro" && (
+              <TextInput
+                value={form.tipo_negocio_otro || ""}
+                onChange={(e) => {
+                  handleChange("tipo_negocio_otro", e.target.value);
+                  handleChange("tipo_negocio", e.target.value);
+                }}
+                placeholder="Especifica otro tipo..."
+                style={{ ...inputLightStyle, marginTop: 8 }}
+              />
+            )}
           </div>
         </div>
 
@@ -192,7 +227,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               onChange={(e) => handleChange("estado", e.target.value)}
               style={{ ...inputLightStyle, width: "100%", cursor: "pointer", height: "46px", borderRadius: "12px", padding: "0 12px" }}
             >
-              {["Pendiente", "Programada", "Visitado", "Cumplida", "Cancelado", "Reprogramada"].map(opt => (
+              {["Pendiente", "Programada", "Visitada", "Cumplida", "Cancelada", "Reprogramada"].map(opt => (
                 <option key={opt} value={opt} style={{ background: "#FFFFFF", color: "#0F172A" }}>{opt}</option>
               ))}
             </select>
