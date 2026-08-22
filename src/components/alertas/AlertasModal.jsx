@@ -5,8 +5,8 @@ function ItemAlerta({ r, sublabel, onEdit }) {
   const waNumero = String(r.whatsapp || r.telefono || "").replace(/\D/g, "");
   return (
     <div style={{
-      background: "rgba(255, 255, 255, 0.07)",
-      border: "1px solid rgba(255, 255, 255, 0.15)",
+      background: "rgba(255, 255, 255, 0.08)",
+      border: "1px solid rgba(255, 255, 255, 0.18)",
       borderRadius: 14,
       padding: "12px 14px",
       marginBottom: 10,
@@ -67,31 +67,30 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
   return (
     <div style={{
       position: "fixed",
-      top: 0,
-      left: 0,
+      inset: 0,
       width: "100vw",
       height: "100vh",
-      background: "rgba(11, 17, 32, 0.65)",
-      backdropFilter: "blur(10px)",
-      WebkitBackdropFilter: "blur(10px)",
-      zIndex: 9999,
+      background: "rgba(11, 17, 32, 0.75)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+      zIndex: 99999,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       padding: 16,
       boxSizing: "border-box"
     }}>
-      {/* Tarjeta con el estilo idéntico al Glassmorphism del Login */}
+      {/* Contenedor con color rgba ultra forzado para evitar herencias sólidas */}
       <div style={{
-        background: "rgba(255, 255, 255, 0.07)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255, 255, 255, 0.15)",
+        backgroundColor: "rgba(20, 24, 38, 0.45)",
+        backdropFilter: "blur(25px)",
+        WebkitBackdropFilter: "blur(25px)",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
         borderRadius: 24,
         padding: 32,
         width: "100%",
         maxWidth: 520,
-        boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
+        boxShadow: "0 25px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.25)",
         maxHeight: "88vh",
         overflowY: "auto",
         color: "#fff",
