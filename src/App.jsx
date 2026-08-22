@@ -365,6 +365,14 @@ export default function App() {
             </>
           )}
 
+          {view === "form" && (
+            <FormView
+              initialData={editing}
+              onSave={handleSave}
+              onCancel={() => { setEditing(undefined); setView("todos"); }}
+            />
+          )}
+
           {view === "citas" && (
             <CitasView
               citas={citas}
