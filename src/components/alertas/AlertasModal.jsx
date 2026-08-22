@@ -5,8 +5,8 @@ function ItemAlerta({ r, sublabel, onEdit }) {
   const waNumero = String(r.whatsapp || r.telefono || "").replace(/\D/g, "");
   return (
     <div style={{
-      background: "rgba(255, 255, 255, 0.07)",
-      border: "1px solid rgba(255, 255, 255, 0.15)",
+      background: "rgba(15, 23, 42, 0.6)",
+      border: "1px solid rgba(255, 255, 255, 0.18)",
       borderRadius: 14,
       padding: "12px 14px",
       marginBottom: 10,
@@ -19,16 +19,16 @@ function ItemAlerta({ r, sublabel, onEdit }) {
         <div style={{ fontSize: 13.5, fontWeight: 700, color: "#FFFFFF", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {r.nombres} {r.apellidos}
         </div>
-        <div style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.8)", marginTop: 3 }}>{sublabel}</div>
+        <div style={{ fontSize: 12, color: "rgba(255, 255, 255, 0.85)", marginTop: 3 }}>{sublabel}</div>
       </div>
       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
         <a href={r.telefono ? `tel:${r.telefono}` : undefined} style={{
-          width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.1)",
+          width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.12)",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
           opacity: r.telefono ? 1 : 0.35, pointerEvents: r.telefono ? "auto" : "none",
         }}><Phone size={14} /></a>
         <a href={waNumero ? `https://wa.me/57${waNumero}` : undefined} target="_blank" rel="noreferrer" style={{
-          width: 32, height: 32, borderRadius: 8, background: "rgba(37,211,102,0.2)",
+          width: 32, height: 32, borderRadius: 8, background: "rgba(37,211,102,0.25)",
           display: "flex", alignItems: "center", justifyContent: "center", color: "#25D366",
           opacity: waNumero ? 1 : 0.35, pointerEvents: waNumero ? "auto" : "none",
         }}><MessageCircle size={14} /></a>
@@ -55,7 +55,7 @@ function Seccion({ icon: Icon, color, titulo, items, render, emptyText }) {
         }}>{items.length}</span>
       </div>
       {items.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: "rgba(255, 255, 255, 0.6)", fontStyle: "italic", paddingLeft: 4 }}>{emptyText}</div>
+        <div style={{ fontSize: 12.5, color: "rgba(255, 255, 255, 0.7)", fontStyle: "italic", paddingLeft: 4 }}>{emptyText}</div>
       ) : items.map((r) => render(r))}
     </div>
   );
@@ -71,9 +71,9 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       left: 0,
       width: "100vw",
       height: "100vh",
-      background: "rgba(11, 17, 32, 0.65)",
-      backdropFilter: "blur(10px)",
-      WebkitBackdropFilter: "blur(10px)",
+      background: "rgba(11, 17, 32, 0.75)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
       zIndex: 9999,
       display: "flex",
       alignItems: "center",
@@ -81,31 +81,31 @@ export default function AlertasModal({ alertas, onClose, onEdit }) {
       padding: 16,
       boxSizing: "border-box"
     }}>
-      {/* Tarjeta con el estilo idéntico al Glassmorphism del Login */}
+      {/* Tarjeta con fondo translúcido más controlado para asegurar alto contraste */}
       <div style={{
-        background: "rgba(255, 255, 255, 0.07)",
+        background: "rgba(15, 23, 42, 0.85)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255, 255, 255, 0.15)",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
         borderRadius: 24,
         padding: 32,
         width: "100%",
         maxWidth: 520,
-        boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
+        boxShadow: "0 25px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.25)",
         maxHeight: "88vh",
         overflowY: "auto",
         color: "#fff",
         boxSizing: "border-box"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.15)", paddingBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <AlertTriangle size={20} color="#F59E0B" />
-            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px" }}>
+            <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.5px", color: "#FFFFFF" }}>
               Centro de alertas
             </span>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12,
+            background: "rgba(255, 255, 255, 0.1)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12,
             width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", cursor: "pointer", flexShrink: 0,
           }}>
