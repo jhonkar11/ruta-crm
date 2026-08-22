@@ -78,6 +78,12 @@ export default function App() {
     return records.filter(r => r && r.fecha_seguimiento && r.fecha_seguimiento.slice(0, 10) === mananaISO && !["Archivado", "Visitado", "Cumplida", "Cancelada"].includes(r.estado));
   }, [records, mananaISO]);
 
+  const citasHoyCount = useMemo(() => {
+    if (!records) return 0;
+    const hoyISO = todayISO();
+    return records.filter(r => r && r.fecha_seguimiento && r.fecha_seguimiento.slice(0, 10) === hoyISO && !["Archivado", "Cumplida", "Cancelado"].includes(r.estado)).length;
+  }, [records]);
+
   const buscados = useMemo(() => {
     if (!query.trim() || !records) return [];
     const q = query.trim().toLowerCase();
