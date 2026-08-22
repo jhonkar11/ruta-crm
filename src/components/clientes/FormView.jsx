@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { ViewHeader, TextInput, Stamp } from "../ui/UIKit";
 import { C, inputStyle } from "../../styles/tokens";
 import { Camera, Upload, CheckCircle2, X } from "lucide-react";
+import { ESTADOS_CREDITO } from "../../utils/documentosCredito";
 
 // Estilo con fondo blanco puro y texto negro oscuro de alta visibilidad
 const inputLightStyle = {
@@ -34,6 +35,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       categoria_cliente: "Interesado",
       tipo_negocio: "Comercio",
       estado: "Pendiente",
+      estado_credito: "",
       fecha_seguimiento: "",
       observaciones: "", // Único campo válido para notas en la base de datos
       foto_url: ""
@@ -211,6 +213,22 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
               style={{ ...inputLightStyle, width: "100%", cursor: "pointer" }}
             />
           </div>
+        </div>
+
+        {/* Etapa del crédito (independiente del estado comercial de arriba;
+            el detalle de documentos se administra desde la tarjeta del cliente) */}
+        <div>
+          <label style={labelStyle}>Etapa del Crédito</label>
+          <select
+            value={form.estado_credito || ""}
+            onChange={(e) => handleChange("estado_credito", e.target.value)}
+            style={{ ...inputLightStyle, width: "100%", cursor: "pointer", height: "46px", borderRadius: "12px", padding: "0 12px" }}
+          >
+            <option value="" style={{ background: "#FFFFFF", color: "#0F172A" }}>— Sin definir —</option>
+            {ESTADOS_CREDITO.map(opt => (
+              <option key={opt} value={opt} style={{ background: "#FFFFFF", color: "#0F172A" }}>{opt}</option>
+            ))}
+          </select>
         </div>
 
         {/* Observaciones (Mapeado directo a la BD) */}

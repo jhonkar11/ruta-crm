@@ -9,13 +9,22 @@ export function Stamp({ estado, size = "md", rotate = true, kind = "cliente" }) 
 
   if (est.includes("no localizado") || est.includes("cancelado")) {
     bg = "#FEE2E2"; fg = "#DC2626";
+  } else if (est.includes("rechazado")) {
+    bg = "#FEE2E2"; fg = "#B91C1C";
   } else if (est.includes("trámite") || est.includes("pendiente")) {
     bg = "#FEF3C7"; fg = "#D97706";
+  } else if (est.includes("estudio")) {
+    bg = "#DBEAFE"; fg = "#1D4ED8";
   } else if (est.includes("preoferta") || est.includes("interesado")) {
     bg = "#DBEAFE"; fg = "#2563EB";
   } else if (est.includes("programada")) {
     bg = "#2563EB"; fg = "#FFFFFF";
-  } else if (est.includes("contactado") || est.includes("cumplida") || est.includes("visitado")) {
+  } else if (est.includes("aprobado")) {
+    bg = "#DCFCE7"; fg = "#16A34A";
+  } else if (
+    est.includes("contactado") || est.includes("cumplida") ||
+    est.includes("visitado") || est.includes("desembolsado")
+  ) {
     bg = "#0D9488"; fg = "#FFFFFF";
   }
 

@@ -1,8 +1,8 @@
-import { Phone, MessageCircle, Edit3, Archive, Trash2, Building2, Tag, Clock } from "lucide-react";
+import { Phone, MessageCircle, Edit3, Archive, Trash2, Building2, Tag, Clock, ClipboardList, History } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
-export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, canDelete }) {
+export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onOpenDocs, onOpenHistorial, onRegistrarContacto, canDelete }) {
   // Soporte universal para ambas formas en que las vistas pasan el registro
   const currentClient = client || clientProp;
   if (!currentClient) return null;
@@ -73,6 +73,14 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         </span>
       </div>
 
+      {/* Etapa del crédito (independiente del estado comercial de arriba) */}
+      {currentClient.estado_credito && (
+        <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>Crédito:</span>
+          <Stamp estado={currentClient.estado_credito} size="sm" rotate={false} />
+        </div>
+      )}
+
       {/* Fecha de seguimiento destacada */}
       {currentClient.fecha_seguimiento && !["Archivado"].includes(currentClient.estado) && (
         <div style={{
@@ -103,9 +111,13 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
 
       {/* Botones de acción inferior */}
       <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14, alignItems: "center" }}>
-        <IconBtn icon={Phone} label="Llamar" href={telClean ? `tel:${telClean}` : undefined} disabled={!telClean} />
-        <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean} />
+        <IconBtn icon={Phone} label="Llamar" href={telClean ? `tel:${telClean}` : undefined} disabled={!telClean}
+          onClick={() => telClean && onRegistrarContacto && onRegistrarContacto(currentClient, "llamada")} />
+        <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean}
+          onClick={() => waClean && onRegistrarContacto && onRegistrarContacto(currentClient, "whatsapp")} />
         <IconBtn icon={Edit3} label="Editar" onClick={() => onEdit && onEdit(currentClient)} />
+        {onOpenDocs && <IconBtn icon={ClipboardList} label="Documentos del crédito" onClick={() => onOpenDocs(currentClient)} />}
+        {onOpenHistorial && <IconBtn icon={History} label="Historial de actividad" onClick={() => onOpenHistorial(currentClient)} />}
         <div style={{ flex: 1 }} />
         {currentClient.estado !== "Archivado" && <IconBtn icon={Archive} label="Archivar" onClick={() => onArchive && onArchive(currentClient)} />}
         {canDelete && <IconBtn icon={Trash2} label="Eliminar" tone="line" onClick={() => onDelete && onDelete(currentClient)} />}

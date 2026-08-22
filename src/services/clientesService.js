@@ -35,6 +35,21 @@ export async function eliminarCliente(id) {
   if (error) throw error;
 }
 
+// Actualización parcial y "silenciosa": solo toca las columnas que le pases
+// (usada por el checklist de documentos), sin disparar la lógica de
+// upsertCliente (que registra visitas / agenda citas). Evita que marcar un
+// documento como entregado cree registros fantasma en otras tablas.
+export async function actualizarCamposCliente(id, patch) {
+  const { data, error } = await supabase
+    .from("clientes")
+    .update(patch)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function registrarVisita({ clienteId, asesorId, observaciones, fotoUrl, estadoResultante }) {
   const { error } = await supabase.from("visitas").insert({
     cliente_id: clienteId,

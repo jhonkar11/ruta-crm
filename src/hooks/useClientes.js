@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import * as clientesApi from "../services/clientesService";
-import * as citasApi from "../services/citasService";
+import * as actividadApi from "../services/actividadService";
 
 export function useClientes() {
   const [records, setRecords] = useState(null);
@@ -48,22 +48,19 @@ export function useClientes() {
       }
     }
 
-    // Si quedó una fecha de próximo seguimiento, agenda automáticamente
-    // una cita "Programada" a las 9:00 a.m. de ese día (el asesor puede
-    // ajustar la hora exacta luego desde la pestaña "Citas").
-    if (saved.fecha_seguimiento) {
-      try {
-        await citasApi.crearCita({
-          clienteId: saved.id,
-          asesorId: currentUserId,
-          fechaHora: `${saved.fecha_seguimiento}T09:00:00`,
-          notas: "Agendada automáticamente desde la ficha del cliente.",
-        });
-      } catch (e) {
-        console.error("No se pudo agendar la cita de seguimiento:", e.message);
-      }
-    }
+    // Si quedó una fecha de próximo seguimiento, se refleja directamente en la
+    // pestaña "Citas" (App.jsx la deriva en vivo desde este mismo registro,
+    // no hace falta guardarla en ninguna otra tabla aparte).
 
+    return saved;
+  };
+
+  // Actualización parcial "silenciosa" (no dispara registrarVisita ni nada
+  // adicional) — pensada para el checklist de documentos y la etapa de
+  // crédito, que se guardan sin que eso cuente como una visita nueva.
+  const actualizarCampos = async (id, patch) => {
+    const saved = await clientesApi.actualizarCamposCliente(id, patch);
+    setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, ...saved } : r)));
     return saved;
   };
 
@@ -77,5 +74,23 @@ export function useClientes() {
     setRecords((prev) => prev.filter((r) => r.id !== id));
   };
 
-  return { records, loading, error, reload, saveCliente, archivar, eliminar };
+  // Registra una entrada en la bitácora del cliente (llamada, whatsapp, nota,
+  // cambio de estado...). Nunca interrumpe el flujo si falla — es un
+  // "mejor esfuerzo", igual que registrarVisita más arriba.
+  const registrarNovedad = async (clienteId, tipo, descripcion, currentUser) => {
+    if (!descripcion) return;
+    try {
+      await actividadApi.registrarActividad({
+        clienteId,
+        asesorId: currentUser?.id,
+        asesorNombre: currentUser?.nombre,
+        tipo,
+        descripcion,
+      });
+    } catch (e) {
+      console.error("No se pudo registrar la novedad:", e.message);
+    }
+  };
+
+  return { records, loading, error, reload, saveCliente, actualizarCampos, archivar, eliminar, registrarNovedad };
 }

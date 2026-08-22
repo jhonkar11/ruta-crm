@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3, Calendar, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3, Calendar, ShieldCheck, ClipboardList, History } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 
-export default function MapaView({ records = [], onEdit }) {
+export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHistorial, onRegistrarContacto }) {
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
   const [activeClient, setActiveClient] = useState(null);
 
@@ -11,7 +11,7 @@ export default function MapaView({ records = [], onEdit }) {
   const total = activos.length;
 
   const obtenerEstadoLimpio = (r) => {
-    return (r.estado || r.categoria_cliente || "").trim().toLowerCase();
+    return `${r.estado || ""} ${r.categoria_cliente || ""} ${r.estado_credito || ""}`.trim().toLowerCase();
   };
 
   const matchFiltro = (r, tipo) => {
@@ -21,7 +21,7 @@ export default function MapaView({ records = [], onEdit }) {
     if (tipo === "Contactado") return est.includes("contactado");
     if (tipo === "No localizado") return est.includes("no localizado");
     if (tipo === "Reprogramada") return est.includes("reprogramada") || est.includes("reprogramado");
-    if (tipo === "Créditos OK") return est.includes("cumplida") || est.includes("crédito ok") || est.includes("desembolsado");
+    if (tipo === "Créditos OK") return est.includes("cumplida") || est.includes("crédito ok") || est.includes("desembolsado") || est.includes("aprobado");
     return false;
   };
 
@@ -132,9 +132,20 @@ export default function MapaView({ records = [], onEdit }) {
             <div>📞 <strong>Teléfono:</strong> {activeClient.telefono || "No registrado"}</div>
           </div>
 
+          {activeClient.estado_credito && (
+            <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>Crédito:</span>
+              <Stamp estado={activeClient.estado_credito} size="sm" rotate={false} />
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
-            <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono} />
-            <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${String(activeClient.whatsapp).replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp} />
+            <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono}
+              onClick={() => activeClient.telefono && onRegistrarContacto && onRegistrarContacto(activeClient, "llamada")} />
+            <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${String(activeClient.whatsapp).replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp}
+              onClick={() => activeClient.whatsapp && onRegistrarContacto && onRegistrarContacto(activeClient, "whatsapp")} />
+            {onOpenDocs && <IconBtn icon={ClipboardList} label="Documentos del crédito" onClick={() => onOpenDocs(activeClient)} />}
+            {onOpenHistorial && <IconBtn icon={History} label="Historial de actividad" onClick={() => onOpenHistorial(activeClient)} />}
             <div style={{ marginLeft: "auto" }}>
               <IconBtn icon={Edit3} tone="coral" label="Editar ficha" onClick={() => onEdit(activeClient)} />
             </div>

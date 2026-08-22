@@ -34,12 +34,16 @@ create table if not exists clientes (
   lat double precision,
   lng double precision,
   tipo_negocio text,
-  estado text not null default 'Pendiente'
-    check (estado in ('Pendiente','Contactado','Visitado','Cliente','No Viable','Archivado')),
+  categoria_cliente text,              -- resultado/categoría comercial (Interesado, Preoferta, etc.)
+  estado text not null default 'Pendiente',   -- texto libre a propósito: la app ya usa muchos más valores que un enum fijo
   fecha_ultima_visita date,
   fecha_seguimiento date,
   observaciones text,
   foto_url text,
+  documentos_json jsonb not null default '{}'::jsonb,  -- checklist de documentos del expediente de crédito
+  estado_credito text,                 -- Documentación Pendiente / En Estudio / Aprobado / Desembolsado / Rechazado
+  estado_credito_actualizado_en timestamptz,  -- lo mantiene al día un trigger, usado por el panel de alertas
+  seguimiento_token uuid not null default gen_random_uuid() unique,  -- token para el enlace de transparencia por WhatsApp
   asesor_id uuid references usuarios(id),
   asesor_nombre text,
   fecha_creacion timestamptz not null default now(),
@@ -61,7 +65,11 @@ create table if not exists visitas (
 );
 
 -- ------------------------------------------------------------
--- 4. CITAS (agendamiento: programadas, pospuestas, cumplidas, canceladas)
+-- 4. CITAS — NOTA: esta tabla queda aquí por compatibilidad histórica,
+--    pero la versión actual del frontend (App.jsx) ya NO la usa: las
+--    citas se derivan en vivo de clientes.fecha_seguimiento. Puedes
+--    dejarla (no molesta) o eliminarla si prefieres, no se referencia
+--    en ninguna consulta activa de la app.
 -- ------------------------------------------------------------
 create table if not exists citas (
   id uuid primary key default gen_random_uuid(),
@@ -201,6 +209,31 @@ drop policy if exists "push_delete_propio" on push_subscriptions;
 create policy "push_delete_propio"
   on push_subscriptions for delete to authenticated
   using (usuario_id = auth.uid());
+
+-- ------------------------------------------------------------
+-- 6. NOVEDADES — bitácora de actividad por cliente (llamadas,
+--    WhatsApp, notas rápidas, cambios de estado/etapa de crédito).
+--    Ver supabase/migracion_historial_alertas.sql para el detalle.
+-- ------------------------------------------------------------
+create table if not exists novedades (
+  id uuid primary key default gen_random_uuid(),
+  cliente_id text not null references clientes(id) on delete cascade,
+  asesor_id uuid references usuarios(id),
+  asesor_nombre text,
+  tipo text not null default 'nota',
+  descripcion text not null,
+  creado_en timestamptz not null default now()
+);
+create index if not exists idx_novedades_cliente on novedades(cliente_id, creado_en desc);
+alter table novedades enable row level security;
+
+drop policy if exists "novedades_select_autenticados" on novedades;
+create policy "novedades_select_autenticados"
+  on novedades for select to authenticated using (true);
+
+drop policy if exists "novedades_insert_autenticados" on novedades;
+create policy "novedades_insert_autenticados"
+  on novedades for insert to authenticated with check (true);
 
 -- ============================================================
 -- STORAGE: bucket para las fotos de las visitas

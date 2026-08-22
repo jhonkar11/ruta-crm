@@ -59,5 +59,5 @@ export const iconRow = (gap = 6) => ({
   display: "inline-flex",
   alignItems: "center",
   gap,
-  lineId: 1,
+  lineHeight: 1,
 });

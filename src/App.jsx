@@ -1,8 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine } from "lucide-react";
+import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine, AlertTriangle } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
+import { calcularAlertas } from "./utils/alertas";
+import { calcularProgresoCredito, DOCUMENTOS_CREDITO_DEFAULT } from "./utils/documentosCredito";
 
 import LoginScreen from "./components/auth/LoginScreen";
 import TopBar from "./components/layout/TopBar";
@@ -11,11 +13,14 @@ import ClientCard from "./components/clientes/ClientCard";
 import MapaView from "./components/clientes/MapaView";
 import FormView from "./components/clientes/FormView";
 import CitasView from "./components/citas/CitasView";
+import DocumentosModal from "./components/documentos/DocumentosModal";
+import AlertasModal from "./components/alertas/AlertasModal";
+import HistorialClienteModal from "./components/historial/HistorialClienteModal";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
-  const { records, loading: recordsLoading, error, saveCliente, archivar, eliminar } = useClientes();
+  const { records, loading: recordsLoading, error, saveCliente, actualizarCampos, archivar, eliminar, registrarNovedad } = useClientes();
 
   const [view, setView] = useState(() => localStorage.getItem("crm_view") || "mapa");
   const [editing, setEditing] = useState(undefined);
@@ -23,7 +28,10 @@ export default function App() {
   const [confirmTarget, setConfirmTarget] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
-  
+  const [docsCliente, setDocsCliente] = useState(null);
+  const [historialCliente, setHistorialCliente] = useState(null);
+  const [showAlertas, setShowAlertas] = useState(false);
+
   const [showMananaModal, setShowMananaModal] = useState(false);
 
   useEffect(() => {
@@ -84,10 +92,14 @@ export default function App() {
         if (filtroActivo === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cancelado"].includes(r.estado);
         if (filtroActivo === "NO_LOCALIZADOS") return r.categoria_cliente === "No localizado" || r.estado === "No localizado";
         if (filtroActivo === "INTERESADOS") return ["Interesado", "Preoferta", "En trámite / Pendiente"].includes(r.categoria_cliente || r.estado);
+        if (filtroActivo === "DOCS_FALTAN") return calcularProgresoCredito(r.documentos_json || {}) < 100;
+        if (filtroActivo === "DOCS_COMPLETO") return calcularProgresoCredito(r.documentos_json || {}) === 100;
         return true;
       })
       .sort((a, b) => (b.fecha_creacion || "").localeCompare(a.fecha_creacion || ""));
   }, [records, showArchived, filtroActivo]);
+
+  const alertas = useMemo(() => calcularAlertas(records, todayISO()), [records]);
 
   const citasHoyCount = useMemo(() => {
     const hoy = todayISO();
@@ -144,13 +156,60 @@ export default function App() {
   const openEdit = (r) => { setEditing(undefined); setEditing(r); setView("form"); };
   const openNew = () => { setEditing(undefined); setView("form"); };
 
+  const handleRegistrarContacto = (cliente, tipo) => {
+    const descripcion = tipo === "llamada" ? "Llamada telefónica iniciada desde la app." : "Mensaje de WhatsApp enviado desde la app.";
+    registrarNovedad(cliente.id, tipo, descripcion, profile);
+  };
+
+  const handleChangeChecklist = async (nuevoChecklist) => {
+    if (!docsCliente) return;
+    try {
+      const anterior = docsCliente.documentos_json || {};
+      const saved = await actualizarCampos(docsCliente.id, { documentos_json: nuevoChecklist });
+      setDocsCliente((prev) => (prev ? { ...prev, ...saved } : prev));
+
+      const cambiado = Object.keys(nuevoChecklist).find((k) => !!nuevoChecklist[k] !== !!anterior[k]);
+      if (cambiado) {
+        const marcado = !!nuevoChecklist[cambiado];
+        const etiqueta = DOCUMENTOS_CREDITO_DEFAULT.find((d) => d.id === cambiado)?.label || cambiado;
+        registrarNovedad(docsCliente.id, "documento", `Documento "${etiqueta}" ${marcado ? "marcado como entregado" : "desmarcado"}.`, profile);
+      }
+    } catch (e) {
+      alert("No se pudo guardar el checklist: " + e.message);
+    }
+  };
+
+  const handleChangeEstadoCredito = async (nuevoEstado) => {
+    if (!docsCliente) return;
+    try {
+      const saved = await actualizarCampos(docsCliente.id, { estado_credito: nuevoEstado });
+      setDocsCliente((prev) => (prev ? { ...prev, ...saved } : prev));
+      registrarNovedad(docsCliente.id, "credito", `Etapa del crédito actualizada a "${nuevoEstado}".`, profile);
+    } catch (e) {
+      alert("No se pudo actualizar la etapa del crédito: " + e.message);
+    }
+  };
+
   const handleSave = async (record, isNew) => {
     if (isNew && records.some((r) => r && r.id === record.id)) {
       alert("Ya existe un registro con esa cédula/NIT.");
       return;
     }
+    const previo = !isNew ? editing : null;
     try {
       await saveCliente(record, isNew, user.id);
+
+      if (isNew) {
+        registrarNovedad(record.id, "creacion", `Registro creado por ${profile?.nombre || "un asesor"}.`, profile);
+      } else if (previo) {
+        if ((previo.estado || "") !== (record.estado || "")) {
+          registrarNovedad(record.id, "estado", `Cambio de estado: ${previo.estado || "—"} → ${record.estado || "—"}.`, profile);
+        }
+        if ((previo.observaciones || "") !== (record.observaciones || "") && record.observaciones) {
+          registrarNovedad(record.id, "nota", record.observaciones, profile);
+        }
+      }
+
       setEditing(undefined);
       setView("todos");
     } catch (e) {
@@ -165,8 +224,12 @@ export default function App() {
     if (!confirmTarget) return;
     const { type, record } = confirmTarget;
     try {
-      if (type === "archive") await archivar(record.id);
-      else await eliminar(record.id);
+      if (type === "archive") {
+        await archivar(record.id);
+        registrarNovedad(record.id, "archivado", `Cliente archivado por ${profile?.nombre || "un asesor"}.`, profile);
+      } else {
+        await eliminar(record.id);
+      }
     } catch (e) {
       alert("No se pudo completar la acción: " + e.message);
     }
@@ -258,13 +321,45 @@ export default function App() {
             </div>
           )}
 
+          {alertas.total > 0 && (
+            <div
+              onClick={() => setShowAlertas(true)}
+              style={{
+                background: "rgba(76, 5, 25, 0.85)",
+                border: "1.5px solid #f43f5e",
+                color: "#fecdd3",
+                padding: "14px 18px",
+                borderRadius: 14,
+                marginBottom: 18,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                boxShadow: "0 4px 12px rgba(244, 63, 94, 0.2)",
+                cursor: "pointer",
+                backdropFilter: "blur(8px)",
+              }}
+            >
+              <div style={{ background: "#f43f5e", color: "#fff", padding: 8, borderRadius: "50%", display: "flex" }}>
+                <AlertTriangle size={20} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <strong style={{ fontSize: 14, color: "#fff" }}>
+                  Centro de alertas: {alertas.total} caso{alertas.total === 1 ? "" : "s"} necesitan tu atención - Toca para ver
+                </strong>
+                <div style={{ fontSize: 12.5, marginTop: 2, opacity: 0.85 }}>
+                  Seguimientos retrasados, documentos estancados y créditos en estudio sin respuesta.
+                </div>
+              </div>
+            </div>
+          )}
+
           {view === "mapa" && (
             <>
               <div style={{ color: "#ffffff", marginBottom: 16 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Panel de Metas y Filtros</h2>
                 <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</p>
               </div>
-              <MapaView records={records} onEdit={openEdit} />
+              <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} />
             </>
           )}
 
@@ -293,7 +388,7 @@ export default function App() {
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
               {buscados.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
               ))}
             </>
           )}
@@ -310,6 +405,8 @@ export default function App() {
                 <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
                 <FiltroChip active={filtroActivo === "NO_LOCALIZADOS"} onClick={() => setFiltroActivo("NO_LOCALIZADOS")} label="❌ No localizados" />
                 <FiltroChip active={filtroActivo === "INTERESADOS"} onClick={() => setFiltroActivo("INTERESADOS")} label="⭐ Interesados / Preofertas" />
+                <FiltroChip active={filtroActivo === "DOCS_FALTAN"} onClick={() => setFiltroActivo("DOCS_FALTAN")} label="🗂️ Faltan documentos" />
+                <FiltroChip active={filtroActivo === "DOCS_COMPLETO"} onClick={() => setFiltroActivo("DOCS_COMPLETO")} label="✅ Expediente completo" />
                 {profile.rol === "admin" && (
                   <FiltroChip active={showArchived} onClick={() => setShowArchived(!showArchived)} label="Archivados" />
                 )}
@@ -317,7 +414,7 @@ export default function App() {
 
               {todos.length === 0 && <EmptyState text="No hay registros para este filtro." />}
               {todos.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
               ))}
             </>
           )}
@@ -406,6 +503,33 @@ export default function App() {
           danger={confirmTarget.type === "delete"}
           onConfirm={confirmAction}
           onCancel={() => setConfirmTarget(null)}
+        />
+      )}
+
+      {docsCliente && (
+        <DocumentosModal
+          cliente={docsCliente}
+          asesorNombre={profile?.nombre}
+          onChangeChecklist={handleChangeChecklist}
+          onChangeEstadoCredito={handleChangeEstadoCredito}
+          onClose={() => setDocsCliente(null)}
+        />
+      )}
+
+      {showAlertas && (
+        <AlertasModal
+          alertas={alertas}
+          onClose={() => setShowAlertas(false)}
+          onEdit={(r) => { setShowAlertas(false); openEdit(r); }}
+        />
+      )}
+
+      {historialCliente && (
+        <HistorialClienteModal
+          cliente={historialCliente}
+          asesorNombre={profile?.nombre}
+          asesorId={user.id}
+          onClose={() => setHistorialCliente(null)}
         />
       )}
     </div>
