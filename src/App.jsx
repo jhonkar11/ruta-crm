@@ -163,8 +163,15 @@ export default function App() {
     await saveCliente({ ...clienteObj, estado: "Cancelado" }, false, user.id);
   };
 
-  const openEdit = (r) => { setEditing(undefined); setEditing(r); setView("form"); };
-  const openNew = () => { setEditing(undefined); setView("form"); };
+  const openEdit = (r) => { 
+    setEditing(r); 
+    setView("form"); 
+  };
+  
+  const openNew = () => { 
+    setEditing(undefined); 
+    setView("form"); 
+  };
 
   const handleRegistrarContacto = (cliente, tipo) => {
     const descripcion = tipo === "llamada" ? "Llamada telefónica iniciada desde la app." : "Mensaje de WhatsApp enviado desde la app.";
