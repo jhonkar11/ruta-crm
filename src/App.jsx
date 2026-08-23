@@ -174,17 +174,12 @@ export default function App() {
   };
 
   const handleRegistrarContacto = (cliente, tipo) => {
+    // Solo registra la novedad — la navegación (marcar / abrir WhatsApp) ya la
+    // hace el propio enlace <a href="tel:..."/"wa.me/..."> en ClientCard y
+    // MapaView. Duplicarla aquí con window.location/window.open abría
+    // WhatsApp dos veces o competía con el marcado nativo del teléfono.
     const descripcion = tipo === "llamada" ? "Llamada telefónica iniciada desde la app." : "Mensaje de WhatsApp enviado desde la app.";
     registrarNovedad(cliente.id, tipo, descripcion, profile);
-    
-    const tel = cliente.telefono || cliente.whatsapp;
-    if (tel) {
-      if (tipo === "llamada") {
-        window.location.href = `tel:${tel}`;
-      } else if (tipo === "whatsapp") {
-        window.open(`https://wa.me/57${tel.replace(/\D/g, "")}`, "_blank");
-      }
-    }
   };
 
   const handleChangeChecklist = async (nuevoChecklist) => {
@@ -461,9 +456,10 @@ export default function App() {
       {docsCliente && (
         <DocumentosModal
           cliente={docsCliente}
+          asesorNombre={profile?.nombre}
           onClose={() => setDocsCliente(null)}
-          onUpdateChecklist={handleChangeChecklist}
-          onUpdateEstadoCredito={handleChangeEstadoCredito}
+          onChangeChecklist={handleChangeChecklist}
+          onChangeEstadoCredito={handleChangeEstadoCredito}
         />
       )}
 
@@ -478,6 +474,8 @@ export default function App() {
       {historialCliente && (
         <HistorialClienteModal
           cliente={historialCliente}
+          asesorNombre={profile?.nombre}
+          asesorId={user?.id}
           onClose={() => setHistorialCliente(null)}
         />
       )}
