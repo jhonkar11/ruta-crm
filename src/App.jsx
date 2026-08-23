@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine, AlertTriangle } from "lucide-react";
+import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine, AlertTriangle, FileText, History } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
@@ -169,6 +169,15 @@ export default function App() {
   const handleRegistrarContacto = (cliente, tipo) => {
     const descripcion = tipo === "llamada" ? "Llamada telefónica iniciada desde la app." : "Mensaje de WhatsApp enviado desde la app.";
     registrarNovedad(cliente.id, tipo, descripcion, profile);
+    
+    const tel = cliente.telefono || cliente.whatsapp;
+    if (tel) {
+      if (tipo === "llamada") {
+        window.location.href = `tel:${tel}`;
+      } else if (tipo === "whatsapp") {
+        window.open(`https://wa.me/57${tel.replace(/\D/g, "")}`, "_blank");
+      }
+    }
   };
 
   const handleChangeChecklist = async (nuevoChecklist) => {
@@ -468,24 +477,62 @@ export default function App() {
 
       {showMananaModal && (
         <div onClick={() => setShowMananaModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#1e1035", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 500, color: "#fff", maxHeight: "80vh", overflowY: "auto" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#1e1035", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 600, color: "#fff", maxHeight: "85vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h3 style={{ margin: 0, fontSize: 18 }}>Visitas programadas para mañana ({mananaISO})</h3>
               <button onClick={() => setShowMananaModal(false)} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer" }}><X size={20} /></button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {citasManana.map(r => (
-                <div key={r.id || r.cedula} style={{ background: "rgba(255,255,255,0.06)", padding: 12, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{r.nombres} {r.apellidos}</div>
-                    <div style={{ fontSize: 12, opacity: 0.8 }}>Dir: {r.direccion || "Sin dirección"}</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {citasManana.map(r => {
+                const progreso = calcularProgresoCredito(r.documentos_json || {});
+                const tel = r.telefono || r.whatsapp;
+                return (
+                  <div key={r.id || r.cedula} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", padding: 14, borderRadius: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 16 }}>{r.nombres} {r.apellidos}</div>
+                        <div style={{ fontSize: 13, opacity: 0.8 }}>CC/NIT: {r.id || r.cedula || "No especificada"}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <span style={{ background: ["Cancelado", "Cancelada", "Archivado"].includes(r.estado) ? "rgba(244,63,94,0.2)" : "rgba(34,197,94,0.2)", color: ["Cancelado", "Cancelada", "Archivado"].includes(r.estado) ? "#fca5a5" : "#86efac", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                          {r.estado || "Pendiente"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 12.5, opacity: 0.9 }}>
+                      <div><strong>Profesión / Tipo:</strong> {r.tipo_negocio || r.profesion || "No especificado"}</div>
+                      <div><strong>Crédito:</strong> {r.estado_credito || "— Sin definir —"} ({progreso}%)</div>
+                      <div style={{ gridColumn: "span 2" }}><strong>Dirección:</strong> {r.direccion || "Sin dirección"}</div>
+                      <div style={{ gridColumn: "span 2" }}><strong>Fecha Seguimiento:</strong> {r.fecha_seguimiento || "No asignada"}</div>
+                    </div>
+
+                    {r.observaciones && (
+                      <div style={{ fontSize: 12, background: "rgba(0,0,0,0.25)", padding: 8, borderRadius: 8, fontStyle: "italic", opacity: 0.85 }}>
+                        <strong>Nota:</strong> {r.observaciones}
+                      </div>
+                    )}
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 10 }}>
+                      <button title="Llamar" onClick={() => handleRegistrarContacto(r, "llamada")} style={{ background: "#059669", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                        <PhoneCall size={14} /> Llamar
+                      </button>
+                      <button title="WhatsApp" onClick={() => handleRegistrarContacto(r, "whatsapp")} style={{ background: "#16a34a", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                        <MessageSquareText size={14} /> WhatsApp
+                      </button>
+                      <button title="Documentos del Crédito" onClick={() => { setShowMananaModal(false); setDocsCliente(r); }} style={{ background: "#7c3aed", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                        <FileText size={14} /> Docs
+                      </button>
+                      <button title="Historial" onClick={() => { setShowMananaModal(false); setHistorialCliente(r); }} style={{ background: "#d97706", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                        <History size={14} /> Historial
+                      </button>
+                      <button title="Editar" onClick={() => { setShowMananaModal(false); openEdit(r); }} style={{ background: "#2563eb", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                        <PencilLine size={14} /> Editar
+                      </button>
+                    </div>
                   </div>
-                  <button onClick={() => { 
-                    setShowMananaModal(false); 
-                    setTimeout(() => openEdit(r), 50); 
-                  }} style={{ background: "#2563eb", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Ver</button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
