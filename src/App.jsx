@@ -248,11 +248,10 @@ export default function App() {
 
   const handleArchive = (r) => setConfirmTarget({ type: "archive", record: r });
   
-  // NUEVA FUNCIÓN: Para desarchivar un cliente y devolverlo a Pendiente / En trámite
   const handleUnarchive = async (r) => {
     try {
       await actualizarCampos(r.id, { estado: "Pendiente" });
-      registrarNovedad(r.id, "desarchivado", `Cliente desarchivado por ${profile?.nombre || "un asesor"}.`, profile);
+      registrarNovedad(r.id, "archivado", `Cliente desarchivado por ${profile?.nombre || "un asesor"}.`, profile);
     } catch (e) {
       alert("No se pudo desarchivar el registro: " + e.message);
     }
@@ -475,7 +474,6 @@ export default function App() {
                       canDelete={profile?.rol === "admin"} 
                       profile={profile || {}} 
                     />
-                    {/* Botón flotante para desarchivar si el cliente está archivado */}
                     {r.estado === "Archivado" && (
                       <button
                         onClick={() => handleUnarchive(r)}
@@ -532,6 +530,8 @@ export default function App() {
       {historialCliente && (
         <HistorialClienteModal
           cliente={historialCliente}
+          asesorNombre={profile?.nombre}
+          asesorId={user?.id}
           onClose={() => setHistorialCliente(null)}
         />
       )}
