@@ -485,7 +485,6 @@ export default function App() {
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {citasManana.map(r => {
                 const progreso = calcularProgresoCredito(r.documentos_json || {});
-                const tel = r.telefono || r.whatsapp;
                 return (
                   <div key={r.id || r.cedula} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", padding: 14, borderRadius: 12, display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
