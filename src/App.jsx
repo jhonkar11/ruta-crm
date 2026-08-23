@@ -472,7 +472,10 @@ export default function App() {
                     <div style={{ fontWeight: 600 }}>{r.nombres} {r.apellidos}</div>
                     <div style={{ fontSize: 12, opacity: 0.8 }}>Dir: {r.direccion || "Sin dirección"}</div>
                   </div>
-                  <button onClick={() => { setShowMananaModal(false); openEdit(r); }} style={{ background: "#2563eb", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Ver</button>
+                  <button onClick={() => { 
+                    setShowMananaModal(false); 
+                    setTimeout(() => openEdit(r), 50); 
+                  }} style={{ background: "#2563eb", color: "#fff", border: "none", padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}>Ver</button>
                 </div>
               ))}
             </div>
