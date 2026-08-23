@@ -101,8 +101,13 @@ export default function App() {
   const todos = useMemo(() => {
     if (!records) return [];
     return records
-      .filter((r) => r && (showArchived || r.estado !== "Archivado"))
       .filter((r) => {
+        if (!r) return false;
+        // Si el filtro activo es ARCHIVADOS, solo mostramos los archivados.
+        if (filtroActivo === "ARCHIVADOS") return r.estado === "Archivado";
+        // Para los demás filtros, respetamos el estado archivado o el switch showArchived
+        if (!showArchived && r.estado === "Archivado") return false;
+
         if (filtroActivo === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cumplida", "Cancelado"].includes(r.estado);
         if (filtroActivo === "NO_LOCALIZADOS") return r.categoria_cliente === "No localizado" || r.estado === "No localizado";
         if (filtroActivo === "INTERESADOS") return ["Interesado", "En trámite"].includes(r.categoria_cliente || r.estado);
@@ -431,7 +436,7 @@ export default function App() {
             <>
               <div style={{ color: "#ffffff", marginBottom: 16 }}>
                 <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Base de datos de créditos</h2>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{todos.length} registros en total</p>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{todos.length} registros en este filtro</p>
               </div>
               
               <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
@@ -442,6 +447,7 @@ export default function App() {
                 <FiltroChip active={filtroActivo === "NEGADOS"} onClick={() => setFiltroActivo("NEGADOS")} label="🚫 Negados" />
                 <FiltroChip active={filtroActivo === "DOCS_FALTAN"} onClick={() => setFiltroActivo("DOCS_FALTAN")} label="🗂️ Faltan documentos" />
                 <FiltroChip active={filtroActivo === "DOCS_COMPLETO"} onClick={() => setFiltroActivo("DOCS_COMPLETO")} label="✅ Expediente completo" />
+                <FiltroChip active={filtroActivo === "ARCHIVADOS"} onClick={() => setFiltroActivo("ARCHIVADOS")} label="📂 Archivados" />
               </div>
 
               {todos.length === 0 ? (
