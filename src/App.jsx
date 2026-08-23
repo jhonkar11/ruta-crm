@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine, AlertTriangle, FileText, History } from "lucide-react";
+import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine, AlertTriangle, FileText, History, ArchiveRestore } from "lucide-react";
 import { C, inputStyle, todayISO } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
@@ -103,9 +103,7 @@ export default function App() {
     return records
       .filter((r) => {
         if (!r) return false;
-        // Si el filtro activo es ARCHIVADOS, solo mostramos los archivados.
         if (filtroActivo === "ARCHIVADOS") return r.estado === "Archivado";
-        // Para los demás filtros, respetamos el estado archivado o el switch showArchived
         if (!showArchived && r.estado === "Archivado") return false;
 
         if (filtroActivo === "PENDIENTES") return r.fecha_seguimiento && !["Visitado", "Cumplida", "Cancelado"].includes(r.estado);
@@ -249,6 +247,17 @@ export default function App() {
   };
 
   const handleArchive = (r) => setConfirmTarget({ type: "archive", record: r });
+  
+  // NUEVA FUNCIÓN: Para desarchivar un cliente y devolverlo a Pendiente / En trámite
+  const handleUnarchive = async (r) => {
+    try {
+      await actualizarCampos(r.id, { estado: "Pendiente" });
+      registrarNovedad(r.id, "desarchivado", `Cliente desarchivado por ${profile?.nombre || "un asesor"}.`, profile);
+    } catch (e) {
+      alert("No se pudo desarchivar el registro: " + e.message);
+    }
+  };
+
   const handleDelete = (r) => setConfirmTarget({ type: "delete", record: r });
 
   const confirmAction = async () => {
@@ -454,7 +463,46 @@ export default function App() {
                 <EmptyState text="No hay registros en este filtro." />
               ) : (
                 todos.map((r) => (
-                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                  <div key={r.id} style={{ position: "relative", marginBottom: 12 }}>
+                    <ClientCard 
+                      r={r} 
+                      onEdit={openEdit} 
+                      onArchive={handleArchive} 
+                      onDelete={handleDelete} 
+                      onOpenDocs={setDocsCliente} 
+                      onOpenHistorial={setHistorialCliente} 
+                      onRegistrarContacto={handleRegistrarContacto} 
+                      canDelete={profile?.rol === "admin"} 
+                      profile={profile || {}} 
+                    />
+                    {/* Botón flotante para desarchivar si el cliente está archivado */}
+                    {r.estado === "Archivado" && (
+                      <button
+                        onClick={() => handleUnarchive(r)}
+                        style={{
+                          position: "absolute",
+                          bottom: 16,
+                          right: 60,
+                          background: "#059669",
+                          color: "#fff",
+                          border: "none",
+                          padding: "6px 12px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                          zIndex: 5
+                        }}
+                        title="Desarchivar cliente"
+                      >
+                        <ArchiveRestore size={14} /> Desarchivar
+                      </button>
+                    )}
+                  </div>
                 ))
               )}
             </>
