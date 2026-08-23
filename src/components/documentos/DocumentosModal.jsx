@@ -1,13 +1,13 @@
 import { X, FileCheck2 } from "lucide-react";
-import { C } from "../../styles/tokens";
+import { C, glass } from "../../styles/tokens";
 import { Stamp, Select } from "../ui/UIKit";
 import DocumentChecklist from "./DocumentChecklist";
 import ShareEstadoWhatsApp from "../share/ShareEstadoWhatsApp";
 import { DOCUMENTOS_CREDITO_DEFAULT, ESTADOS_CREDITO, calcularProgresoCredito } from "../../utils/documentosCredito";
 
 // Modal de expediente de crédito de un cliente: etapa del crédito + checklist
-// de documentos + progreso + compartir por WhatsApp. Mismo lenguaje visual
-// (glass oscuro, bottom-sheet) que ConfirmModal en UIKit.jsx.
+// de documentos + progreso + compartir por WhatsApp. Mismo glassmorphism
+// exacto que LoginScreen.jsx (ver styles/tokens.js -> glass).
 export default function DocumentosModal({
   cliente,
   asesorNombre,
@@ -25,14 +25,13 @@ export default function DocumentosModal({
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 70,
+      ...glass.overlay,
       display: "flex", alignItems: "flex-end", justifyContent: "center",
     }}>
       <div style={{
-        background: "#0f172a", border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 440,
-        boxShadow: "0 -8px 30px rgba(0,0,0,0.5)", maxHeight: "88vh", overflowY: "auto",
-        color: "#fff",
+        ...glass.panel,
+        borderRadius: "24px 24px 0 0", padding: 24, width: "100%", maxWidth: 440,
+        maxHeight: "88vh", overflowY: "auto",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
           <div>
@@ -47,7 +46,8 @@ export default function DocumentosModal({
             </div>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8,
+            ...glass.pill,
+            borderRadius: 8,
             width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", cursor: "pointer", flexShrink: 0,
           }}>

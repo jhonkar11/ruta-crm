@@ -1,5 +1,5 @@
 import { AlertCircle } from "lucide-react";
-import { C, inputStyle, iconRow } from "../../styles/tokens";
+import { C, inputStyle, iconRow, glass } from "../../styles/tokens";
 
 export function Stamp({ estado, size = "md", rotate = true, kind = "cliente" }) {
   const est = (estado || "Nuevo").toLowerCase();
@@ -129,12 +129,13 @@ export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onC
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 60,
+      ...glass.overlay,
       display: "flex", alignItems: "flex-end", justifyContent: "center",
     }}>
       <div style={{
-        background: "#0f172a", border: "1px solid rgba(255,255,255,0.15)", borderRadius: "20px 20px 0 0", padding: 24, width: "100%",
-        maxWidth: 420, boxShadow: "0 -8px 30px rgba(0,0,0,0.5)", maxHeight: "85vh", overflowY: "auto", color: "#fff"
+        ...glass.panel,
+        borderRadius: "24px 24px 0 0", padding: 24, width: "100%",
+        maxWidth: 420, maxHeight: "85vh", overflowY: "auto",
       }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#ffffff", marginBottom: 8 }}>
           {finalTitle}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, History, Phone, MessageCircle, StickyNote, Tag, FileCheck2, UserPlus, Archive, Send } from "lucide-react";
-import { C } from "../../styles/tokens";
+import { C, glass } from "../../styles/tokens";
 import { fetchActividad, registrarActividad } from "../../services/actividadService";
 
 const ICONOS_TIPO = {
@@ -61,14 +61,13 @@ export default function HistorialClienteModal({ cliente, asesorNombre, asesorId,
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 70,
+      ...glass.overlay,
       display: "flex", alignItems: "flex-end", justifyContent: "center",
     }}>
       <div style={{
-        background: "#0f172a", border: "1px solid rgba(255,255,255,0.15)",
-        borderRadius: "20px 20px 0 0", padding: 24, width: "100%", maxWidth: 460,
-        boxShadow: "0 -8px 30px rgba(0,0,0,0.5)", maxHeight: "88vh", overflowY: "auto",
-        color: "#fff",
+        ...glass.panel,
+        borderRadius: "24px 24px 0 0", padding: 24, width: "100%", maxWidth: 460,
+        maxHeight: "88vh", overflowY: "auto",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
           <div>
@@ -83,7 +82,8 @@ export default function HistorialClienteModal({ cliente, asesorNombre, asesorId,
             </div>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 8,
+            ...glass.pill,
+            borderRadius: 8,
             width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", cursor: "pointer", flexShrink: 0,
           }}>
@@ -99,9 +99,9 @@ export default function HistorialClienteModal({ cliente, asesorNombre, asesorId,
             onKeyDown={(e) => e.key === "Enter" && agregarNota()}
             placeholder="Agregar nota rápida de la visita o llamada..."
             style={{
+              ...glass.input,
               flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 13,
-              border: "1.5px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.06)",
-              color: "#fff", outline: "none",
+              outline: "none",
             }}
           />
           <button

@@ -1,12 +1,11 @@
 import { X, AlertTriangle, FileWarning, Hourglass, CalendarClock, Phone, MessageCircle, Edit3 } from "lucide-react";
-import { C } from "../../styles/tokens";
+import { C, glass } from "../../styles/tokens";
 
 function ItemAlerta({ r, sublabel, onEdit }) {
   const waNumero = String(r?.whatsapp || r?.telefono || "").replace(/\D/g, "");
   return (
     <div style={{
-      background: "rgba(255, 255, 255, 0.07)",
-      border: "1px solid rgba(255, 255, 255, 0.15)",
+      ...glass.pill,
       borderRadius: 14,
       padding: "12px 14px",
       marginBottom: 10,
@@ -67,12 +66,7 @@ export default function AlertasModal({ alertas = {}, onClose, onEdit }) {
 
   return (
     <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "rgba(11, 17, 32, 0.65)",
+      ...glass.overlay,
       backdropFilter: "blur(10px)",
       WebkitBackdropFilter: "blur(10px)",
       zIndex: 9999,
@@ -83,18 +77,13 @@ export default function AlertasModal({ alertas = {}, onClose, onEdit }) {
       boxSizing: "border-box"
     }}>
       <div style={{
-        background: "rgba(255, 255, 255, 0.07)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255, 255, 255, 0.15)",
+        ...glass.panel,
         borderRadius: 24,
         padding: 32,
         width: "100%",
         maxWidth: 520,
-        boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
         maxHeight: "88vh",
         overflowY: "auto",
-        color: "#fff",
         boxSizing: "border-box"
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: 16 }}>
@@ -105,7 +94,8 @@ export default function AlertasModal({ alertas = {}, onClose, onEdit }) {
             </span>
           </div>
           <button onClick={onClose} style={{
-            background: "rgba(255, 255, 255, 0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 12,
+            ...glass.pill,
+            borderRadius: 12,
             width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center",
             color: "#fff", cursor: "pointer", flexShrink: 0,
           }}>

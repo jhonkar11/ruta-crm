@@ -61,3 +61,43 @@ export const iconRow = (gap = 6) => ({
   gap,
   lineHeight: 1,
 });
+
+// ============================================================
+// Glassmorphism corporativo — misma receta exacta que la tarjeta
+// de LoginScreen.jsx, centralizada aquí para que cualquier modal o
+// panel flotante (Documentos, Alertas, Historial, confirmaciones)
+// se vea consistente con el login sin duplicar el CSS en cada uno.
+// ============================================================
+export const glass = {
+  // Fondo oscuro semitransparente detrás del modal (mismo overlay del login)
+  overlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(11, 17, 32, 0.65)",
+    zIndex: 70,
+  },
+  // La tarjeta/panel de cristal en sí
+  panel: {
+    background: "rgba(255, 255, 255, 0.07)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    boxShadow: "0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2)",
+    color: "#fff",
+  },
+  // Chips/pills translúcidas dentro de un panel de cristal (como la
+  // etiqueta "GESTIÓN INTELIGENTE DE CAMPO" del login)
+  pill: {
+    background: "rgba(255,255,255,0.08)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
+    border: "1px solid rgba(255,255,255,0.12)",
+  },
+  // Campos de texto: fondo claro y sólido para que el contraste con el
+  // texto oscuro se mantenga legible incluso en móvil, sobre el cristal.
+  input: {
+    background: "rgba(248, 250, 252, 0.95)",
+    border: "1px solid rgba(255, 255, 255, 0.3)",
+    color: "#0F172A",
+  },
+};
