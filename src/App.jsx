@@ -70,12 +70,20 @@ export default function App() {
   const mananaISO = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    return d.toISOString().slice(0, 10);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }, []);
 
   const citasManana = useMemo(() => {
     if (!records) return [];
-    return records.filter(r => r && r.fecha_seguimiento && r.fecha_seguimiento.slice(0, 10) === mananaISO && !["Archivado", "Visitado", "Cumplida", "Cancelada"].includes(r.estado));
+    return records.filter(r => {
+      if (!r || !r.fecha_seguimiento) return false;
+      const fechaLimpia = r.fecha_seguimiento.split("T")[0];
+      const esArchivadoOCancelado = ["Archivado", "Visitado", "Cumplida", "Cancelada", "Cancelado"].includes(r.estado);
+      return fechaLimpia === mananaISO && !esArchivadoOCancelado;
+    });
   }, [records, mananaISO]);
 
   const citasHoyCount = useMemo(() => {
@@ -467,7 +475,7 @@ export default function App() {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {citasManana.map(r => (
-                <div key={r.id} style={{ background: "rgba(255,255,255,0.06)", padding: 12, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={r.id || r.cedula} style={{ background: "rgba(255,255,255,0.06)", padding: 12, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{r.nombres} {r.apellidos}</div>
                     <div style={{ fontSize: 12, opacity: 0.8 }}>Dir: {r.direccion || "Sin dirección"}</div>
