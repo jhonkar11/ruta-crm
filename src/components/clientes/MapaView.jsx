@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3, Calendar, ShieldCheck, ClipboardList, History } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
+import SemaforoBadge from "../ui/SemaforoBadge";
 
 export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHistorial, onRegistrarContacto }) {
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
@@ -89,7 +90,8 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
               }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase" }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 7 }}>
+                  <SemaforoBadge variant="dot" fechaSeguimiento={r.fecha_seguimiento} estado={r.estado} />
                   {r.nombres} {r.apellidos}
                 </div>
                 <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#DC2626", fontWeight: 700, marginTop: 3, display: "flex", gap: 6 }}>
@@ -136,6 +138,12 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
             <div style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>Crédito:</span>
               <Stamp estado={activeClient.estado_credito} size="sm" rotate={false} />
+            </div>
+          )}
+
+          {activeClient.fecha_seguimiento && (
+            <div style={{ marginBottom: 12 }}>
+              <SemaforoBadge fechaSeguimiento={activeClient.fecha_seguimiento} estado={activeClient.estado} />
             </div>
           )}
 

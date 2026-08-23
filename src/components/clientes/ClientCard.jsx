@@ -1,6 +1,7 @@
-import { Phone, MessageCircle, Edit3, Archive, Trash2, Building2, Tag, Clock, ClipboardList, History } from "lucide-react";
+import { Phone, MessageCircle, Edit3, Archive, Trash2, Building2, Tag, ClipboardList, History } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
+import SemaforoBadge from "../ui/SemaforoBadge";
 
 export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onOpenDocs, onOpenHistorial, onRegistrarContacto, canDelete }) {
   // Soporte universal para ambas formas en que las vistas pasan el registro
@@ -81,14 +82,11 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         </div>
       )}
 
-      {/* Fecha de seguimiento destacada */}
-      {currentClient.fecha_seguimiento && !["Archivado"].includes(currentClient.estado) && (
-        <div style={{
-          marginTop: 12, fontSize: 11.5, color: "#92400E", background: "#FEF3C7",
-          padding: "4px 10px", borderRadius: 6, width: "fit-content", display: "flex", alignItems: "center", gap: 6,
-          fontWeight: 600
-        }}>
-          <Clock size={12} /> <span>Seguimiento: {currentClient.fecha_seguimiento}</span>
+      {/* Semáforo de urgencia de seguimiento: rojo (vencido/hoy), amarillo
+          (próximos 2 días) o verde (con margen) según fecha_seguimiento */}
+      {currentClient.fecha_seguimiento && (
+        <div style={{ marginTop: 12 }}>
+          <SemaforoBadge fechaSeguimiento={currentClient.fecha_seguimiento} estado={currentClient.estado} />
         </div>
       )}
 
