@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ViewHeader, TextInput, Stamp } from "../ui/UIKit";
 import { C, inputStyle } from "../../styles/tokens";
 import { Camera, Upload, CheckCircle2, X } from "lucide-react";
@@ -21,9 +21,11 @@ const labelStyle = {
   letterSpacing: "0.5px"
 };
 
-export function FormView({ initial, currentUser, onSave, onCancel }) {
+export function FormView({ initialData, initial, currentUser, onSave, onCancel }) {
+  const dataToUse = initialData || initial;
+
   const [form, setForm] = useState(
-    initial || {
+    dataToUse || {
       id: "",
       nombres: "",
       apellidos: "",
@@ -42,6 +44,12 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       foto_url: ""
     }
   );
+
+  useEffect(() => {
+    if (dataToUse) {
+      setForm(dataToUse);
+    }
+  }, [dataToUse]);
 
   const [modalFoto, setModalFoto] = useState(false);
   const fileInputRef = useRef(null);
@@ -68,7 +76,6 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
       return;
     }
 
-    // Preparamos los datos limpios para enviarlos a Supabase sin columnas fantasma
     const datosFinales = { ...form };
 
     if (datosFinales.categoria_cliente === "Otro" && datosFinales.categoria_otro) {
@@ -81,7 +88,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     delete datosFinales.categoria_otro;
     delete datosFinales.tipo_negocio_otro;
 
-    onSave(datosFinales, !initial);
+    onSave(datosFinales, !dataToUse);
   };
 
   const fotoActual = form.foto_url || form.foto;
@@ -93,10 +100,10 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
     <div>
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "#ffffff", margin: 0 }}>
-          {initial ? "Editar Cliente / Registro" : "Nuevo Cliente / Registro"}
+          {dataToUse ? "Editar Cliente / Registro" : "Nuevo Cliente / Registro"}
         </h2>
         <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.85)", marginTop: 2 }}>
-          {initial ? "Modificando información del registro" : "Creando nuevo prospecto en ruta"}
+          {dataToUse ? "Modificando información del registro" : "Creando nuevo prospecto en ruta"}
         </p>
       </div>
 
@@ -105,8 +112,8 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
           <div>
             <label style={labelStyle}>Cédula / NIT *</label>
             <TextInput
-              disabled={!!initial}
-              value={form.id}
+              disabled={!!dataToUse}
+              value={form.id || ""}
               onChange={(e) => handleChange("id", e.target.value)}
               placeholder="Número de cédula o NIT"
               style={inputLightStyle}
@@ -250,7 +257,7 @@ export function FormView({ initial, currentUser, onSave, onCancel }) {
             <label style={labelStyle}>Próximo Seguimiento</label>
             <TextInput
               type="date"
-              value={form.fecha_seguimiento || ""}
+              value={form.fecha_seguimiento ? form.fecha_seguimiento.split("T")[0] : ""}
               onChange={(e) => handleChange("fecha_seguimiento", e.target.value)}
               style={{ ...inputLightStyle, width: "100%", cursor: "pointer" }}
             />
