@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText, MapPin } from "lucide-react";
-import { C, inputStyle } from "../../styles/tokens";
+import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText, MapPin, Archive, ArchiveRestore } from "lucide-react";
+import { C, inputStyle, glass } from "../../styles/tokens";
 import { EmptyState } from "../ui/UIKit";
 
-export default function CitasView({ citas = [], clientes = [], currentUser, onCrear, onPosponer, onCumplida, onCancelar }) {
+export default function CitasView({ citas = [], clientes = [], currentUser, onCrear, onPosponer, onCumplida, onCancelar, onArchivar, onDesarchivar }) {
   const [filtroTab, setFiltroTab] = useState(() => localStorage.getItem("citas_filtro_activo") || "TODAS");
   const [modalAgendar, setModalAgendar] = useState(false);
   const [modalReprogramar, setModalReprogramar] = useState(null);
@@ -15,7 +15,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
   const labelStyleAzulOscuro = {
     fontSize: "11.5px",
     fontWeight: "700",
-    color: "#1e3a8a",
+    color: "#fdba74",
     display: "block",
     marginBottom: "6px",
     letterSpacing: "0.5px",
@@ -37,12 +37,26 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
   const citasFiltradas = useMemo(() => {
     return citas.filter(c => {
+      const clienteObj = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
+      const estaArchivado = (clienteObj?.estado || c.estado) === "Archivado";
+
+      if (filtroTab === "ARCHIVADAS") return estaArchivado;
+      if (estaArchivado) return false; // los archivados solo se ven en su propia pestaña
+
       if (filtroTab === "PROGRAMADAS") return c.estado === "Programada" || c.estado === "Pendiente";
       if (filtroTab === "CUMPLIDAS") return c.estado === "Cumplida" || c.estado === "Visitado";
       if (filtroTab === "REPROGRAMADAS") return c.estado === "Reprogramada";
       return true;
     });
   }, [citas, filtroTab]);
+
+  const totalActivas = useMemo(
+    () => citas.filter((c) => {
+      const clienteObj = typeof c.cliente === "object" && c.cliente !== null ? c.cliente : null;
+      return (clienteObj?.estado || c.estado) !== "Archivado";
+    }).length,
+    [citas]
+  );
 
   // Función clave: Al seleccionar un cliente, autocompletamos sus datos pero permitiendo editarlos
   const handleClienteSelectChange = (e) => {
@@ -153,7 +167,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             Citas y visitas
           </h2>
           <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", margin: 0 }}>
-            {citas.length} programadas en total
+            {totalActivas} programadas en total
           </p>
         </div>
         <button
@@ -174,7 +188,8 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
           { key: "TODAS", label: "Todas" },
           { key: "PROGRAMADAS", label: "Programadas" },
           { key: "CUMPLIDAS", label: "Cumplidas" },
-          { key: "REPROGRAMADAS", label: "Reprogramadas" }
+          { key: "REPROGRAMADAS", label: "Reprogramadas" },
+          { key: "ARCHIVADAS", label: "Archivadas" }
         ].map((tab) => (
           <button
             key={tab.key}
@@ -182,9 +197,10 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             style={{
               padding: "6px 16px", borderRadius: 20, fontSize: 12.5, fontWeight: 600,
               border: `1.5px solid ${filtroTab === tab.key ? C.coral : C.line}`,
-              background: filtroTab === tab ? "#FCEBE5" : "#fff",
-              color: filtroTab === tab ? C.coralDark : C.ink70,
-              cursor: "pointer"
+              background: filtroTab === tab.key ? "#FCEBE5" : "#fff",
+              color: filtroTab === tab.key ? C.coralDark : C.ink70,
+              cursor: "pointer",
+              whiteSpace: "nowrap", flexShrink: 0
             }}
           >
             {tab.label}
@@ -211,13 +227,15 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
             
             const fechaMostrada = c.fecha_seguimiento || c.fecha_hora;
             const notaMostrada = c.observaciones || c.notas;
+            const estaArchivado = clienteFinal.estado === "Archivado";
 
             return (
               <div
                 key={c.id || Math.random()}
                 style={{
                   background: "#FFFFFF", borderRadius: 12, padding: 20, border: `1px solid #E2E8F0`,
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", position: "relative"
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", position: "relative",
+                  opacity: estaArchivado ? 0.75 : 1,
                 }}
               >
                 <div style={{ position: "absolute", top: 16, right: 20 }}>
@@ -263,19 +281,40 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                   </div>
                 )}
 
-                <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14 }}>
-                  <button
-                    onClick={() => abrirModalReprogramar(c)}
-                    style={{ background: "#fff", border: `1px solid ${C.line}`, color: C.ink70, padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                  >
-                    Reprogramar
-                  </button>
-                  <button
-                    onClick={() => onCumplida(c)}
-                    style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", color: "#065F46", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
-                  >
-                    <CheckCircle size={14} /> Cumplida
-                  </button>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14 }}>
+                  {estaArchivado ? (
+                    onDesarchivar && (
+                      <button
+                        onClick={() => onDesarchivar(clienteFinal)}
+                        style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", color: "#065F46", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        <ArchiveRestore size={14} /> Quitar de archivados
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => abrirModalReprogramar(c)}
+                        style={{ background: "#fff", border: `1px solid ${C.line}`, color: C.ink70, padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                      >
+                        Reprogramar
+                      </button>
+                      <button
+                        onClick={() => onCumplida(c)}
+                        style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", color: "#065F46", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                      >
+                        <CheckCircle size={14} /> Cumplida
+                      </button>
+                      {onArchivar && (
+                        <button
+                          onClick={() => onArchivar(clienteFinal)}
+                          style={{ background: "#fff", border: `1px solid ${C.line}`, color: C.ink70, padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+                        >
+                          <Archive size={14} /> Archivar
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -285,20 +324,16 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
       {/* MODAL NUEVA CITA CON CAMPOS EDITABLES AUTOCOMPLETADOS */}
       {modalAgendar && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16
-        }}>
+        <div style={{ ...glass.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{
-            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460,
-            padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", border: "1px solid #F1F5F9", position: "relative"
+            ...glass.panel, borderRadius: 24, width: "100%", maxWidth: 460,
+            padding: "clamp(18px, 5vw, 28px)", position: "relative", maxHeight: "90vh", overflowY: "auto",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <h3 style={{ fontSize: 19, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h3 style={{ fontSize: 19, fontWeight: 700, color: "#fff", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
                 Agendar nueva cita
               </h3>
-              <button onClick={() => setModalAgendar(false)} style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748B" }}>
+              <button onClick={() => setModalAgendar(false)} style={{ ...glass.pill, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
                 <XCircle size={18} />
               </button>
             </div>
@@ -318,7 +353,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
                 </select>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
                 <div>
                   <div style={labelStyleAzulOscuro}>FECHA *</div>
                   <input
@@ -382,26 +417,22 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
 
       {/* MODAL REPROGRAMAR */}
       {modalReprogramar && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 16
-        }}>
+        <div style={{ ...glass.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{
-            background: "#fff", borderRadius: 24, width: "100%", maxWidth: 460,
-            padding: 28, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)", position: "relative"
+            ...glass.panel, borderRadius: 24, width: "100%", maxWidth: 460,
+            padding: "clamp(18px, 5vw, 28px)", position: "relative", maxHeight: "90vh", overflowY: "auto",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: 0, fontFamily: "'Space Grotesk', sans-serif" }}>
                 Reprogramar Cita / Visita
               </h3>
-              <button onClick={() => setModalReprogramar(null)} style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#64748B" }}>
+              <button onClick={() => setModalReprogramar(null)} style={{ ...glass.pill, borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
                 <XCircle size={18} />
               </button>
             </div>
 
             <form onSubmit={handleReprogramarSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12 }}>
                 <div>
                   <div style={labelStyleAzulOscuro}>NUEVA FECHA *</div>
                   <input

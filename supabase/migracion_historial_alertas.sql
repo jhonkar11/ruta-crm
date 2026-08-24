@@ -57,3 +57,11 @@ drop trigger if exists trg_clientes_estado_credito on clientes;
 create trigger trg_clientes_estado_credito
   before insert or update on clientes
   for each row execute function set_estado_credito_actualizado_en();
+
+-- ============================================================
+-- Extra: memoria del estado anterior al archivar, para poder
+-- "Quitar de archivados" y devolver el cliente exactamente al
+-- estado en el que estaba (en vez de reiniciarlo siempre a Pendiente).
+-- Usado por handleDesarchivar / ClientCard / CitasView (pestaña Archivadas).
+-- ============================================================
+alter table clientes add column if not exists estado_previo_archivo text;

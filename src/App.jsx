@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine, AlertTriangle, FileText, History } from "lucide-react";
-import { C, inputStyle, todayISO } from "./styles/tokens";
+import { C, inputStyle, todayISO, glass } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
 import { calcularAlertas } from "./utils/alertas";
@@ -16,11 +16,12 @@ import CitasView from "./components/citas/CitasView";
 import DocumentosModal from "./components/documentos/DocumentosModal";
 import AlertasModal from "./components/alertas/AlertasModal";
 import HistorialClienteModal from "./components/historial/HistorialClienteModal";
+import SimuladorCredito from "./components/simulador/SimuladorCredito";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
-  const { records, loading: recordsLoading, error, saveCliente, actualizarCampos, archivar, eliminar, registrarNovedad } = useClientes();
+  const { records, loading: recordsLoading, error, saveCliente, actualizarCampos, archivar, desarchivar, eliminar, registrarNovedad } = useClientes();
 
   const [view, setView] = useState(() => localStorage.getItem("crm_view") || "mapa");
   const [editing, setEditing] = useState(undefined);
@@ -31,6 +32,7 @@ export default function App() {
   const [docsCliente, setDocsCliente] = useState(null);
   const [historialCliente, setHistorialCliente] = useState(null);
   const [showAlertas, setShowAlertas] = useState(false);
+  const [showSimulador, setShowSimulador] = useState(false);
 
   const [showMananaModal, setShowMananaModal] = useState(false);
 
@@ -53,17 +55,21 @@ export default function App() {
   const citas = useMemo(() => {
     if (!records) return [];
     return records
-      .filter((r) => r && r.estado !== "Archivado" && r.fecha_seguimiento)
+      .filter((r) => r && r.fecha_seguimiento)
       .map((r) => ({
         id: r.id,
         clienteId: r.id,
         fecha_hora: r.fecha_seguimiento.includes("T") ? r.fecha_seguimiento : `${r.fecha_seguimiento}T09:00:00`,
         estado: r.estado || "Programada",
-        notas: r.observaciones || "Seguimiento programado",
+        // Sin placeholder inventado: si no hay observación real, queda vacío,
+        // para que "Reprogramar" nunca termine guardando un texto de relleno
+        // como si fuera una nota real del cliente.
+        observaciones: r.observaciones || "",
+        notas: r.observaciones || "",
         cliente: r,
         nombres: r.nombres,
         apellidos: r.apellidos,
-        direccion: r.direccion
+        direccion: r.direccion,
       }));
   }, [records]);
 
@@ -241,6 +247,15 @@ export default function App() {
   const handleArchive = (r) => setConfirmTarget({ type: "archive", record: r });
   const handleDelete = (r) => setConfirmTarget({ type: "delete", record: r });
 
+  const handleDesarchivar = async (r) => {
+    try {
+      await desarchivar(r.id);
+      registrarNovedad(r.id, "archivado", `Cliente restaurado desde archivados por ${profile?.nombre || "un asesor"}.`, profile);
+    } catch (e) {
+      alert("No se pudo restaurar el cliente: " + e.message);
+    }
+  };
+
   const confirmAction = async () => {
     if (!confirmTarget) return;
     const { type, record } = confirmTarget;
@@ -303,7 +318,7 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <TopBar profile={profile} userId={user.id} onLogout={logout} />
+        <TopBar profile={profile} userId={user.id} onLogout={logout} onOpenSimulador={() => setShowSimulador(true)} />
 
         <div style={{ padding: "24px 24px 100px" }}>
           {error && (
@@ -401,6 +416,8 @@ export default function App() {
               onPosponer={posponerSimulado}
               onCumplida={marcarCumplidaSimulada}
               onCancelar={cancelarSimulado}
+              onArchivar={handleArchive}
+              onDesarchivar={handleDesarchivar}
             />
           )}
 
@@ -417,7 +434,7 @@ export default function App() {
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
               {buscados.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
               ))}
             </>
           )}
@@ -437,13 +454,14 @@ export default function App() {
                 <FiltroChip active={filtroActivo === "NEGADOS"} onClick={() => setFiltroActivo("NEGADOS")} label="🚫 Negados" />
                 <FiltroChip active={filtroActivo === "DOCS_FALTAN"} onClick={() => setFiltroActivo("DOCS_FALTAN")} label="🗂️ Faltan documentos" />
                 <FiltroChip active={filtroActivo === "DOCS_COMPLETO"} onClick={() => setFiltroActivo("DOCS_COMPLETO")} label="✅ Expediente completo" />
+                <FiltroChip active={showArchived} onClick={() => setShowArchived((v) => !v)} label={showArchived ? "🗄️ Ocultar archivados" : "🗄️ Ver archivados"} />
               </div>
 
               {todos.length === 0 ? (
                 <EmptyState text="No hay registros en este filtro." />
               ) : (
                 todos.map((r) => (
-                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
                 ))
               )}
             </>
@@ -480,9 +498,13 @@ export default function App() {
         />
       )}
 
+      {showSimulador && (
+        <SimuladorCredito onClose={() => setShowSimulador(false)} />
+      )}
+
       {showMananaModal && (
-        <div onClick={() => setShowMananaModal(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#1e1035", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 600, color: "#fff", maxHeight: "85vh", overflowY: "auto" }}>
+        <div onClick={() => setShowMananaModal(false)} style={{ ...glass.overlay, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...glass.panel, borderRadius: 16, padding: "clamp(16px, 5vw, 24px)", width: "100%", maxWidth: 600, maxHeight: "85vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <h3 style={{ margin: 0, fontSize: 18 }}>Visitas programadas para mañana ({mananaISO})</h3>
               <button onClick={() => setShowMananaModal(false)} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer" }}><X size={20} /></button>
@@ -504,7 +526,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 12.5, opacity: 0.9 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 6, fontSize: 12.5, opacity: 0.9 }}>
                       <div><strong>Profesión / Tipo:</strong> {r.tipo_negocio || r.profesion || "No especificado"}</div>
                       <div><strong>Crédito:</strong> {r.estado_credito || "— Sin definir —"} ({progreso}%)</div>
                       <div style={{ gridColumn: "span 2" }}><strong>Dirección:</strong> {r.direccion || "Sin dirección"}</div>
@@ -517,13 +539,18 @@ export default function App() {
                       </div>
                     )}
 
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 10 }}>
-                      <button title="Llamar" onClick={() => handleRegistrarContacto(r, "llamada")} style={{ background: "#059669", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 4, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 10 }}>
+                      <a title="Llamar" href={r.telefono ? `tel:${r.telefono}` : undefined}
+                        onClick={() => r.telefono && handleRegistrarContacto(r, "llamada")}
+                        style={{ background: r.telefono ? "#059669" : "#475569", opacity: r.telefono ? 1 : 0.5, pointerEvents: r.telefono ? "auto" : "none", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
                         <PhoneCall size={14} /> Llamar
-                      </button>
-                      <button title="WhatsApp" onClick={() => handleRegistrarContacto(r, "whatsapp")} style={{ background: "#16a34a", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+                      </a>
+                      <a title="WhatsApp" target="_blank" rel="noreferrer"
+                        href={(r.whatsapp || r.telefono) ? `https://wa.me/57${String(r.whatsapp || r.telefono).replace(/\D/g, "")}` : undefined}
+                        onClick={() => (r.whatsapp || r.telefono) && handleRegistrarContacto(r, "whatsapp")}
+                        style={{ background: (r.whatsapp || r.telefono) ? "#16a34a" : "#475569", opacity: (r.whatsapp || r.telefono) ? 1 : 0.5, pointerEvents: (r.whatsapp || r.telefono) ? "auto" : "none", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
                         <MessageSquareText size={14} /> WhatsApp
-                      </button>
+                      </a>
                       <button title="Documentos del Crédito" onClick={() => { setShowMananaModal(false); setDocsCliente(r); }} style={{ background: "#7c3aed", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
                         <FileText size={14} /> Docs
                       </button>

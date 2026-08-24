@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { LogOut, Bell, BellOff } from "lucide-react";
+import { LogOut, Bell, BellOff, Calculator } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { IconBtn } from "../ui/UIKit";
 import { pushSoportado, notificacionesActivas, activarNotificaciones } from "../../services/pushService";
 
-export default function TopBar({ profile, userId, onLogout }) {
+export default function TopBar({ profile, userId, onLogout, onOpenSimulador }) {
   const [activas, setActivas] = useState(false);
   const [cargando, setCargando] = useState(false);
 
@@ -52,6 +52,9 @@ export default function TopBar({ profile, userId, onLogout }) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
+        {onOpenSimulador && (
+          <IconBtn icon={Calculator} label="Simulador de crédito" tone="line" onClick={onOpenSimulador} />
+        )}
         {pushSoportado() && (
           <IconBtn
             icon={activas ? Bell : BellOff}

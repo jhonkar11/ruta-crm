@@ -65,8 +65,16 @@ export function useClientes() {
   };
 
   const archivar = async (id) => {
-    await clientesApi.archivarCliente(id);
-    setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, estado: "Archivado" } : r)));
+    const actual = records?.find((r) => r && r.id === id);
+    await clientesApi.archivarCliente(id, actual?.estado);
+    setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, estado: "Archivado", estado_previo_archivo: actual?.estado || null } : r)));
+  };
+
+  // Restaura un cliente archivado a su estado anterior (ver archivarCliente).
+  const desarchivar = async (id) => {
+    const saved = await clientesApi.desarchivarCliente(id);
+    setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, ...saved } : r)));
+    return saved;
   };
 
   const eliminar = async (id) => {
@@ -92,5 +100,5 @@ export function useClientes() {
     }
   };
 
-  return { records, loading, error, reload, saveCliente, actualizarCampos, archivar, eliminar, registrarNovedad };
+  return { records, loading, error, reload, saveCliente, actualizarCampos, archivar, desarchivar, eliminar, registrarNovedad };
 }

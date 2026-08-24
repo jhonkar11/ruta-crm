@@ -1,9 +1,9 @@
-import { Phone, MessageCircle, Edit3, Archive, Trash2, Building2, Tag, ClipboardList, History } from "lucide-react";
+import { Phone, MessageCircle, Edit3, Archive, ArchiveRestore, Trash2, Building2, Tag, ClipboardList, History } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 import SemaforoBadge from "../ui/SemaforoBadge";
 
-export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onOpenDocs, onOpenHistorial, onRegistrarContacto, canDelete }) {
+export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onDesarchivar, onOpenDocs, onOpenHistorial, onRegistrarContacto, canDelete }) {
   // Soporte universal para ambas formas en que las vistas pasan el registro
   const currentClient = client || clientProp;
   if (!currentClient) return null;
@@ -118,6 +118,7 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         {onOpenHistorial && <IconBtn icon={History} label="Historial de actividad" onClick={() => onOpenHistorial(currentClient)} />}
         <div style={{ flex: 1 }} />
         {currentClient.estado !== "Archivado" && <IconBtn icon={Archive} label="Archivar" onClick={() => onArchive && onArchive(currentClient)} />}
+        {currentClient.estado === "Archivado" && onDesarchivar && <IconBtn icon={ArchiveRestore} label="Quitar de archivados" onClick={() => onDesarchivar(currentClient)} />}
         {canDelete && <IconBtn icon={Trash2} label="Eliminar" tone="line" onClick={() => onDelete && onDelete(currentClient)} />}
       </div>
     </div>

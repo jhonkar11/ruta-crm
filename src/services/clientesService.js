@@ -25,9 +25,35 @@ export async function upsertCliente(record, isNew) {
   return data;
 }
 
-export async function archivarCliente(id) {
-  const { error } = await supabase.from("clientes").update({ estado: "Archivado" }).eq("id", id);
+export async function archivarCliente(id, estadoPrevio) {
+  const { error } = await supabase
+    .from("clientes")
+    .update({ estado: "Archivado", estado_previo_archivo: estadoPrevio || null })
+    .eq("id", id);
   if (error) throw error;
+}
+
+// Restaura al cliente exactamente al estado que tenía antes de archivarse
+// (guardado en estado_previo_archivo al momento de archivar). Si por algún
+// motivo no hay ese dato (registros archivados antes de esta mejora), cae
+// en "Pendiente" como valor por defecto razonable.
+export async function desarchivarCliente(id) {
+  const { data: actual, error: errFetch } = await supabase
+    .from("clientes")
+    .select("estado_previo_archivo")
+    .eq("id", id)
+    .single();
+  if (errFetch) throw errFetch;
+
+  const estadoRestaurado = actual?.estado_previo_archivo || "Pendiente";
+  const { data, error } = await supabase
+    .from("clientes")
+    .update({ estado: estadoRestaurado, estado_previo_archivo: null })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 export async function eliminarCliente(id) {
