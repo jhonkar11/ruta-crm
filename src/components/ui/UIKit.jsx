@@ -76,11 +76,11 @@ export function Field({ label, required, error, children }) {
 
 export function IconBtn({ icon: Icon, onClick, label, tone = "ink", href, disabled }) {
   // Ajuste para garantizar contraste perfecto tanto en fondos oscuros como en tarjetas blancas
-  let bg = tone === "coral" ? C.coral : tone === "line" ? "transparent" : "rgba(15, 23, 42, 0.06)";
-  let fg = tone === "coral" ? "#fff" : tone === "line" ? "#0F172A" : "#0F172A";
-  
+  let bg = tone === "coral" ? C.coral : tone === "line" ? "transparent" : tone === "glass" ? "rgba(255,255,255,0.08)" : "rgba(15, 23, 42, 0.06)";
+  let fg = tone === "coral" ? "#fff" : tone === "line" ? "#0F172A" : tone === "glass" ? "#fff" : "#0F172A";
+
   if (disabled) {
-    fg = "rgba(15, 23, 42, 0.3)";
+    fg = tone === "glass" ? "rgba(255,255,255,0.35)" : "rgba(15, 23, 42, 0.3)";
   }
 
   const Comp = href ? "a" : "button";
@@ -96,7 +96,7 @@ export function IconBtn({ icon: Icon, onClick, label, tone = "ink", href, disabl
       style={{
         background: bg, 
         color: fg, 
-        border: tone === "line" ? "1px solid rgba(15, 23, 42, 0.2)" : "none",
+        border: tone === "line" ? "1px solid rgba(15, 23, 42, 0.2)" : tone === "glass" ? "1px solid rgba(255,255,255,0.2)" : "none",
         width: 36, height: 36, minWidth: 36, borderRadius: 10, ...iconRow(0),
         justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1, flexShrink: 0,
@@ -130,11 +130,11 @@ export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onC
   return (
     <div style={{
       ...glass.overlay,
-      display: "flex", alignItems: "flex-end", justifyContent: "center",
+      display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       <div style={{
         ...glass.panel,
-        borderRadius: "24px 24px 0 0", padding: 24, width: "100%",
+        borderRadius: 24, padding: 24, width: "100%",
         maxWidth: 420, maxHeight: "85vh", overflowY: "auto",
       }}>
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#ffffff", marginBottom: 8 }}>

@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3, Calendar, ShieldCheck, ClipboardList, History } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, XCircle, TrendingUp, Phone, MessageCircle, Edit3, Calendar, ShieldCheck, ClipboardList, History, Wallet } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 import SemaforoBadge from "../ui/SemaforoBadge";
+import EstadoCarteraBadge from "../pagos/EstadoCarteraBadge";
 
-export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHistorial, onRegistrarContacto }) {
+export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHistorial, onOpenAbono, onRegistrarContacto, pagosPorCliente }) {
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
   const [activeClient, setActiveClient] = useState(null);
 
@@ -147,16 +148,19 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
+          <div style={{ marginBottom: 12 }}>
+            <EstadoCarteraBadge cliente={activeClient} pagos={(pagosPorCliente && pagosPorCliente[activeClient.id]) || []} />
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
             <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono}
               onClick={() => activeClient.telefono && onRegistrarContacto && onRegistrarContacto(activeClient, "llamada")} />
             <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${String(activeClient.whatsapp).replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp}
               onClick={() => activeClient.whatsapp && onRegistrarContacto && onRegistrarContacto(activeClient, "whatsapp")} />
             {onOpenDocs && <IconBtn icon={ClipboardList} label="Documentos del crédito" onClick={() => onOpenDocs(activeClient)} />}
+            {onOpenAbono && <IconBtn icon={Wallet} label="Abonos y pagos" onClick={() => onOpenAbono(activeClient)} />}
             {onOpenHistorial && <IconBtn icon={History} label="Historial de actividad" onClick={() => onOpenHistorial(activeClient)} />}
-            <div style={{ marginLeft: "auto" }}>
-              <IconBtn icon={Edit3} tone="coral" label="Editar ficha" onClick={() => onEdit(activeClient)} />
-            </div>
+            <IconBtn icon={Edit3} tone="coral" label="Editar ficha" onClick={() => onEdit(activeClient)} />
           </div>
         </div>
       )}

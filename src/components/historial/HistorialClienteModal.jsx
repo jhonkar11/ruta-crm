@@ -62,11 +62,11 @@ export default function HistorialClienteModal({ cliente, asesorNombre, asesorId,
   return (
     <div style={{
       ...glass.overlay,
-      display: "flex", alignItems: "flex-end", justifyContent: "center",
+      display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       <div style={{
         ...glass.panel,
-        borderRadius: "24px 24px 0 0", padding: 24, width: "100%", maxWidth: 460,
+        borderRadius: 24, padding: 24, width: "100%", maxWidth: 460,
         maxHeight: "88vh", overflowY: "auto",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>

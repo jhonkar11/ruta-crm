@@ -1,9 +1,10 @@
-import { Phone, MessageCircle, Edit3, Archive, ArchiveRestore, Trash2, Building2, Tag, ClipboardList, History } from "lucide-react";
+import { Phone, MessageCircle, Edit3, Archive, ArchiveRestore, Trash2, Building2, Tag, ClipboardList, History, Wallet } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { Stamp, IconBtn } from "../ui/UIKit";
 import SemaforoBadge from "../ui/SemaforoBadge";
+import EstadoCarteraBadge from "../pagos/EstadoCarteraBadge";
 
-export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onDesarchivar, onOpenDocs, onOpenHistorial, onRegistrarContacto, canDelete }) {
+export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onDesarchivar, onOpenDocs, onOpenHistorial, onOpenAbono, onRegistrarContacto, pagosPorCliente, canDelete }) {
   // Soporte universal para ambas formas en que las vistas pasan el registro
   const currentClient = client || clientProp;
   if (!currentClient) return null;
@@ -85,8 +86,14 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
       {/* Semáforo de urgencia de seguimiento: rojo (vencido/hoy), amarillo
           (próximos 2 días) o verde (con margen) según fecha_seguimiento */}
       {currentClient.fecha_seguimiento && (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
           <SemaforoBadge fechaSeguimiento={currentClient.fecha_seguimiento} estado={currentClient.estado} />
+          <EstadoCarteraBadge cliente={currentClient} pagos={(pagosPorCliente && pagosPorCliente[currentClient.id]) || []} />
+        </div>
+      )}
+      {!currentClient.fecha_seguimiento && (
+        <div style={{ marginTop: 12 }}>
+          <EstadoCarteraBadge cliente={currentClient} pagos={(pagosPorCliente && pagosPorCliente[currentClient.id]) || []} />
         </div>
       )}
 
@@ -108,15 +115,15 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
       )}
 
       {/* Botones de acción inferior */}
-      <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14, alignItems: "center" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14, alignItems: "center" }}>
         <IconBtn icon={Phone} label="Llamar" href={telClean ? `tel:${telClean}` : undefined} disabled={!telClean}
           onClick={() => telClean && onRegistrarContacto && onRegistrarContacto(currentClient, "llamada")} />
         <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean}
           onClick={() => waClean && onRegistrarContacto && onRegistrarContacto(currentClient, "whatsapp")} />
         <IconBtn icon={Edit3} label="Editar" onClick={() => onEdit && onEdit(currentClient)} />
         {onOpenDocs && <IconBtn icon={ClipboardList} label="Documentos del crédito" onClick={() => onOpenDocs(currentClient)} />}
+        {onOpenAbono && <IconBtn icon={Wallet} label="Abonos y pagos" onClick={() => onOpenAbono(currentClient)} />}
         {onOpenHistorial && <IconBtn icon={History} label="Historial de actividad" onClick={() => onOpenHistorial(currentClient)} />}
-        <div style={{ flex: 1 }} />
         {currentClient.estado !== "Archivado" && <IconBtn icon={Archive} label="Archivar" onClick={() => onArchive && onArchive(currentClient)} />}
         {currentClient.estado === "Archivado" && onDesarchivar && <IconBtn icon={ArchiveRestore} label="Quitar de archivados" onClick={() => onDesarchivar(currentClient)} />}
         {canDelete && <IconBtn icon={Trash2} label="Eliminar" tone="line" onClick={() => onDelete && onDelete(currentClient)} />}

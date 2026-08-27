@@ -3,6 +3,7 @@ import { Search, BellRing, X, PhoneCall, MessageSquareText, PencilLine, AlertTri
 import { C, inputStyle, todayISO, glass } from "./styles/tokens";
 import { useAuth } from "./hooks/useAuth";
 import { useClientes } from "./hooks/useClientes";
+import { usePagosCredito } from "./hooks/usePagosCredito";
 import { calcularAlertas } from "./utils/alertas";
 import { calcularProgresoCredito, DOCUMENTOS_CREDITO_DEFAULT } from "./utils/documentosCredito";
 
@@ -17,11 +18,13 @@ import DocumentosModal from "./components/documentos/DocumentosModal";
 import AlertasModal from "./components/alertas/AlertasModal";
 import HistorialClienteModal from "./components/historial/HistorialClienteModal";
 import SimuladorCredito from "./components/simulador/SimuladorCredito";
+import RegistrarAbonoModal from "./components/pagos/RegistrarAbonoModal";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
   const { records, loading: recordsLoading, error, saveCliente, actualizarCampos, archivar, desarchivar, eliminar, registrarNovedad } = useClientes();
+  const { pagos, registrar: registrarAbono } = usePagosCredito();
 
   const [view, setView] = useState(() => localStorage.getItem("crm_view") || "mapa");
   const [editing, setEditing] = useState(undefined);
@@ -33,6 +36,7 @@ export default function App() {
   const [historialCliente, setHistorialCliente] = useState(null);
   const [showAlertas, setShowAlertas] = useState(false);
   const [showSimulador, setShowSimulador] = useState(false);
+  const [abonoCliente, setAbonoCliente] = useState(null);
 
   const [showMananaModal, setShowMananaModal] = useState(false);
 
@@ -121,6 +125,18 @@ export default function App() {
   }, [records, showArchived, filtroActivo]);
 
   const alertas = useMemo(() => calcularAlertas(records, todayISO()), [records]);
+
+  // Agrupa el libro de pagos por cliente UNA sola vez, para que cada
+  // tarjeta calcule su estado de cartera en memoria (O(1)) sin disparar
+  // ninguna consulta adicional a Supabase.
+  const pagosPorCliente = useMemo(() => {
+    const mapa = {};
+    (pagos || []).forEach((p) => {
+      if (!mapa[p.cliente_id]) mapa[p.cliente_id] = [];
+      mapa[p.cliente_id].push(p);
+    });
+    return mapa;
+  }, [pagos]);
 
   const crearCitaSimulada = async (payload) => {
     const clienteObj = records.find(r => r && r.id === payload.clienteId);
@@ -215,6 +231,27 @@ export default function App() {
     } catch (e) {
       alert("No se pudo actualizar la etapa del crédito: " + e.message);
     }
+  };
+
+  const handleGuardarCondicionesCredito = async (patch) => {
+    if (!abonoCliente) return;
+    const saved = await actualizarCampos(abonoCliente.id, patch);
+    setAbonoCliente((prev) => (prev ? { ...prev, ...saved } : prev));
+    registrarNovedad(
+      abonoCliente.id, "credito",
+      `Crédito activado: ${patch.credito_monto?.toLocaleString("es-CO")} a ${patch.credito_plazo_meses} meses, TEA ${patch.credito_tasa_tea}% (sistema ${patch.credito_sistema === "aleman" ? "alemán" : "francés"}).`,
+      profile
+    );
+  };
+
+  const handleRegistrarPago = async (payload) => {
+    const pago = await registrarAbono(payload);
+    registrarNovedad(
+      payload.clienteId, "credito",
+      `Abono registrado: ${Number(payload.montoPagado).toLocaleString("es-CO")} (capital ${Number(payload.abonoCapital).toLocaleString("es-CO")}, interés ${Number(payload.abonoInteres).toLocaleString("es-CO")}, seguro ${Number(payload.abonoSeguro).toLocaleString("es-CO")}). Saldo nuevo: ${Number(payload.saldoNuevo).toLocaleString("es-CO")}.`,
+      profile
+    );
+    return pago;
   };
 
   const handleSave = async (record, isNew) => {
@@ -395,7 +432,7 @@ export default function App() {
                 <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Panel de Metas y Filtros</h2>
                 <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</p>
               </div>
-              <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} />
+              <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} />
             </>
           )}
 
@@ -434,7 +471,7 @@ export default function App() {
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
               {buscados.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} canDelete={profile?.rol === "admin"} profile={profile || {}} />
               ))}
             </>
           )}
@@ -461,7 +498,7 @@ export default function App() {
                 <EmptyState text="No hay registros en este filtro." />
               ) : (
                 todos.map((r) => (
-                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onRegistrarContacto={handleRegistrarContacto} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} canDelete={profile?.rol === "admin"} profile={profile || {}} />
                 ))
               )}
             </>
@@ -500,6 +537,18 @@ export default function App() {
 
       {showSimulador && (
         <SimuladorCredito onClose={() => setShowSimulador(false)} />
+      )}
+
+      {abonoCliente && (
+        <RegistrarAbonoModal
+          cliente={abonoCliente}
+          pagosCliente={pagosPorCliente[abonoCliente.id] || []}
+          asesorNombre={profile?.nombre}
+          asesorId={user?.id}
+          onGuardarCondiciones={handleGuardarCondicionesCredito}
+          onRegistrarPago={handleRegistrarPago}
+          onClose={() => setAbonoCliente(null)}
+        />
       )}
 
       {showMananaModal && (

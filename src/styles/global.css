@@ -103,3 +103,9 @@ label, .input-label, .field-title {
   0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55); }
   50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
 }
+
+/* En pantallas angostas, el botón del simulador de crédito en TopBar
+   colapsa a solo el ícono para no amontonarse con "Salir" y la campana */
+@media (max-width: 420px) {
+  .topbar-label-oculta-en-movil { display: none; }
+}

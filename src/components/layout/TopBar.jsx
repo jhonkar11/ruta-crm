@@ -53,13 +53,39 @@ export default function TopBar({ profile, userId, onLogout, onOpenSimulador }) {
       </div>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
         {onOpenSimulador && (
-          <IconBtn icon={Calculator} label="Simulador de crédito" tone="line" onClick={onOpenSimulador} />
+          <button
+            onClick={onOpenSimulador}
+            title="Simulador de crédito"
+            style={{
+              background: "rgba(225, 78, 42, 0.18)",
+              border: "1px solid rgba(225, 78, 42, 0.5)",
+              color: "#fff",
+              padding: "6px 12px",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "12px",
+              fontWeight: 600,
+              fontFamily: "'IBM Plex Mono', monospace",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              transition: "background 0.2s",
+              whiteSpace: "nowrap",
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(225, 78, 42, 0.3)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(225, 78, 42, 0.18)"}
+          >
+            <Calculator size={14} color={C.coral} />
+            <span className="topbar-label-oculta-en-movil">Simulador</span>
+          </button>
         )}
         {pushSoportado() && (
           <IconBtn
             icon={activas ? Bell : BellOff}
             label={activas ? "Notificaciones activas" : "Activar notificaciones de citas"}
-            tone="line"
+            tone="glass"
             disabled={cargando}
             onClick={toggleNotificaciones}
           />
