@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
-import { LogOut, Bell, BellOff, Calculator } from "lucide-react";
+import { LogOut, Bell, BellOff, Calculator, Wrench } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { IconBtn } from "../ui/UIKit";
 import { pushSoportado, notificacionesActivas, activarNotificaciones } from "../../services/pushService";
+import { isSoporteAuthorized } from "../../utils/rbac";
 
-export default function TopBar({ profile, userId, onLogout, onOpenSimulador }) {
+export default function TopBar({ profile, userId, user, view, setView, onLogout, onOpenSimulador }) {
   const [activas, setActivas] = useState(false);
   const [cargando, setCargando] = useState(false);
 
   useEffect(() => {
     if (pushSoportado()) notificacionesActivas().then(setActivas);
   }, []);
+
+  const canAccessSoporte = isSoporteAuthorized(user, profile);
 
   const toggleNotificaciones = async () => {
     if (activas || !pushSoportado()) return;
@@ -51,7 +54,33 @@ export default function TopBar({ profile, userId, onLogout, onOpenSimulador }) {
           {profile?.nombre || "Usuario"} · {profile?.rol === "admin" ? "Administrador" : "Asesor comercial"}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+        {/* Acceso Rápido Soporte Técnico Exclusivo para Jhonka001@gmail.com */}
+        {canAccessSoporte && setView && (
+          <button
+            onClick={() => setView("soporte")}
+            title="Módulo de Soporte Técnico y Cuentas de Cobro"
+            style={{
+              background: view === "soporte" ? "rgba(56, 189, 248, 0.25)" : "rgba(255, 255, 255, 0.08)",
+              border: view === "soporte" ? "1px solid #38bdf8" : "1px solid rgba(255, 255, 255, 0.2)",
+              color: view === "soporte" ? "#38bdf8" : "#fff",
+              padding: "6px 12px",
+              borderRadius: "8px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "12px",
+              fontWeight: 600,
+              fontFamily: "'IBM Plex Mono', monospace",
+              transition: "all 0.2s"
+            }}
+          >
+            <Wrench size={14} color="#38bdf8" />
+            <span>Soporte IT</span>
+          </button>
+        )}
+
         {onOpenSimulador && (
           <button
             onClick={onOpenSimulador}
@@ -81,6 +110,7 @@ export default function TopBar({ profile, userId, onLogout, onOpenSimulador }) {
             <span className="topbar-label-oculta-en-movil">Simulador</span>
           </button>
         )}
+
         {pushSoportado() && (
           <IconBtn
             icon={activas ? Bell : BellOff}

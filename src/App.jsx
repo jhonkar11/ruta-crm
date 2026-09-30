@@ -19,6 +19,8 @@ import AlertasModal from "./components/alertas/AlertasModal";
 import HistorialClienteModal from "./components/historial/HistorialClienteModal";
 import SimuladorCredito from "./components/simulador/SimuladorCredito";
 import RegistrarAbonoModal from "./components/pagos/RegistrarAbonoModal";
+import SoporteTecnicoView from "./components/soporte/SoporteTecnicoView";
+import { isSoporteAuthorized } from "./utils/rbac";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
 export default function App() {
@@ -355,7 +357,7 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <TopBar profile={profile} userId={user.id} onLogout={logout} onOpenSimulador={() => setShowSimulador(true)} />
+        <TopBar profile={profile} userId={user.id} user={user} view={view} setView={setView} onLogout={logout} onOpenSimulador={() => setShowSimulador(true)} />
 
         <div style={{ padding: "24px 24px 100px" }}>
           {error && (
@@ -503,9 +505,13 @@ export default function App() {
               )}
             </>
           )}
+
+          {view === "soporte" && (
+            <SoporteTecnicoView user={user} profile={profile} />
+          )}
         </div>
 
-        <BottomNav view={view} setView={setView} citasHoyCount={citasHoyCount} onNew={openNew} />
+        <BottomNav view={view} setView={setView} citasHoyCount={citasHoyCount} onNew={openNew} user={user} profile={profile} />
       </div>
 
       {docsCliente && (
