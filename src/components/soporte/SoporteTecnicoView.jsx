@@ -336,6 +336,8 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const inputBorder = isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #CBD5E1";
   const inputText = isDark ? "#fff" : "#0F172A";
   const labelColor = isDark ? "rgba(255,255,255,0.7)" : "#475569";
+  const textTitle = isDark ? "#FFFFFF" : "#0F172A";
+  const textSub = isDark ? "rgba(255, 255, 255, 0.7)" : "#475569";
 
   return (
     <div style={{ color: isDark ? "#fff" : "#0F172A", width: "100%", paddingBottom: 60 }}>
