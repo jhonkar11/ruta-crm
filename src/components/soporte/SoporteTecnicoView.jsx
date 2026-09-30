@@ -56,6 +56,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [errorIA, setErrorIA] = useState(null);
   const [showConfigKey, setShowConfigKey] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(() => !!getGeminiApiKey());
+  const [isDictating, setIsDictating] = useState(false);
 
   // Formulario estructurado "Datos de servicio requerido"
   const [datosExtraidos, setDatosExtraidos] = useState({
@@ -306,6 +307,61 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     navigator.clipboard.writeText(plantillaTexto);
     setCopiadoPlantilla(true);
     setTimeout(() => setCopiadoPlantilla(false), 2000);
+  };
+
+  // Dictado por Voz (Web Speech API nativa)
+  const recognitionRef = useRef(null);
+  const handleVoiceDictation = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta el dictado por voz. Usa Chrome para esta función.");
+      return;
+    }
+
+    if (isDictating && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsDictating(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-CO";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => setIsDictating(true);
+    recognition.onend = () => setIsDictating(false);
+    recognition.onerror = () => setIsDictating(false);
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setNotasTecnico((prev) => {
+        const base = prev.trimEnd();
+        return base ? base + " " + transcript : transcript;
+      });
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  // Resetear formulario después de guardar
+  const resetFormulario = () => {
+    setImagenPreview(null);
+    setImagenBase64(null);
+    setNotasTecnico("");
+    setPlantillaTexto("");
+    setErrorIA(null);
+    setDatosExtraidos({
+      numero_caso: "", fecha_solicitud: "", fecha_atencion: "", fecha_finalizacion: "",
+      mesa: "", cliente: "", coordinador: "", valor_servicios: 0, valor_viaticos: 0,
+      valor_materiales: 0, sh: "SOFTWARE - HARDWARE", tecnico: "", medio: "SITIO",
+      equipo: "", falla: "", causa: "", solucion: "", pruebas: "",
+      horas: { inicio: "", fin: "", desplazamiento: "" }
+    });
   };
 
   // Cálculos de Totales de la Cuenta de Cobro
@@ -690,14 +746,46 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 gap: 12
               }}
             >
-              {/* Encabezado */}
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: textTitle, display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                  <FileText size={15} color="#0284c7" /> Detalle del Servicio
+              {/* Encabezado con botón de voz */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: textTitle, display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <FileText size={15} color="#0284c7" /> Detalle del Servicio
+                  </div>
+                  <div style={{ fontSize: 11.5, color: textSub }}>
+                    Pega, escribe o dicta el requerimiento del caso. La IA generará la solución corporativa.
+                  </div>
                 </div>
-                <div style={{ fontSize: 11.5, color: textSub }}>
-                  Pega o escribe el requerimiento inicial del caso. La IA generará la solución corporativa automáticamente.
-                </div>
+                {/* Botón Dictado por Voz */}
+                <button
+                  type="button"
+                  onClick={handleVoiceDictation}
+                  title={isDictating ? "Detener dictado" : "Iniciar dictado por voz (es-CO)"}
+                  style={{
+                    flexShrink: 0,
+                    background: isDictating
+                      ? "linear-gradient(135deg, #EF4444 0%, #DC2626 100%)"
+                      : (isDark ? "rgba(255,255,255,0.08)" : "#F1F5F9"),
+                    border: isDictating
+                      ? "none"
+                      : (isDark ? "1px solid rgba(255,255,255,0.18)" : "1px solid #CBD5E1"),
+                    color: isDictating ? "#fff" : (isDark ? "#94A3B8" : "#475569"),
+                    borderRadius: 10,
+                    padding: "8px 12px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    transition: "all 0.2s",
+                    boxShadow: isDictating ? "0 0 0 3px rgba(239,68,68,0.3)" : "none",
+                    animation: isDictating ? "pulse 1.5s ease infinite" : "none"
+                  }}
+                >
+                  <Volume2 size={14} />
+                  {isDictating ? "■ Detener" : "🎙 Dictar"}
+                </button>
               </div>
 
               {/* Campo Requerimiento */}
@@ -705,13 +793,20 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 value={notasTecnico}
                 onChange={(e) => setNotasTecnico(e.target.value)}
                 maxLength={5000}
-                placeholder="Pega aquí el mensaje de WhatsApp, descripción de la falla, horas de atención, equipo afectado o cualquier detalle del servicio prestado..."
+                placeholder={isDictating
+                  ? "🎙 Escuchando... habla ahora en español..."
+                  : "Pega aquí el mensaje de WhatsApp, descripción de la falla, horas de atención, equipo afectado o cualquier detalle del servicio prestado..."
+                }
                 style={{
                   width: "100%",
                   boxSizing: "border-box",
                   minHeight: 140,
-                  background: isDark ? "rgba(0,0,0,0.35)" : "#F8FAFC",
-                  border: isDark ? "1.5px solid rgba(255,255,255,0.12)" : "1.5px solid #CBD5E1",
+                  background: isDictating
+                    ? (isDark ? "rgba(239,68,68,0.08)" : "rgba(239,68,68,0.04)")
+                    : (isDark ? "rgba(0,0,0,0.35)" : "#F8FAFC"),
+                  border: isDictating
+                    ? "1.5px solid rgba(239,68,68,0.5)"
+                    : (isDark ? "1.5px solid rgba(255,255,255,0.12)" : "1.5px solid #CBD5E1"),
                   borderRadius: 10,
                   padding: "10px 12px",
                   color: isDark ? "#F1F5F9" : "#0F172A",
@@ -720,18 +815,24 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                   resize: "vertical",
                   outline: "none",
                   fontFamily: "inherit",
-                  transition: "border-color 0.2s"
+                  transition: "all 0.2s"
                 }}
-                onFocus={(e) => { e.target.style.borderColor = "#0284c7"; }}
-                onBlur={(e) => { e.target.style.borderColor = isDark ? "rgba(255,255,255,0.12)" : "#CBD5E1"; }}
+                onFocus={(e) => { if (!isDictating) e.target.style.borderColor = "#0284c7"; }}
+                onBlur={(e) => { if (!isDictating) e.target.style.borderColor = isDark ? "rgba(255,255,255,0.12)" : "#CBD5E1"; }}
               />
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <span style={{ fontSize: 11, color: textSub }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {isDictating && (
+                  <span style={{ fontSize: 11, color: "#EF4444", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#EF4444", display: "inline-block", animation: "pulse 1s ease infinite" }} />
+                    Escuchando en español...
+                  </span>
+                )}
+                <span style={{ fontSize: 11, color: textSub, marginLeft: "auto" }}>
                   {notasTecnico.length} / 5000 caracteres
                 </span>
               </div>
 
-              {/* CTA Procesar Servicio */}
+              {/* CTA Procesar Servicio con IA */}
               <button
                 type="button"
                 disabled={procesandoIA}
@@ -739,10 +840,10 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 style={{
                   width: "100%",
                   background: procesandoIA
-                    ? "linear-gradient(135deg, #64748B 0%, #475569 100%)"
+                    ? (isDark ? "rgba(100,116,139,0.5)" : "#E2E8F0")
                     : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
                   border: "none",
-                  color: "#fff",
+                  color: procesandoIA ? (isDark ? "#94A3B8" : "#64748B") : "#fff",
                   borderRadius: 12,
                   padding: "13px 18px",
                   fontSize: 14,
@@ -752,7 +853,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: 8,
-                  boxShadow: procesandoIA ? "none" : "0 6px 20px rgba(2, 132, 199, 0.35)",
+                  boxShadow: procesandoIA ? "none" : "0 6px 20px rgba(2,132,199,0.35)",
                   transition: "all 0.2s",
                   letterSpacing: "0.01em"
                 }}
@@ -763,37 +864,64 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
             </div>
           </div>
 
-          {/* Mensaje de Error en IA */}
+          {/* ── Alerta de Error IA (alto contraste) ── */}
           {errorIA && (
             <div
               style={{
-                background: "rgba(239, 68, 68, 0.15)",
-                border: "1px solid #ef4444",
-                borderRadius: 12,
-                padding: 14,
-                color: "#fca5a5",
-                fontSize: 13,
+                background: isDark ? "#450A0A" : "#FEF2F2",
+                border: isDark ? "1.5px solid #EF4444" : "none",
+                borderLeft: "4px solid #DC2626",
+                borderRadius: isDark ? 12 : "0 12px 12px 0",
+                padding: "14px 18px",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between"
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12
               }}
             >
-              <span>{errorIA}</span>
-              <button
-                onClick={() => setShowConfigKey(true)}
-                style={{
-                  background: "#ef4444",
-                  border: "none",
-                  color: "#fff",
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer"
-                }}
-              >
-                Revisar API Key
-              </button>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
+                <AlertTriangle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#FCA5A5" : "#991B1B", marginBottom: 3 }}>
+                    Error en el procesamiento con Gemini AI
+                  </div>
+                  <div style={{ fontSize: 12.5, color: isDark ? "#FCA5A5" : "#B91C1C", lineHeight: 1.5 }}>
+                    {errorIA}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <button
+                  onClick={() => setShowConfigKey(true)}
+                  style={{
+                    background: "#DC2626",
+                    border: "none",
+                    color: "#fff",
+                    padding: "6px 12px",
+                    borderRadius: 7,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer"
+                  }}
+                >
+                  Revisar API Key
+                </button>
+                <button
+                  onClick={() => setErrorIA(null)}
+                  style={{
+                    background: "none",
+                    border: isDark ? "1px solid rgba(239,68,68,0.4)" : "1px solid #FECACA",
+                    color: isDark ? "#FCA5A5" : "#B91C1C",
+                    padding: "6px 10px",
+                    borderRadius: 7,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 
@@ -1163,18 +1291,22 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 </span>
               </div>
 
-              {/* Botón Principal: PASO 3 AGREGAR A CUENTA DE COBRO */}
-              <div style={{ marginTop: 16 }}>
+              {/* Botón Principal: Guardar Servicio en Inventario */}
+              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
                 <button
                   type="button"
-                  onClick={handleAgregarACuentaCobro}
+                  onClick={async () => {
+                    await handleAgregarACuentaCobro();
+                  }}
                   style={{
                     width: "100%",
-                    background: guardadoExitoso ? "#10b981" : C.coral,
+                    background: guardadoExitoso
+                      ? "linear-gradient(135deg, #10B981 0%, #059669 100%)"
+                      : "linear-gradient(135deg, #16A34A 0%, #15803D 100%)",
                     border: "none",
                     color: "#fff",
                     borderRadius: 12,
-                    padding: "14px 20px",
+                    padding: "15px 20px",
                     fontSize: 15,
                     fontWeight: 700,
                     cursor: "pointer",
@@ -1182,13 +1314,44 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 10,
-                    boxShadow: "0 6px 20px rgba(225, 78, 42, 0.5)",
-                    transition: "all 0.2s"
+                    boxShadow: guardadoExitoso
+                      ? "0 6px 20px rgba(16,185,129,0.5)"
+                      : "0 6px 20px rgba(22,163,74,0.4)",
+                    transition: "all 0.2s",
+                    letterSpacing: "0.01em"
                   }}
                 >
                   {guardadoExitoso ? <CheckCircle size={20} /> : <FileSpreadsheet size={20} />}
-                  <span>{guardadoExitoso ? "¡Servicio Inyectado en Cuenta de Cobro!" : "3. Agregar servicio a cuenta de cobro"}</span>
+                  <span>
+                    {guardadoExitoso
+                      ? "✓ ¡Guardado en Inventario y Cuenta de Cobro!"
+                      : "Guardar Servicio en Inventario"}
+                  </span>
                 </button>
+
+                {guardadoExitoso && (
+                  <button
+                    type="button"
+                    onClick={resetFormulario}
+                    style={{
+                      width: "100%",
+                      background: "none",
+                      border: isDark ? "1px solid rgba(255,255,255,0.18)" : "1px solid #CBD5E1",
+                      color: isDark ? "#94A3B8" : "#475569",
+                      borderRadius: 10,
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8
+                    }}
+                  >
+                    <RefreshCw size={14} /> Registrar nuevo servicio
+                  </button>
+                )}
               </div>
             </div>
           </div>
