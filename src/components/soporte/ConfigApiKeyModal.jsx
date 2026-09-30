@@ -3,7 +3,8 @@ import { Key, CheckCircle, AlertCircle, RefreshCw, X, Shield, ExternalLink, Spar
 import { C } from "../../styles/tokens";
 import { getGeminiApiKey, setGeminiApiKey, testGeminiApiKey, MODELOS_GEMINI } from "../../services/geminiService";
 
-export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
+export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved, theme = "light" }) {
+  const isDark = theme === "dark";
   const [keyInput, setKeyInput] = useState("");
   const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
   const [testing, setTesting] = useState(false);
@@ -64,7 +65,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
         position: "fixed",
         inset: 0,
         zIndex: 10000,
-        background: "rgba(3, 7, 18, 0.85)",
+        background: isDark ? "rgba(3, 7, 18, 0.85)" : "rgba(15, 23, 42, 0.65)",
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         display: "flex",
@@ -76,25 +77,27 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          background: "#0f172a",
-          border: "1.5px solid rgba(56, 189, 248, 0.3)",
+          background: isDark ? "#0f172a" : "#ffffff",
+          border: isDark ? "1.5px solid rgba(56, 189, 248, 0.3)" : "1px solid #cbd5e1",
           borderRadius: 20,
           width: "100%",
           maxWidth: 540,
           padding: 24,
-          color: "#fff",
-          boxShadow: "0 25px 60px rgba(0, 0, 0, 0.7)"
+          color: isDark ? "#fff" : "#0f172a",
+          boxShadow: isDark ? "0 25px 60px rgba(0, 0, 0, 0.7)" : "0 20px 50px rgba(0, 0, 0, 0.15)"
         }}
       >
         {/* Cabecera */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ background: "rgba(56, 189, 248, 0.15)", padding: 8, borderRadius: 10, color: "#38bdf8" }}>
+            <div style={{ background: "rgba(56, 189, 248, 0.15)", padding: 8, borderRadius: 10, color: "#0284c7" }}>
               <Key size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Configuración de Google Gemini API</h3>
-              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: isDark ? "#fff" : "#0f172a" }}>
+                Configuración de Google Gemini API
+              </h3>
+              <p style={{ margin: 0, fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#64748b" }}>
                 Diagnóstico, verificación en vivo y respaldo de llaves de IA
               </p>
             </div>
@@ -110,17 +113,17 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
         {/* Info Box */}
         <div
           style={{
-            background: "rgba(30, 41, 59, 0.7)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            background: isDark ? "rgba(30, 41, 59, 0.7)" : "#f0f9ff",
+            border: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #bae6fd",
             borderRadius: 12,
             padding: 12,
             fontSize: 12,
-            color: "#cbd5e1",
+            color: isDark ? "#cbd5e1" : "#0369a1",
             lineHeight: 1.5,
             marginBottom: 16
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 600, color: "#38bdf8", marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, color: "#0284c7", marginBottom: 4 }}>
             <Shield size={14} /> Modo Seguro y Gratuito
           </div>
           Puedes obtener tu API Key gratuita directamente en Google AI Studio. Los modelos <strong>Gemini 2.5 Flash</strong>, <strong>Gemini 2.0 Flash</strong> y <strong>Gemini 1.5</strong> son de alta velocidad y cuentan con cuota libre.
@@ -129,7 +132,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
               href="https://aistudio.google.com/app/apikey"
               target="_blank"
               rel="noreferrer"
-              style={{ color: "#38bdf8", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 500 }}
+              style={{ color: "#0284c7", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 600 }}
             >
               Obtener llave en Google AI Studio <ExternalLink size={12} />
             </a>
@@ -138,7 +141,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
 
         {/* Input API Key */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: "#e2e8f0" }}>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6, color: isDark ? "#e2e8f0" : "#334155" }}>
             API Key de Google Gemini:
           </label>
           <input
@@ -149,11 +152,11 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
             style={{
               width: "100%",
               boxSizing: "border-box",
-              background: "rgba(15, 23, 42, 0.8)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
+              background: isDark ? "rgba(15, 23, 42, 0.8)" : "#f8fafc",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.2)" : "1px solid #cbd5e1",
               borderRadius: 10,
               padding: "10px 14px",
-              color: "#fff",
+              color: isDark ? "#fff" : "#0f172a",
               fontFamily: "'IBM Plex Mono', monospace",
               fontSize: 13,
               outline: "none"
@@ -163,7 +166,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
 
         {/* Selector de Modelo para Prueba */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6, color: "#94a3b8" }}>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 6, color: isDark ? "#94a3b8" : "#64748b" }}>
             Modelo para prueba de conexión:
           </label>
           <select
@@ -171,17 +174,17 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
             onChange={(e) => setSelectedModel(e.target.value)}
             style={{
               width: "100%",
-              background: "rgba(15, 23, 42, 0.8)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
+              background: isDark ? "rgba(15, 23, 42, 0.8)" : "#f8fafc",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.2)" : "1px solid #cbd5e1",
               borderRadius: 10,
               padding: "8px 12px",
-              color: "#fff",
+              color: isDark ? "#fff" : "#0f172a",
               fontSize: 13,
               outline: "none"
             }}
           >
             {MODELOS_GEMINI.map((m) => (
-              <option key={m.id} value={m.id} style={{ background: "#0f172a" }}>
+              <option key={m.id} value={m.id} style={{ background: isDark ? "#0f172a" : "#fff", color: isDark ? "#fff" : "#000" }}>
                 {m.nombre} - {m.descripcion}
               </option>
             ))}
@@ -192,7 +195,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
         {testResult && (
           <div
             style={{
-              background: testResult.ok ? "rgba(16, 185, 129, 0.15)" : "rgba(239, 68, 68, 0.15)",
+              background: testResult.ok ? (isDark ? "rgba(16, 185, 129, 0.15)" : "#ecfdf5") : (isDark ? "rgba(239, 68, 68, 0.15)" : "#fef2f2"),
               border: testResult.ok ? "1px solid #10b981" : "1px solid #ef4444",
               borderRadius: 10,
               padding: 12,
@@ -201,7 +204,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
               display: "flex",
               alignItems: "flex-start",
               gap: 8,
-              color: testResult.ok ? "#a7f3d0" : "#fca5a5"
+              color: testResult.ok ? (isDark ? "#a7f3d0" : "#047857") : (isDark ? "#fca5a5" : "#b91c1c")
             }}
           >
             {testResult.ok ? <CheckCircle size={18} color="#10b981" style={{ flexShrink: 0, marginTop: 1 }} /> : <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />}
@@ -220,7 +223,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
             style={{
               background: "none",
               border: "none",
-              color: "#ef4444",
+              color: "#dc2626",
               fontSize: 12,
               cursor: "pointer",
               textDecoration: "underline"
@@ -235,9 +238,9 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved }) {
               disabled={testing || !keyInput.trim()}
               onClick={handleTest}
               style={{
-                background: "rgba(255, 255, 255, 0.1)",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                color: "#fff",
+                background: isDark ? "rgba(255, 255, 255, 0.1)" : "#f1f5f9",
+                border: isDark ? "1px solid rgba(255, 255, 255, 0.2)" : "1px solid #cbd5e1",
+                color: isDark ? "#fff" : "#334155",
                 borderRadius: 8,
                 padding: "8px 14px",
                 fontSize: 13,

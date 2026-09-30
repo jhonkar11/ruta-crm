@@ -41,10 +41,24 @@ export default function App() {
   const [abonoCliente, setAbonoCliente] = useState(null);
 
   const [showMananaModal, setShowMananaModal] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("crm_theme") || "light");
 
   useEffect(() => {
     localStorage.setItem("crm_view", view);
   }, [view]);
+
+  useEffect(() => {
+    localStorage.setItem("crm_theme", theme);
+    if (theme === "dark") {
+      document.body.classList.add("dark-theme");
+      document.body.classList.remove("light-theme");
+    } else {
+      document.body.classList.add("light-theme");
+      document.body.classList.remove("dark-theme");
+    }
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((prev) => (prev === "dark" ? "light" : "dark"));
 
   const profile = useMemo(() => {
     if (!rawProfile) return null;
@@ -333,31 +347,45 @@ export default function App() {
       minHeight: "100vh",
       width: "100%",
       position: "relative",
-      background: "#1a0a3e",
+      background: theme === "dark" ? "#1a0a3e" : "#F1F5F9",
       overflowX: "hidden",
-      fontFamily: "'Inter', sans-serif"
+      fontFamily: "'Inter', sans-serif",
+      color: theme === "dark" ? "#ffffff" : "#0F172A",
+      transition: "background 0.3s ease, color 0.3s ease"
     }}>
-      <div style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 0,
-        background: `
-          radial-gradient(ellipse at 20% 30%, rgba(180,80,20,0.5) 0%, transparent 50%),
-          radial-gradient(ellipse at 80% 20%, rgba(120,40,200,0.6) 0%, transparent 50%),
-          radial-gradient(ellipse at 10% 80%, rgba(15,120,130,0.6) 0%, transparent 50%),
-          linear-gradient(135deg, #2d1b69 0%, #1e0f4a 100%)
-        `,
-        pointerEvents: "none"
-      }}>
-        <svg style={{ position: "absolute", width: "100%", height: "100%" }} viewBox="0 0 1000 1000" preserveAspectRatio="none">
-          <path d="M0,200 Q250,100 500,250 T1000,200 L1000,0 L0,0 Z" fill="rgba(200,90,20,0.25)" />
-          <path d="M0,600 Q300,500 600,650 T1000,600 L1000,0 L0,0 Z" fill="rgba(80,30,180,0.4)" />
-          <path d="M0,700 Q400,600 800,750 T1000,700 L1000,1000 L0,1000 Z" fill="rgba(15,100,120,0.5)" />
-        </svg>
-      </div>
+      {theme === "dark" && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          background: `
+            radial-gradient(ellipse at 20% 30%, rgba(180,80,20,0.5) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(120,40,200,0.6) 0%, transparent 50%),
+            radial-gradient(ellipse at 10% 80%, rgba(15,120,130,0.6) 0%, transparent 50%),
+            linear-gradient(135deg, #2d1b69 0%, #1e0f4a 100%)
+          `,
+          pointerEvents: "none"
+        }}>
+          <svg style={{ position: "absolute", width: "100%", height: "100%" }} viewBox="0 0 1000 1000" preserveAspectRatio="none">
+            <path d="M0,200 Q250,100 500,250 T1000,200 L1000,0 L0,0 Z" fill="rgba(200,90,20,0.25)" />
+            <path d="M0,600 Q300,500 600,650 T1000,600 L1000,0 L0,0 Z" fill="rgba(80,30,180,0.4)" />
+            <path d="M0,700 Q400,600 800,750 T1000,700 L1000,1000 L0,1000 Z" fill="rgba(15,100,120,0.5)" />
+          </svg>
+        </div>
+      )}
 
       <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
-        <TopBar profile={profile} userId={user.id} user={user} view={view} setView={setView} onLogout={logout} onOpenSimulador={() => setShowSimulador(true)} />
+        <TopBar
+          profile={profile}
+          userId={user.id}
+          user={user}
+          view={view}
+          setView={setView}
+          onLogout={logout}
+          onOpenSimulador={() => setShowSimulador(true)}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
 
         <div style={{ padding: "24px 24px 100px" }}>
           {error && (
@@ -430,9 +458,9 @@ export default function App() {
 
           {view === "mapa" && (
             <>
-              <div style={{ color: "#ffffff", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Panel de Metas y Filtros</h2>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</p>
+              <div style={{ marginBottom: 16 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A" }}>Panel de Metas y Filtros</h2>
+                <p style={{ fontSize: 13, color: theme === "dark" ? "rgba(255,255,255,0.75)" : "#64748B", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</p>
               </div>
               <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} />
             </>
@@ -462,9 +490,9 @@ export default function App() {
 
           {view === "buscar" && (
             <>
-              <div style={{ color: "#ffffff", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Búsqueda rápida</h2>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>Por nombre o cédula</p>
+              <div style={{ marginBottom: 16 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A" }}>Búsqueda rápida</h2>
+                <p style={{ fontSize: 13, color: theme === "dark" ? "rgba(255,255,255,0.75)" : "#64748B", margin: "4px 0 0 0" }}>Por nombre o cédula</p>
               </div>
               <div style={{ position: "relative", marginBottom: 16 }}>
                 <Search size={16} color={C.ink40} style={{ position: "absolute", left: 12, top: 13 }} />
@@ -480,9 +508,9 @@ export default function App() {
 
           {view === "todos" && (
             <>
-              <div style={{ color: "#ffffff", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#ffffff" }}>Base de datos de créditos</h2>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", margin: "4px 0 0 0" }}>{todos.length} registros en total</p>
+              <div style={{ marginBottom: 16 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A" }}>Base de datos de créditos</h2>
+                <p style={{ fontSize: 13, color: theme === "dark" ? "rgba(255,255,255,0.75)" : "#64748B", margin: "4px 0 0 0" }}>{todos.length} registros en total</p>
               </div>
               
               <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
@@ -507,7 +535,7 @@ export default function App() {
           )}
 
           {view === "soporte" && (
-            <SoporteTecnicoView user={user} profile={profile} />
+            <SoporteTecnicoView user={user} profile={profile} theme={theme} />
           )}
         </div>
 

@@ -16,7 +16,13 @@ const LOCAL_STORAGE_KEY = "CRM_GEMINI_API_KEY";
 export function getGeminiApiKey() {
   const localKey = (typeof window !== "undefined" && localStorage.getItem(LOCAL_STORAGE_KEY)) || "";
   if (localKey.trim()) return localKey.trim();
-  const envKey = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
+  const envKey = (
+    import.meta.env.VITE_GEMINI_API_KEY ||
+    import.meta.env.GEMINI_API_KEY ||
+    import.meta.env.VITE_GOOGLE_API_KEY ||
+    import.meta.env.GOOGLE_API_KEY ||
+    ""
+  ).trim();
   return envKey;
 }
 

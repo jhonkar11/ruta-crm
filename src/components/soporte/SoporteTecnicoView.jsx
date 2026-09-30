@@ -40,7 +40,8 @@ import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 import AutoResizeTextarea from "./AutoResizeTextarea";
 import ConfigApiKeyModal from "./ConfigApiKeyModal";
 
-export default function SoporteTecnicoView({ user, profile }) {
+export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
+  const isDark = theme === "dark";
   const [tab, setTab] = useState("ia"); // "ia" | "cuentas" | "almacenamiento"
   const [servicios, setServicios] = useState([]);
   const [loadingServicios, setLoadingServicios] = useState(true);
@@ -300,11 +301,11 @@ export default function SoporteTecnicoView({ user, profile }) {
     return (
       <div
         style={{
-          background: "rgba(15, 23, 42, 0.95)",
+          background: isDark ? "rgba(15, 23, 42, 0.95)" : "#FEF2F2",
           border: "1.5px solid #ef4444",
           borderRadius: 20,
           padding: 36,
-          color: "#fff",
+          color: isDark ? "#fff" : "#991B1B",
           textAlign: "center",
           maxWidth: 600,
           margin: "40px auto",
@@ -314,22 +315,30 @@ export default function SoporteTecnicoView({ user, profile }) {
         <div style={{ background: "rgba(239, 68, 68, 0.2)", width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
           <AlertTriangle size={32} color="#ef4444" />
         </div>
-        <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px 0" }}>Acceso Restringido (RBAC Enterprise)</h2>
-        <p style={{ fontSize: 14, color: "#cbd5e1", lineHeight: 1.6 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 10px 0", color: isDark ? "#fff" : "#991B1B" }}>Acceso Restringido (RBAC Enterprise)</h2>
+        <p style={{ fontSize: 14, color: isDark ? "#cbd5e1" : "#7F1D1D", lineHeight: 1.6 }}>
           El módulo de <strong>Soporte Técnico y Cuentas de Cobro</strong> está protegido y habilitado exclusivamente para el correo del administrador maestro autorizado:
         </p>
-        <div style={{ background: "rgba(0,0,0,0.4)", padding: "10px 16px", borderRadius: 10, display: "inline-block", fontFamily: "'IBM Plex Mono', monospace", color: "#fca5a5", fontSize: 14, margin: "10px 0 16px" }}>
+        <div style={{ background: isDark ? "rgba(0,0,0,0.4)" : "#FEE2E2", padding: "10px 16px", borderRadius: 10, display: "inline-block", fontFamily: "'IBM Plex Mono', monospace", color: isDark ? "#fca5a5" : "#B91C1C", fontSize: 14, margin: "10px 0 16px", fontWeight: 700 }}>
           {SOPORTE_ADMIN_EMAIL}
         </div>
-        <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.45)" }}>
+        <p style={{ fontSize: 12.5, color: isDark ? "rgba(255,255,255,0.45)" : "#991B1B" }}>
           Tu usuario actual (<strong>{user?.email || "No autenticado"}</strong>) no posee permisos de administración de soporte en campo.
         </p>
       </div>
     );
   }
 
+  const cardBg = isDark ? "rgba(15, 23, 42, 0.85)" : "#FFFFFF";
+  const cardBorder = isDark ? "1px solid rgba(255, 255, 255, 0.12)" : "1px solid #E2E8F0";
+  const cardShadow = isDark ? "0 10px 30px rgba(0, 0, 0, 0.4)" : "0 4px 16px rgba(0, 0, 0, 0.05)";
+  const inputBg = isDark ? "rgba(0,0,0,0.4)" : "#F8FAFC";
+  const inputBorder = isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #CBD5E1";
+  const inputText = isDark ? "#fff" : "#0F172A";
+  const labelColor = isDark ? "rgba(255,255,255,0.7)" : "#475569";
+
   return (
-    <div style={{ color: "#fff", width: "100%", paddingBottom: 60 }}>
+    <div style={{ color: isDark ? "#fff" : "#0F172A", width: "100%", paddingBottom: 60 }}>
       {/* Banner Superior Corporativo */}
       <div
         style={{
@@ -406,13 +415,13 @@ export default function SoporteTecnicoView({ user, profile }) {
         </div>
 
         {/* Pestañas de Navegación del Módulo */}
-        <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 14 }}>
+        <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 14, flexWrap: "wrap" }}>
           <button
             onClick={() => setTab("ia")}
             style={{
-              background: tab === "ia" ? "rgba(56, 189, 248, 0.25)" : "rgba(255,255,255,0.06)",
-              border: tab === "ia" ? "1.5px solid #38bdf8" : "1px solid rgba(255,255,255,0.1)",
-              color: tab === "ia" ? "#38bdf8" : "#cbd5e1",
+              background: tab === "ia" ? "rgba(56, 189, 248, 0.35)" : "rgba(255,255,255,0.1)",
+              border: tab === "ia" ? "1.5px solid #38bdf8" : "1px solid rgba(255,255,255,0.2)",
+              color: tab === "ia" ? "#ffffff" : "rgba(255,255,255,0.85)",
               padding: "8px 16px",
               borderRadius: 10,
               fontSize: 13,
@@ -430,9 +439,9 @@ export default function SoporteTecnicoView({ user, profile }) {
           <button
             onClick={() => setTab("cuentas")}
             style={{
-              background: tab === "cuentas" ? "rgba(16, 185, 129, 0.25)" : "rgba(255,255,255,0.06)",
-              border: tab === "cuentas" ? "1.5px solid #10b981" : "1px solid rgba(255,255,255,0.1)",
-              color: tab === "cuentas" ? "#6ee7b7" : "#cbd5e1",
+              background: tab === "cuentas" ? "rgba(16, 185, 129, 0.35)" : "rgba(255,255,255,0.1)",
+              border: tab === "cuentas" ? "1.5px solid #10b981" : "1px solid rgba(255,255,255,0.2)",
+              color: tab === "cuentas" ? "#ffffff" : "rgba(255,255,255,0.85)",
               padding: "8px 16px",
               borderRadius: 10,
               fontSize: 13,
@@ -450,9 +459,9 @@ export default function SoporteTecnicoView({ user, profile }) {
           <button
             onClick={() => setTab("almacenamiento")}
             style={{
-              background: tab === "almacenamiento" ? "rgba(168, 85, 247, 0.25)" : "rgba(255,255,255,0.06)",
-              border: tab === "almacenamiento" ? "1.5px solid #a855f7" : "1px solid rgba(255,255,255,0.1)",
-              color: tab === "almacenamiento" ? "#d8b4fe" : "#cbd5e1",
+              background: tab === "almacenamiento" ? "rgba(168, 85, 247, 0.35)" : "rgba(255,255,255,0.1)",
+              border: tab === "almacenamiento" ? "1.5px solid #c084fc" : "1px solid rgba(255,255,255,0.2)",
+              color: tab === "almacenamiento" ? "#ffffff" : "rgba(255,255,255,0.85)",
               padding: "8px 16px",
               borderRadius: 10,
               fontSize: 13,
@@ -483,8 +492,9 @@ export default function SoporteTecnicoView({ user, profile }) {
             {/* Tarjeta de Subida de Pantallazo */}
             <div
               style={{
-                background: "rgba(15, 23, 42, 0.8)",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
+                background: cardBg,
+                border: cardBorder,
+                boxShadow: cardShadow,
                 borderRadius: 16,
                 padding: 18,
                 display: "flex",
@@ -492,10 +502,10 @@ export default function SoporteTecnicoView({ user, profile }) {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", display: "flex", alignItems: "center", gap: 6 }}>
-                  <UploadCloud size={16} color="#38bdf8" /> Captura de WhatsApp / Reporte
+                <span style={{ fontSize: 13, fontWeight: 700, color: textTitle, display: "flex", alignItems: "center", gap: 6 }}>
+                  <UploadCloud size={16} color="#0284c7" /> Captura de WhatsApp / Reporte
                 </span>
-                <span style={{ fontSize: 11, background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", padding: "2px 8px", borderRadius: 6 }}>
+                <span style={{ fontSize: 11, background: "rgba(2, 132, 199, 0.12)", color: "#0284c7", padding: "2px 8px", borderRadius: 6, fontWeight: 600 }}>
                   TTL 7 Días
                 </span>
               </div>
@@ -506,12 +516,12 @@ export default function SoporteTecnicoView({ user, profile }) {
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: "2px dashed rgba(56, 189, 248, 0.35)",
+                  border: isDark ? "2px dashed rgba(56, 189, 248, 0.35)" : "2px dashed #93c5fd",
                   borderRadius: 12,
                   padding: 20,
                   textAlign: "center",
                   cursor: "pointer",
-                  background: imagenPreview ? "rgba(0,0,0,0.4)" : "rgba(15, 23, 42, 0.5)",
+                  background: isDark ? (imagenPreview ? "rgba(0,0,0,0.4)" : "rgba(15, 23, 42, 0.5)") : (imagenPreview ? "#f8fafc" : "#f8fafc"),
                   transition: "all 0.2s",
                   minHeight: 180,
                   display: "flex",
@@ -535,15 +545,15 @@ export default function SoporteTecnicoView({ user, profile }) {
                       alt="Captura cargada"
                       style={{ width: "100%", maxHeight: 200, objectFit: "contain", borderRadius: 8 }}
                     />
-                    <div style={{ fontSize: 11, color: "#38bdf8", marginTop: 6 }}>
+                    <div style={{ fontSize: 11, color: "#0284c7", marginTop: 6, fontWeight: 600 }}>
                       Toca para cambiar imagen (comprimida automáticamente)
                     </div>
                   </div>
                 ) : (
                   <>
-                    <UploadCloud size={38} color="#38bdf8" style={{ marginBottom: 10, opacity: 0.8 }} />
-                    <strong style={{ fontSize: 13, color: "#f1f5f9" }}>Arrastra una captura de pantalla aquí</strong>
-                    <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)", marginTop: 4 }}>
+                    <UploadCloud size={38} color="#0284c7" style={{ marginBottom: 10, opacity: 0.8 }} />
+                    <strong style={{ fontSize: 13, color: textTitle }}>Arrastra una captura de pantalla aquí</strong>
+                    <span style={{ fontSize: 11.5, color: textSub, marginTop: 4 }}>
                       o haz clic para explorar fotos desde tu móvil o PC
                     </span>
                   </>
@@ -556,9 +566,9 @@ export default function SoporteTecnicoView({ user, profile }) {
                   type="button"
                   onClick={cargarCasoPruebaBancoPopular}
                   style={{
-                    background: "rgba(56, 189, 248, 0.15)",
-                    border: "1px solid rgba(56, 189, 248, 0.4)",
-                    color: "#38bdf8",
+                    background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
+                    border: isDark ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid rgba(2, 132, 199, 0.3)",
+                    color: isDark ? "#38bdf8" : "#0284c7",
                     padding: "6px 12px",
                     borderRadius: 8,
                     fontSize: 11.5,
@@ -599,8 +609,9 @@ export default function SoporteTecnicoView({ user, profile }) {
             {/* Tarjeta de Entrada de Notas y Voz */}
             <div
               style={{
-                background: "rgba(15, 23, 42, 0.8)",
-                border: "1px solid rgba(255, 255, 255, 0.12)",
+                background: cardBg,
+                border: cardBorder,
+                boxShadow: cardShadow,
                 borderRadius: 16,
                 padding: 18,
                 display: "flex",
@@ -614,6 +625,7 @@ export default function SoporteTecnicoView({ user, profile }) {
                 minRows={5}
                 label="Notas Técnicas y Dictado Multimodal"
                 hint="Usa el botón de micrófono para dictar en tiempo real con Web Speech API"
+                theme={theme}
               />
 
               {/* Botón de Ejecución del Modelo */}
@@ -692,22 +704,23 @@ export default function SoporteTecnicoView({ user, profile }) {
             {/* Columna Izquierda: Formulario "Datos de servicio requerido" */}
             <div
               style={{
-                background: "rgba(15, 23, 42, 0.85)",
-                border: "1.5px solid rgba(56, 189, 248, 0.3)",
+                background: cardBg,
+                border: isDark ? "1.5px solid rgba(56, 189, 248, 0.3)" : "1.5px solid #e2e8f0",
+                boxShadow: cardShadow,
                 borderRadius: 18,
                 padding: 20
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#38bdf8" }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: isDark ? "#38bdf8" : "#0284c7" }}>
                     1. Datos de servicio requerido
                   </h3>
-                  <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+                  <span style={{ fontSize: 11.5, color: textSub }}>
                     Campos estructurados listos para liquidación en Excel
                   </span>
                 </div>
-                <span style={{ background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                <span style={{ background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)", color: isDark ? "#38bdf8" : "#0284c7", padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
                   OCR Validado
                 </span>
               </div>
@@ -715,7 +728,7 @@ export default function SoporteTecnicoView({ user, profile }) {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {/* N° Caso */}
                 <div style={{ gridColumn: "span 2" }}>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     N° de Caso / Código de servicio:
                   </label>
                   <input
@@ -726,11 +739,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12.5,
                       fontWeight: 600
                     }}
@@ -739,7 +752,7 @@ export default function SoporteTecnicoView({ user, profile }) {
 
                 {/* Cliente Final */}
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Cliente final:
                   </label>
                   <input
@@ -750,11 +763,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
@@ -762,7 +775,7 @@ export default function SoporteTecnicoView({ user, profile }) {
 
                 {/* Mesa */}
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Mesa / Tipo de soporte:
                   </label>
                   <input
@@ -773,11 +786,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
@@ -785,7 +798,7 @@ export default function SoporteTecnicoView({ user, profile }) {
 
                 {/* Fechas */}
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Fecha solicitud:
                   </label>
                   <input
@@ -796,18 +809,18 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Fecha atención:
                   </label>
                   <input
@@ -818,11 +831,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
@@ -830,7 +843,7 @@ export default function SoporteTecnicoView({ user, profile }) {
 
                 {/* Coordinador */}
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Coordinador(a):
                   </label>
                   <input
@@ -841,11 +854,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
@@ -853,7 +866,7 @@ export default function SoporteTecnicoView({ user, profile }) {
 
                 {/* Valor Servicios */}
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Tarifa Servicio ($ COP):
                   </label>
                   <input
@@ -864,11 +877,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#4ade80",
+                      color: isDark ? "#4ade80" : "#059669",
                       fontSize: 12.5,
                       fontWeight: 700
                     }}
@@ -877,7 +890,7 @@ export default function SoporteTecnicoView({ user, profile }) {
 
                 {/* Viáticos y Materiales */}
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Viáticos ($ COP):
                   </label>
                   <input
@@ -888,18 +901,18 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Materiales ($ COP):
                   </label>
                   <input
@@ -910,11 +923,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
@@ -922,7 +935,7 @@ export default function SoporteTecnicoView({ user, profile }) {
 
                 {/* Equipo y Falla */}
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Nombre del equipo / Serial:
                   </label>
                   <input
@@ -933,18 +946,18 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", display: "block", marginBottom: 4 }}>
+                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
                     Falla reportada:
                   </label>
                   <input
@@ -955,11 +968,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
-                      background: "rgba(0,0,0,0.4)",
-                      border: "1px solid rgba(255,255,255,0.2)",
+                      background: inputBg,
+                      border: inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
-                      color: "#fff",
+                      color: inputText,
                       fontSize: 12
                     }}
                   />
@@ -970,8 +983,9 @@ export default function SoporteTecnicoView({ user, profile }) {
             {/* Columna Derecha: "Plantilla de Solución" Generada en Tiempo Real */}
             <div
               style={{
-                background: "rgba(15, 23, 42, 0.85)",
-                border: "1.5px solid rgba(16, 185, 129, 0.3)",
+                background: cardBg,
+                border: isDark ? "1.5px solid rgba(16, 185, 129, 0.3)" : "1.5px solid #e2e8f0",
+                boxShadow: cardShadow,
                 borderRadius: 18,
                 padding: 20,
                 display: "flex",
@@ -980,10 +994,10 @@ export default function SoporteTecnicoView({ user, profile }) {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#6ee7b7" }}>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: isDark ? "#6ee7b7" : "#059669" }}>
                     2. Plantilla Corporativa Oficial (WhatsApp IT)
                   </h3>
-                  <span style={{ fontSize: 11.5, color: "rgba(255,255,255,0.5)" }}>
+                  <span style={{ fontSize: 11.5, color: textSub }}>
                     Formato oficial de entrega y cierre para mesas de ayuda
                   </span>
                 </div>
@@ -994,9 +1008,9 @@ export default function SoporteTecnicoView({ user, profile }) {
                     type="button"
                     onClick={handleCopiarPlantilla}
                     style={{
-                      background: copiadoPlantilla ? "#10b981" : "rgba(255,255,255,0.1)",
+                      background: copiadoPlantilla ? "#10b981" : (isDark ? "rgba(255,255,255,0.1)" : "#f1f5f9"),
                       border: "none",
-                      color: "#fff",
+                      color: copiadoPlantilla ? "#fff" : (isDark ? "#fff" : "#334155"),
                       padding: "6px 10px",
                       borderRadius: 8,
                       fontSize: 12,
@@ -1023,11 +1037,11 @@ export default function SoporteTecnicoView({ user, profile }) {
                   flex: 1,
                   minHeight: 250,
                   boxSizing: "border-box",
-                  background: "rgba(10, 20, 15, 0.7)",
-                  border: "1px solid rgba(16, 185, 129, 0.3)",
+                  background: isDark ? "rgba(10, 20, 15, 0.7)" : "#f8fafc",
+                  border: isDark ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid #cbd5e1",
                   borderRadius: 12,
                   padding: 12,
-                  color: "#d1fae5",
+                  color: isDark ? "#d1fae5" : "#0f172a",
                   fontFamily: "'IBM Plex Mono', monospace",
                   fontSize: 12.5,
                   lineHeight: 1.5,
@@ -1074,22 +1088,22 @@ export default function SoporteTecnicoView({ user, profile }) {
           {/* Tarjeta de Resumen Oficial (C.C., Nombre y Suma en Letras) */}
           <div
             style={{
-              background: "rgba(15, 23, 42, 0.9)",
-              border: "1.5px solid rgba(19, 94, 107, 0.8)",
+              background: cardBg,
+              border: isDark ? "1.5px solid rgba(19, 94, 107, 0.8)" : "1.5px solid #cbd5e1",
               borderRadius: 18,
               padding: 24,
-              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)"
+              boxShadow: cardShadow
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
               <div>
-                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   Formato de Cuenta de Cobro Oficial
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: "#fff", marginTop: 2 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, color: textTitle, marginTop: 2 }}>
                   DEBE A: Jhon Alexander Vasquez Reveló
                 </div>
-                <div style={{ fontSize: 14, fontFamily: "'IBM Plex Mono', monospace", color: "#38bdf8", marginTop: 2 }}>
+                <div style={{ fontSize: 14, fontFamily: "'IBM Plex Mono', monospace", color: isDark ? "#38bdf8" : "#0284c7", marginTop: 2 }}>
                   C.C. 10308105
                 </div>
               </div>
@@ -1123,8 +1137,8 @@ export default function SoporteTecnicoView({ user, profile }) {
             {/* Cuadro de Liquidación en Letras */}
             <div
               style={{
-                background: "rgba(19, 94, 107, 0.25)",
-                border: "1.5px solid #135E6B",
+                background: isDark ? "rgba(19, 94, 107, 0.25)" : "#f0fdf4",
+                border: isDark ? "1.5px solid #135E6B" : "1.5px solid #86efac",
                 borderRadius: 12,
                 padding: "16px 20px",
                 display: "grid",
@@ -1134,20 +1148,20 @@ export default function SoporteTecnicoView({ user, profile }) {
               }}
             >
               <div>
-                <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>LA SUMA DE:</div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#6ee7b7", marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 600 }}>LA SUMA DE:</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: isDark ? "#6ee7b7" : "#059669", marginTop: 2 }}>
                   {textoEnLetras})
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>SON (TOTAL):</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", fontFamily: "'IBM Plex Mono', monospace" }}>
+                <div style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 600 }}>SON (TOTAL):</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: textTitle, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {formatearMonedaCOP(granTotal)}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>CONCEPTO:</div>
-                <div style={{ fontSize: 12.5, color: "#e2e8f0" }}>
+                <div style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 600 }}>CONCEPTO:</div>
+                <div style={{ fontSize: 12.5, color: textSub }}>
                   PRESTACIÓN DE SERVICIOS DE SOPORTE TÉCNICO EN SITIO
                 </div>
               </div>
@@ -1157,24 +1171,25 @@ export default function SoporteTecnicoView({ user, profile }) {
           {/* Tabla idéntica a la fila 24 del Excel oficial */}
           <div
             style={{
-              background: "rgba(15, 23, 42, 0.85)",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
+              background: cardBg,
+              border: cardBorder,
               borderRadius: 18,
               padding: 20,
-              overflowX: "auto"
+              overflowX: "auto",
+              boxShadow: cardShadow
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
                 Detalle de Servicios Inyectados ({servicios.length} registros a partir de fila 24)
               </h3>
               <button
                 type="button"
                 onClick={() => setTab("ia")}
                 style={{
-                  background: "rgba(56, 189, 248, 0.15)",
-                  border: "1px solid rgba(56, 189, 248, 0.3)",
-                  color: "#38bdf8",
+                  background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
+                  border: isDark ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid rgba(2, 132, 199, 0.3)",
+                  color: isDark ? "#38bdf8" : "#0284c7",
                   padding: "6px 12px",
                   borderRadius: 8,
                   fontSize: 12,
@@ -1210,29 +1225,32 @@ export default function SoporteTecnicoView({ user, profile }) {
                   <tr
                     key={s.id || idx}
                     style={{
-                      background: idx % 2 === 0 ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.06)",
+                      background: idx % 2 === 0 
+                        ? (isDark ? "rgba(255,255,255,0.02)" : "#ffffff") 
+                        : (isDark ? "rgba(255,255,255,0.06)" : "#f8fafc"),
+                      color: isDark ? "#cbd5e1" : "#1e293b",
                       textAlign: "center"
                     }}
                   >
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)", fontWeight: 600 }}>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
                       {s.numero_caso}
                     </td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)" }}>{s.fecha_solicitud}</td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)" }}>{s.fecha_atencion}</td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)" }}>{s.fecha_finalizacion}</td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)" }}>{s.mesa}</td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)" }}>{s.cliente}</td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)" }}>{s.coordinador}</td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)", textAlign: "right", color: "#6ee7b7", fontWeight: 700 }}>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_solicitud}</td>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_finalizacion}</td>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.mesa}</td>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.cliente}</td>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.coordinador}</td>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isDark ? "#6ee7b7" : "#059669", fontWeight: 700 }}>
                       {formatearMonedaCOP(s.valor_servicios)}
                     </td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)", textAlign: "right" }}>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
                       {Number(s.valor_viaticos) > 0 ? formatearMonedaCOP(s.valor_viaticos) : "$ -"}
                     </td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)", textAlign: "right" }}>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
                       {Number(s.valor_materiales) > 0 ? formatearMonedaCOP(s.valor_materiales) : "$ -"}
                     </td>
-                    <td style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
                       <button
                         type="button"
                         onClick={() => handleEliminarServicio(s.id)}
@@ -1252,20 +1270,20 @@ export default function SoporteTecnicoView({ user, profile }) {
                 ))}
 
                 {/* Fila de Totales */}
-                <tr style={{ background: "rgba(19, 94, 107, 0.4)", fontWeight: 800, textAlign: "right" }}>
-                  <td colSpan={7} style={{ padding: "12px 10px", border: "1px solid rgba(255,255,255,0.2)", textAlign: "center" }}>
+                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.4)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 800, textAlign: "right" }}>
+                  <td colSpan={7} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "center" }}>
                     TOTAL CUENTA DE COBRO
                   </td>
-                  <td style={{ padding: "12px 10px", border: "1px solid rgba(255,255,255,0.2)", color: "#a7f3d0", fontSize: 13.5 }}>
+                  <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", color: isDark ? "#a7f3d0" : "#059669", fontSize: 13.5 }}>
                     {formatearMonedaCOP(totalServicios)}
                   </td>
-                  <td style={{ padding: "12px 10px", border: "1px solid rgba(255,255,255,0.2)" }}>
+                  <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }}>
                     {totalViaticos > 0 ? formatearMonedaCOP(totalViaticos) : "$ -"}
                   </td>
-                  <td style={{ padding: "12px 10px", border: "1px solid rgba(255,255,255,0.2)" }}>
+                  <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }}>
                     {totalMateriales > 0 ? formatearMonedaCOP(totalMateriales) : "$ -"}
                   </td>
-                  <td style={{ border: "1px solid rgba(255,255,255,0.2)" }} />
+                  <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
                 </tr>
               </tbody>
             </table>
@@ -1277,8 +1295,9 @@ export default function SoporteTecnicoView({ user, profile }) {
       {tab === "almacenamiento" && (
         <div
           style={{
-            background: "rgba(15, 23, 42, 0.85)",
-            border: "1px solid rgba(168, 85, 247, 0.3)",
+            background: cardBg,
+            border: isDark ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid #e9d5ff",
+            boxShadow: cardShadow,
             borderRadius: 18,
             padding: 24,
             maxWidth: 750,
@@ -1286,18 +1305,18 @@ export default function SoporteTecnicoView({ user, profile }) {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <div style={{ background: "rgba(168, 85, 247, 0.2)", padding: 12, borderRadius: 14, color: "#d8b4fe" }}>
+            <div style={{ background: isDark ? "rgba(168, 85, 247, 0.2)" : "#f3e8ff", padding: 12, borderRadius: 14, color: isDark ? "#d8b4fe" : "#9333ea" }}>
               <Clock size={28} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Gestión Inteligente de Almacenamiento Temporal</h3>
-              <p style={{ margin: 0, fontSize: 12.5, color: "rgba(255,255,255,0.6)" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: textTitle }}>Gestión Inteligente de Almacenamiento Temporal</h3>
+              <p style={{ margin: 0, fontSize: 12.5, color: textSub }}>
                 Optimización de costos y política de ciclo de vida (TTL 7 Días)
               </p>
             </div>
           </div>
 
-          <div style={{ fontSize: 13.5, color: "#cbd5e1", lineHeight: 1.6, marginBottom: 20 }}>
+          <div style={{ fontSize: 13.5, color: textSub, lineHeight: 1.6, marginBottom: 20 }}>
             Para garantizar que la base de datos y el bucket de almacenamiento (Supabase Storage) no se saturen con capturas de pantalla pesadas de WhatsApp o fotos de campo, el sistema aplica dos capas de optimización:
             <ul style={{ paddingLeft: 20, marginTop: 8 }}>
               <li><strong>Compresión previa en el cliente:</strong> Cada imagen se reduce a un peso menor a 1MB antes de cualquier transferencia.</li>
@@ -1307,8 +1326,8 @@ export default function SoporteTecnicoView({ user, profile }) {
 
           <div
             style={{
-              background: "rgba(0,0,0,0.3)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: isDark ? "rgba(0,0,0,0.3)" : "#faf5ff",
+              border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e9d5ff",
               borderRadius: 12,
               padding: 16,
               display: "flex",
@@ -1317,8 +1336,8 @@ export default function SoporteTecnicoView({ user, profile }) {
             }}
           >
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Purga manual de archivos expirados</div>
-              <div style={{ fontSize: 11.5, color: "#94a3b8" }}>Ejecuta la limpieza inmediata de capturas anteriores a 7 días</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: textTitle }}>Purga manual de archivos expirados</div>
+              <div style={{ fontSize: 11.5, color: textSub }}>Ejecuta la limpieza inmediata de capturas anteriores a 7 días</div>
             </div>
             <button
               type="button"
@@ -1327,9 +1346,9 @@ export default function SoporteTecnicoView({ user, profile }) {
                 alert("Rutina de purga ejecutada: " + (res.info || "OK"));
               }}
               style={{
-                background: "rgba(168, 85, 247, 0.2)",
-                border: "1px solid #a855f7",
-                color: "#e9d5ff",
+                background: isDark ? "rgba(168, 85, 247, 0.2)" : "#f3e8ff",
+                border: isDark ? "1px solid #a855f7" : "1px solid #c084fc",
+                color: isDark ? "#e9d5ff" : "#7e22ce",
                 padding: "8px 14px",
                 borderRadius: 8,
                 fontSize: 12.5,
@@ -1351,6 +1370,7 @@ export default function SoporteTecnicoView({ user, profile }) {
         isOpen={showConfigKey}
         onClose={() => setShowConfigKey(false)}
         onKeySaved={(newKey) => setHasApiKey(!!newKey)}
+        theme={theme}
       />
     </div>
   );
