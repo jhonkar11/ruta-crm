@@ -59,7 +59,7 @@ export function Field({ label, required, error, children }) {
     <div style={{ marginBottom: 14 }}>
       <div style={{
         fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, letterSpacing: "0.05em",
-        color: error ? C.coral : "rgba(255, 255, 255, 0.8)", textTransform: "uppercase", marginBottom: 5,
+        color: error ? C.coral : "var(--text-muted, #475569)", textTransform: "uppercase", marginBottom: 5,
         ...iconRow(4),
       }}>
         {label}{required && <span style={{ color: C.coral }}>*</span>}
@@ -164,8 +164,8 @@ export function ConfirmModal({ title, body, confirmLabel, danger, onConfirm, onC
 export function EmptyState({ text }) {
   return (
     <div style={{
-      textAlign: "center", padding: "40px 20px", color: "rgba(255,255,255,0.5)", fontSize: 13.5,
-      background: "rgba(15,23,42,0.6)", borderRadius: 16, border: "1px dashed rgba(255,255,255,0.2)",
+      textAlign: "center", padding: "40px 20px", color: "var(--text-muted, #64748B)", fontSize: 13.5,
+      background: "var(--bg-surface, #FFFFFF)", borderRadius: 16, border: "1px dashed var(--border-subtle, #CBD5E1)",
     }}>{text}</div>
   );
 }
@@ -173,8 +173,8 @@ export function EmptyState({ text }) {
 export function ViewHeader({ title, subtitle }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: "#ffffff" }}>{title}</div>
-      {subtitle && <div style={{ fontSize: 12.5, color: "rgba(255, 255, 255, 0.8)", marginTop: 2 }}>{subtitle}</div>}
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: "var(--text-main, #0F172A)" }}>{title}</div>
+      {subtitle && <div style={{ fontSize: 12.5, color: "var(--text-muted, #475569)", marginTop: 2 }}>{subtitle}</div>}
     </div>
   );
 }
@@ -222,11 +222,12 @@ export function FiltroChip({ active, onClick, label }) {
         borderRadius: "20px",
         fontSize: "12.5px",
         fontWeight: "600",
-        background: active ? "#2563eb" : "rgba(255, 255, 255, 0.05)",
-        border: active ? "1px solid #3b82f6" : "1px solid rgba(255, 255, 255, 0.15)",
-        color: "#ffffff",
+        background: active ? "#2563eb" : "var(--bg-surface, #FFFFFF)",
+        border: active ? "1.5px solid #2563eb" : "1px solid var(--border-subtle, #CBD5E1)",
+        color: active ? "#ffffff" : "var(--text-main, #1E293B)",
         cursor: "pointer",
         backdropFilter: "blur(8px)",
+        boxShadow: active ? "0 2px 8px rgba(37, 99, 235, 0.3)" : "0 1px 3px rgba(0,0,0,0.03)",
         transition: "all 0.2s ease"
       }}
     >

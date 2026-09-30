@@ -8,6 +8,7 @@ export default function AutoResizeTextarea({
   placeholder = "Escribe notas técnicas o requerimientos...",
   minRows = 3,
   maxRows = 12,
+  maxLength = 20000,
   label = "Notas Técnicas / Requerimiento",
   hint = "Puedes dictar por voz usando el micrófono o pegar texto extenso",
   onSpeechTranscribe = null,
@@ -323,12 +324,13 @@ export default function AutoResizeTextarea({
         onBlur={(e) => {
           if (!isListening) e.currentTarget.style.borderColor = isDark ? "rgba(255, 255, 255, 0.15)" : "#CBD5E1";
         }}
+        maxLength={maxLength}
       />
 
       {/* Barra de estado inferior */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, padding: "0 4px" }}>
-        <span style={{ fontSize: 10.5, color: isDark ? "rgba(255,255,255,0.4)" : "#64748b" }}>
-          {value ? `${value.length} caracteres · ${value.trim().split(/\s+/).filter(Boolean).length} palabras` : "Sin texto"}
+        <span style={{ fontSize: 10.5, color: isDark ? "rgba(255,255,255,0.5)" : "#64748b" }}>
+          {value ? `${value.length} / 5000+ caracteres permitidos · ${value.trim().split(/\s+/).filter(Boolean).length} palabras` : "0 / 5000+ caracteres permitidos"}
         </span>
         {isExpanded && (
           <button

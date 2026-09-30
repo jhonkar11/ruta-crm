@@ -11,18 +11,19 @@ const inputLightStyle = {
   color: "#0F172A"
 };
 
-const labelStyle = {
-  display: "block",
-  fontSize: "12px",
-  fontWeight: 600,
-  color: "#fdba74",
-  marginBottom: "6px",
-  textTransform: "uppercase",
-  letterSpacing: "0.5px"
-};
-
-export function FormView({ initialData, initial, currentUser, onSave, onCancel }) {
+export function FormView({ initialData, initial, currentUser, onSave, onCancel, theme = "light" }) {
+  const isDark = theme === "dark";
   const dataToUse = initialData || initial;
+
+  const labelStyle = {
+    display: "block",
+    fontSize: "12px",
+    fontWeight: 600,
+    color: isDark ? "#fdba74" : "#334155",
+    marginBottom: "6px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px"
+  };
 
   const [form, setForm] = useState(
     dataToUse || {
@@ -99,10 +100,10 @@ export function FormView({ initialData, initial, currentUser, onSave, onCancel }
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#ffffff", margin: 0 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: isDark ? "#ffffff" : "#0F172A", margin: 0 }}>
           {dataToUse ? "Editar Cliente / Registro" : "Nuevo Cliente / Registro"}
         </h2>
-        <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.85)", marginTop: 2 }}>
+        <p style={{ fontSize: 13, color: isDark ? "rgba(255, 255, 255, 0.85)" : "#64748B", marginTop: 2 }}>
           {dataToUse ? "Modificando información del registro" : "Creando nuevo prospecto en ruta"}
         </p>
       </div>

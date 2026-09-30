@@ -3,7 +3,8 @@ import { Calendar, Clock, Plus, CheckCircle, XCircle, FileText, MapPin, Archive,
 import { C, inputStyle, glass } from "../../styles/tokens";
 import { EmptyState } from "../ui/UIKit";
 
-export default function CitasView({ citas = [], clientes = [], currentUser, onCrear, onPosponer, onCumplida, onCancelar, onArchivar, onDesarchivar }) {
+export default function CitasView({ citas = [], clientes = [], currentUser, onCrear, onPosponer, onCumplida, onCancelar, onArchivar, onDesarchivar, theme = "light" }) {
+  const isDark = theme === "dark";
   const [filtroTab, setFiltroTab] = useState(() => localStorage.getItem("citas_filtro_activo") || "TODAS");
   const [modalAgendar, setModalAgendar] = useState(false);
   const [modalReprogramar, setModalReprogramar] = useState(null);
@@ -15,7 +16,7 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
   const labelStyleAzulOscuro = {
     fontSize: "11.5px",
     fontWeight: "700",
-    color: "#fdba74",
+    color: isDark ? "#fdba74" : "#334155",
     display: "block",
     marginBottom: "6px",
     letterSpacing: "0.5px",
@@ -163,10 +164,10 @@ export default function CitasView({ citas = [], clientes = [], currentUser, onCr
       {/* Encabezado */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, color: "#ffffff", margin: 0, marginBottom: 4 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 700, color: isDark ? "#ffffff" : "#0F172A", margin: 0, marginBottom: 4 }}>
             Citas y visitas
           </h2>
-          <p style={{ fontSize: 13, color: "rgba(255, 255, 255, 0.8)", margin: 0 }}>
+          <p style={{ fontSize: 13, color: isDark ? "rgba(255, 255, 255, 0.8)" : "#64748B", margin: 0 }}>
             {totalActivas} programadas en total
           </p>
         </div>

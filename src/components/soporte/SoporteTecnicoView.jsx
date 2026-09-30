@@ -55,7 +55,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [procesandoIA, setProcesandoIA] = useState(false);
   const [errorIA, setErrorIA] = useState(null);
   const [showConfigKey, setShowConfigKey] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(() => !!getGeminiApiKey());
 
   // Formulario estructurado "Datos de servicio requerido"
   const [datosExtraidos, setDatosExtraidos] = useState({
@@ -93,6 +93,26 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   useEffect(() => {
     setHasApiKey(!!getGeminiApiKey());
     cargarServicios();
+
+    // Soporte para pegar imágenes desde el portapapeles (Ctrl+V / WhatsApp Web)
+    const handlePaste = (e) => {
+      const clipboardData = e.clipboardData;
+      if (!clipboardData || !clipboardData.items) return;
+
+      for (let i = 0; i < clipboardData.items.length; i++) {
+        const item = clipboardData.items[i];
+        if (item.type && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            handleImageSelect(file);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
   }, []);
 
   const cargarServicios = async () => {
@@ -107,35 +127,64 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     }
   };
 
-  // 1. Manejo y compresión de imágenes temporales
+  // 1. Manejo, previsualización inmediata y compresión de imágenes
   const handleImageSelect = async (file) => {
     if (!file) return;
-    try {
-      // Compresión en cliente para optimizar memoria y ancho de banda
-      const options = {
-        maxSizeMB: 1,
-        maxWidthOrHeight: 1600,
-        useWebWorker: true
-      };
-      const compressedFile = await imageCompression(file, options);
-      const reader = new FileReader();
+    if (file.type && !file.type.startsWith("image/")) {
+      alert("Por favor selecciona un archivo de imagen válido (JPG, PNG, WEBP, etc.)");
+      return;
+    }
 
+    // A. Previsualización instantánea (Optimistic UI)
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      setImagenPreview(objectUrl);
+      setMimeType(file.type || "image/png");
+    } catch (previewErr) {
+      console.warn("No se pudo generar ObjectURL, usando FileReader directo:", previewErr);
+    }
+
+    // B. Procesamiento y compresión en segundo plano
+    try {
+      let fileToProcess = file;
+      // Comprimir solo si excede 1MB para proteger el rendimiento en móviles
+      if (file.size > 1024 * 1024) {
+        try {
+          const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1600,
+            useWebWorker: false // Evita bloqueos en navegadores móviles / WebViews
+          };
+          fileToProcess = await imageCompression(file, options);
+        } catch (compErr) {
+          console.warn("Compresión no disponible en este dispositivo, usando archivo original:", compErr);
+          fileToProcess = file;
+        }
+      }
+
+      // Convertir a Base64 para consumo por Gemini API
+      const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result;
-        setImagenPreview(result);
-        const base64Data = result.split(",")[1];
-        setImagenBase64(base64Data);
-        setMimeType(compressedFile.type || "image/png");
+        if (typeof result === "string") {
+          // Si el objectURL falló o para unificar preview persistente
+          setImagenPreview(result);
+          const base64Data = result.split(",")[1];
+          setImagenBase64(base64Data);
+          setMimeType(fileToProcess.type || file.type || "image/png");
+        }
       };
-      reader.readAsDataURL(compressedFile);
+      reader.readAsDataURL(fileToProcess);
     } catch (err) {
-      console.error("Error comprimiendo imagen:", err);
-      // Fallback si falla compresión
+      console.error("Error procesando imagen:", err);
+      // Fallback directo sin compresión
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagenPreview(reader.result);
-        setImagenBase64(reader.result.split(",")[1]);
-        setMimeType(file.type || "image/png");
+        if (typeof reader.result === "string") {
+          setImagenPreview(reader.result);
+          setImagenBase64(reader.result.split(",")[1]);
+          setMimeType(file.type || "image/png");
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -537,7 +586,12 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                   ref={fileInputRef}
                   style={{ display: "none" }}
                   accept="image/*"
-                  onChange={(e) => handleImageSelect(e.target.files[0])}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleImageSelect(e.target.files[0]);
+                    }
+                    e.target.value = "";
+                  }}
                 />
 
                 {imagenPreview ? (
@@ -1033,6 +1087,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
               <textarea
                 value={plantillaTexto}
                 onChange={(e) => setPlantillaTexto(e.target.value)}
+                maxLength={20000}
                 placeholder="La plantilla se generará automáticamente al procesar el caso..."
                 style={{
                   width: "100%",
@@ -1051,6 +1106,14 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                   outline: "none"
                 }}
               />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                <span style={{ fontSize: 11, color: textSub }}>
+                  Permite reportes extensos y detallados sin truncamiento
+                </span>
+                <span style={{ fontSize: 11, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 500 }}>
+                  {plantillaTexto.length} / 5000+ caracteres permitidos
+                </span>
+              </div>
 
               {/* Botón Principal: PASO 3 AGREGAR A CUENTA DE COBRO */}
               <div style={{ marginTop: 16 }}>

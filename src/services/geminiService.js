@@ -8,14 +8,18 @@ export const MODELOS_GEMINI = [
   { id: "gemini-1.5-pro", nombre: "Gemini 1.5 Pro", descripcion: "Máxima capacidad de razonamiento técnico complejo", recomendado: false },
 ];
 
-const LOCAL_STORAGE_KEY = "CRM_GEMINI_API_KEY";
+const LOCAL_STORAGE_KEYS = ["gemini_api_key", "CRM_GEMINI_API_KEY", "VITE_GEMINI_API_KEY"];
 
 /**
- * Obtiene la API Key activa buscando primero en localStorage y luego en variables de entorno VITE.
+ * Obtiene la API Key activa buscando en localStorage ('gemini_api_key', 'CRM_GEMINI_API_KEY') y en variables de entorno VITE.
  */
 export function getGeminiApiKey() {
-  const localKey = (typeof window !== "undefined" && localStorage.getItem(LOCAL_STORAGE_KEY)) || "";
-  if (localKey.trim()) return localKey.trim();
+  if (typeof window !== "undefined") {
+    for (const k of LOCAL_STORAGE_KEYS) {
+      const val = localStorage.getItem(k);
+      if (val && val.trim()) return val.trim();
+    }
+  }
   const envKey = (
     import.meta.env.VITE_GEMINI_API_KEY ||
     import.meta.env.GEMINI_API_KEY ||
@@ -27,14 +31,18 @@ export function getGeminiApiKey() {
 }
 
 /**
- * Guarda una API Key personalizada en localStorage.
+ * Guarda una API Key personalizada de forma persistente en localStorage.
  */
 export function setGeminiApiKey(key) {
   if (typeof window !== "undefined") {
-    if (key && key.trim()) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, key.trim());
+    const trimmed = (key || "").trim();
+    if (trimmed) {
+      localStorage.setItem("gemini_api_key", trimmed);
+      localStorage.setItem("CRM_GEMINI_API_KEY", trimmed);
     } else {
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
+      for (const k of LOCAL_STORAGE_KEYS) {
+        localStorage.removeItem(k);
+      }
     }
   }
 }

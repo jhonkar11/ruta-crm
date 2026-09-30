@@ -49,6 +49,7 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem("crm_theme", theme);
+    document.documentElement.setAttribute("data-theme", theme);
     if (theme === "dark") {
       document.body.classList.add("dark-theme");
       document.body.classList.remove("light-theme");
@@ -462,7 +463,7 @@ export default function App() {
                 <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A" }}>Panel de Metas y Filtros</h2>
                 <p style={{ fontSize: 13, color: theme === "dark" ? "rgba(255,255,255,0.75)" : "#64748B", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</p>
               </div>
-              <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} />
+              <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} theme={theme} />
             </>
           )}
 
@@ -471,6 +472,7 @@ export default function App() {
               initialData={editing}
               onSave={handleSave}
               onCancel={() => { setEditing(undefined); setView("todos"); }}
+              theme={theme}
             />
           )}
 
@@ -485,6 +487,7 @@ export default function App() {
               onCancelar={cancelarSimulado}
               onArchivar={handleArchive}
               onDesarchivar={handleDesarchivar}
+              theme={theme}
             />
           )}
 

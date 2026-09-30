@@ -5,7 +5,8 @@ import { Stamp, IconBtn } from "../ui/UIKit";
 import SemaforoBadge from "../ui/SemaforoBadge";
 import EstadoCarteraBadge from "../pagos/EstadoCarteraBadge";
 
-export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHistorial, onOpenAbono, onRegistrarContacto, pagosPorCliente }) {
+export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHistorial, onOpenAbono, onRegistrarContacto, pagosPorCliente, theme = "light" }) {
+  const isDark = theme === "dark";
   const [filtroActivo, setFiltroActivo] = useState("TODOS");
   const [activeClient, setActiveClient] = useState(null);
 
@@ -42,10 +43,10 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
     <div style={{ padding: "4px 4px 120px 4px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: "#ffffff", margin: 0 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, color: isDark ? "#ffffff" : "#0F172A", margin: 0 }}>
             Panel de Metas y Filtros
           </h2>
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.75)", margin: "2px 0 0 0" }}>
+          <p style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.75)" : "#64748B", margin: "2px 0 0 0" }}>
             Control unificado de base de datos y créditos
           </p>
         </div>
@@ -65,7 +66,7 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 2px" }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#ffffff", textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: isDark ? "#ffffff" : "#0F172A", textShadow: isDark ? "0 1px 2px rgba(0,0,0,0.3)" : "none" }}>
           {filtroActivo === "TODOS" ? "Mostrando todos los registros" : `Filtro aplicado: ${filtroActivo}`}
         </span>
         {filtroActivo !== "TODOS" && (
