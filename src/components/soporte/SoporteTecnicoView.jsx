@@ -63,21 +63,21 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     fecha_solicitud: "",
     fecha_atencion: "",
     fecha_finalizacion: "",
-    mesa: "2",
-    cliente: "Banco Popular",
-    coordinador: "Oswaldo",
-    valor_servicios: 70000,
+    mesa: "",
+    cliente: "",
+    coordinador: "",
+    valor_servicios: 0,
     valor_viaticos: 0,
     valor_materiales: 0,
     sh: "SOFTWARE - HARDWARE",
-    tecnico: "Jhon Alexander Vasquez Reveló",
+    tecnico: "",
     medio: "SITIO",
     equipo: "",
     falla: "",
     causa: "",
     solucion: "",
     pruebas: "",
-    horas: { inicio: "11:00 am", fin: "4:00 pm", desplazamiento: "10:00 am" }
+    horas: { inicio: "", fin: "", desplazamiento: "" }
   });
 
   const [plantillaTexto, setPlantillaTexto] = useState("");
@@ -197,40 +197,10 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     }
   };
 
-  // Carga instantánea de caso de prueba corporativo (muestra del screenshot oficial de WhatsApp)
-  const cargarCasoPruebaBancoPopular = () => {
-    const casoPrueba = {
-      numero_caso: "RE26014844 / RF637620",
-      fecha_solicitud: "23/09/2026",
-      fecha_atencion: "23/09/2026",
-      fecha_finalizacion: "24/09/2026",
-      mesa: "Mesa IBM",
-      cliente: "Banco Popular",
-      coordinador: "Oswaldo",
-      valor_servicios: 70000,
-      valor_viaticos: 0,
-      valor_materiales: 0,
-      sh: "SOFTWARE - HARDWARE",
-      tecnico: "Jhon Alexander Vasquez Reveló",
-      medio: "SITIO",
-      equipo: "W005290ADM15 MJOG6EFA",
-      falla: "ACTUALIZACION SISTEMA OPERATIVO",
-      causa: "Equipo desactualizado genera que se encuentre fuera de dominio, se requiere actualizar Imagen del Banco a Windows 11 Enterprise",
-      solucion: "Se realiza asistencia soporte en sitio y se solicitan permisos de ingreso a la entidad se ubica al usuario para tomar acciones en el equipo, se realiza la validación de la estado de la equipo el cual se encontró fuera de el dominio, se solicita al área de soporte de redes y telecomunicaciones habilitar punto de red, ingeniero Darwin de telecomunicaciones ejecuta actualización del punto de red quedando habilitada la extensión de el teléfono y de igual forma la cpu, sistema operativo Windows inicia correctamente, se realiza configuración de equipo se valida el dominio corporativo, se reinicia equipo, se actualizan agentes de seguridad y aplicativos de usuario, se realiza ejecuta actualizaciónes de sistema operativo, soporte técnico 1.5 Jhon Aguilar accede remotamente, y realizar proceso de configuración de aplicaciones y controladores de dispositivos faltantes, se hace configuración de perfil.",
-      pruebas: "usuario ingresa con sus credenciales, cargándole perfil correctamente, inicia pruebas con diferentes aplicativos y plataformas, validación por parte de usuario es exitosa equipo se deja operativo y funcional",
-      horas: { inicio: "11:00 am", fin: "4:00pm", desplazamiento: "10:00 am" }
-    };
-
-    setDatosExtraidos(casoPrueba);
-    const plantilla = generarPlantillaSolucion(casoPrueba);
-    setPlantillaTexto(plantilla);
-    setNotasTecnico("Actualización Windows 11 Enterprise en Banco Popular, equipo en sitio con soporte Darwin y Jhon Aguilar.");
-  };
-
   // 2. Procesamiento con IA Multimodal (Gemini 2.5 / 2.0 / 1.5)
   const handleProcesarIA = async () => {
     if (!imagenBase64 && !notasTecnico.trim()) {
-      alert("Por favor sube una captura de pantalla de WhatsApp o escribe/dicta notas del servicio.");
+      alert("Por favor sube una captura de pantalla de WhatsApp o escribe el requerimiento del servicio.");
       return;
     }
 
@@ -616,28 +586,11 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 )}
               </div>
 
-              {/* Botón de Caso de Muestra */}
-              <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={cargarCasoPruebaBancoPopular}
-                  style={{
-                    background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
-                    border: isDark ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid rgba(2, 132, 199, 0.3)",
-                    color: isDark ? "#38bdf8" : "#0284c7",
-                    padding: "6px 12px",
-                    borderRadius: 8,
-                    fontSize: 11.5,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 6
-                  }}
-                >
-                  <Sparkles size={13} /> Cargar Ejemplo (Banco Popular)
-                </button>
-
+              {/* Acciones zona de imagen */}
+              <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: textSub, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 13 }}>💡</span> También puedes pegar con <strong>Ctrl+V</strong>
+                </span>
                 {imagenPreview && (
                   <button
                     type="button"
@@ -662,7 +615,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
               </div>
             </div>
 
-            {/* Tarjeta de Entrada de Notas y Voz */}
+            {/* Tarjeta de Entrada de Notas / Requerimiento */}
             <div
               style={{
                 background: cardBg,
@@ -671,47 +624,80 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 borderRadius: 16,
                 padding: 18,
                 display: "flex",
-                flexDirection: "column"
+                flexDirection: "column",
+                gap: 12
               }}
             >
-              <AutoResizeTextarea
-                value={notasTecnico}
-                onChange={setNotasTecnico}
-                placeholder="Escribe notas técnicas de la visita, falla detectada, horas de atención o dicta por voz..."
-                minRows={5}
-                label="Notas Técnicas y Dictado Multimodal"
-                hint="Usa el botón de micrófono para dictar en tiempo real con Web Speech API"
-                theme={theme}
-              />
-
-              {/* Botón de Ejecución del Modelo */}
-              <div style={{ marginTop: "auto", paddingTop: 16 }}>
-                <button
-                  type="button"
-                  disabled={procesandoIA}
-                  onClick={handleProcesarIA}
-                  style={{
-                    width: "100%",
-                    background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                    border: "none",
-                    color: "#fff",
-                    borderRadius: 12,
-                    padding: "12px 18px",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    cursor: procesandoIA ? "wait" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    boxShadow: "0 6px 20px rgba(2, 132, 199, 0.4)",
-                    transition: "all 0.2s"
-                  }}
-                >
-                  <Sparkles size={18} className={procesandoIA ? "spin" : ""} />
-                  {procesandoIA ? "Analizando con Gemini (OCR & Parsing)..." : "Procesar con IA Multimodal"}
-                </button>
+              {/* Encabezado */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: textTitle, display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                  <FileText size={15} color="#0284c7" /> Detalle del Servicio
+                </div>
+                <div style={{ fontSize: 11.5, color: textSub }}>
+                  Pega o escribe el requerimiento inicial del caso. La IA generará la solución corporativa automáticamente.
+                </div>
               </div>
+
+              {/* Campo Requerimiento */}
+              <textarea
+                value={notasTecnico}
+                onChange={(e) => setNotasTecnico(e.target.value)}
+                maxLength={5000}
+                placeholder="Pega aquí el mensaje de WhatsApp, descripción de la falla, horas de atención, equipo afectado o cualquier detalle del servicio prestado..."
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  minHeight: 140,
+                  background: isDark ? "rgba(0,0,0,0.35)" : "#F8FAFC",
+                  border: isDark ? "1.5px solid rgba(255,255,255,0.12)" : "1.5px solid #CBD5E1",
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  color: isDark ? "#F1F5F9" : "#0F172A",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  resize: "vertical",
+                  outline: "none",
+                  fontFamily: "inherit",
+                  transition: "border-color 0.2s"
+                }}
+                onFocus={(e) => { e.target.style.borderColor = "#0284c7"; }}
+                onBlur={(e) => { e.target.style.borderColor = isDark ? "rgba(255,255,255,0.12)" : "#CBD5E1"; }}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <span style={{ fontSize: 11, color: textSub }}>
+                  {notasTecnico.length} / 5000 caracteres
+                </span>
+              </div>
+
+              {/* CTA Procesar Servicio */}
+              <button
+                type="button"
+                disabled={procesandoIA}
+                onClick={handleProcesarIA}
+                style={{
+                  width: "100%",
+                  background: procesandoIA
+                    ? "linear-gradient(135deg, #64748B 0%, #475569 100%)"
+                    : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                  border: "none",
+                  color: "#fff",
+                  borderRadius: 12,
+                  padding: "13px 18px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: procesandoIA ? "wait" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  boxShadow: procesandoIA ? "none" : "0 6px 20px rgba(2, 132, 199, 0.35)",
+                  transition: "all 0.2s",
+                  letterSpacing: "0.01em"
+                }}
+              >
+                <Sparkles size={17} />
+                {procesandoIA ? "Analizando con Gemini AI..." : "Procesar Servicio con IA"}
+              </button>
             </div>
           </div>
 
