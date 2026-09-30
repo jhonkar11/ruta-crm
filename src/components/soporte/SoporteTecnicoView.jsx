@@ -360,55 +360,77 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
 
   return (
     <div style={{ color: isDark ? "#fff" : "#0F172A", width: "100%", paddingBottom: 60 }}>
-      {/* Banner Superior Corporativo */}
+      {/* ── Encabezado Principal Corporativo (tema adaptativo) ── */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(19, 94, 107, 0.85) 0%, rgba(15, 23, 42, 0.9) 100%)",
-          border: "1px solid rgba(56, 189, 248, 0.3)",
+          background: isDark
+            ? "linear-gradient(135deg, #0f2944 0%, #0c1a35 100%)"
+            : "linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)",
+          border: isDark ? "1px solid rgba(56,189,248,0.2)" : "1px solid #BFDBFE",
           borderRadius: 20,
           padding: "20px 24px",
           marginBottom: 20,
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(16px)"
+          boxShadow: isDark
+            ? "0 8px 32px rgba(0,0,0,0.45)"
+            : "0 4px 20px rgba(59,130,246,0.08)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14 }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ background: C.coral, padding: "4px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <span style={{
+                background: C.coral,
+                color: "#fff",
+                padding: "3px 8px",
+                borderRadius: 6,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.06em"
+              }}>
                 IT & FIELD OPS
               </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(16, 185, 129, 0.2)", color: "#6ee7b7", border: "1px solid rgba(16, 185, 129, 0.4)", padding: "2px 8px", borderRadius: 12, fontSize: 10.5 }}>
-                <ShieldCheck size={12} /> RBAC Autorizado: {SOPORTE_ADMIN_EMAIL}
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                background: isDark ? "rgba(16,185,129,0.2)" : "rgba(16,185,129,0.12)",
+                color: isDark ? "#6ee7b7" : "#059669",
+                border: isDark ? "1px solid rgba(16,185,129,0.4)" : "1px solid #6EE7B7",
+                padding: "2px 8px", borderRadius: 12, fontSize: 10.5
+              }}>
+                <ShieldCheck size={12} /> RBAC: {SOPORTE_ADMIN_EMAIL}
               </span>
             </div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, margin: "4px 0", letterSpacing: "-0.02em" }}>
+            <h1 style={{
+              fontSize: 22, fontWeight: 800, margin: "4px 0 4px",
+              letterSpacing: "-0.02em",
+              color: isDark ? "#F8FAFC" : "#0F172A"
+            }}>
               Módulo Inteligente de Soporte Técnico
             </h1>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", margin: 0 }}>
-              OCR Multimodal Gemini, generación de plantillas corporativas y liquidación automática de Cuentas de Cobro.
+            <p style={{ fontSize: 13, margin: 0, color: isDark ? "rgba(255,255,255,0.65)" : "#475569" }}>
+              OCR Multimodal Gemini · Plantillas corporativas · Cuentas de cobro automáticas
             </p>
           </div>
 
-          {/* Selector de Modelos y Configuración API Key */}
+          {/* Selector de Modelos y API Key */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <select
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               style={{
-                background: "rgba(15, 23, 42, 0.9)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                color: "#fff",
+                background: isDark ? "rgba(15,23,42,0.9)" : "#fff",
+                border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #CBD5E1",
+                color: isDark ? "#fff" : "#0F172A",
                 borderRadius: 10,
                 padding: "8px 12px",
                 fontSize: 12.5,
                 fontWeight: 600,
-                outline: "none"
+                outline: "none",
+                cursor: "pointer"
               }}
             >
               {MODELOS_GEMINI.map((m) => (
-                <option key={m.id} value={m.id} style={{ background: "#0f172a" }}>
-                  {m.nombre} {m.recomendado ? "★" : ""}
+                <option key={m.id} value={m.id} style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                  {m.nombre}
                 </option>
               ))}
             </select>
@@ -416,9 +438,15 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
             <button
               onClick={() => setShowConfigKey(true)}
               style={{
-                background: hasApiKey ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.2)",
-                border: hasApiKey ? "1px solid #10b981" : "1px solid #f59e0b",
-                color: hasApiKey ? "#a7f3d0" : "#fef08a",
+                background: hasApiKey
+                  ? (isDark ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.1)")
+                  : (isDark ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.12)"),
+                border: hasApiKey
+                  ? (isDark ? "1px solid #10b981" : "1px solid #6EE7B7")
+                  : (isDark ? "1px solid #f59e0b" : "1px solid #FCD34D"),
+                color: hasApiKey
+                  ? (isDark ? "#a7f3d0" : "#059669")
+                  : (isDark ? "#fef08a" : "#92400E"),
                 padding: "8px 12px",
                 borderRadius: 10,
                 fontSize: 12,
@@ -430,28 +458,31 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
               }}
             >
               <Key size={14} />
-              <span>{hasApiKey ? "Gemini Conectado" : "Configurar API Key"}</span>
+              <span>{hasApiKey ? "✓ Gemini Conectado" : "Configurar API Key"}</span>
             </button>
           </div>
         </div>
 
         {/* Pestañas de Navegación del Módulo */}
-        <div style={{ display: "flex", gap: 10, marginTop: 18, borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: 14, flexWrap: "wrap" }}>
+        <div style={{
+          display: "flex", gap: 8, marginTop: 18,
+          borderTop: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #BFDBFE",
+          paddingTop: 14, flexWrap: "wrap"
+        }}>
           <button
             onClick={() => setTab("ia")}
             style={{
-              background: tab === "ia" ? "rgba(56, 189, 248, 0.35)" : "rgba(255,255,255,0.1)",
-              border: tab === "ia" ? "1.5px solid #38bdf8" : "1px solid rgba(255,255,255,0.2)",
-              color: tab === "ia" ? "#ffffff" : "rgba(255,255,255,0.85)",
-              padding: "8px 16px",
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "all 0.2s"
+              background: tab === "ia"
+                ? (isDark ? "rgba(56,189,248,0.25)" : "rgba(59,130,246,0.12)")
+                : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)"),
+              border: tab === "ia"
+                ? (isDark ? "1.5px solid #38bdf8" : "1.5px solid #3B82F6")
+                : (isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #CBD5E1"),
+              color: tab === "ia"
+                ? (isDark ? "#ffffff" : "#1D4ED8")
+                : (isDark ? "rgba(255,255,255,0.7)" : "#475569"),
+              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s"
             }}
           >
             <Sparkles size={16} /> 1. OCR Multimodal & Plantilla
@@ -460,38 +491,36 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
           <button
             onClick={() => setTab("cuentas")}
             style={{
-              background: tab === "cuentas" ? "rgba(16, 185, 129, 0.35)" : "rgba(255,255,255,0.1)",
-              border: tab === "cuentas" ? "1.5px solid #10b981" : "1px solid rgba(255,255,255,0.2)",
-              color: tab === "cuentas" ? "#ffffff" : "rgba(255,255,255,0.85)",
-              padding: "8px 16px",
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "all 0.2s"
+              background: tab === "cuentas"
+                ? (isDark ? "rgba(16,185,129,0.25)" : "rgba(16,185,129,0.12)")
+                : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)"),
+              border: tab === "cuentas"
+                ? (isDark ? "1.5px solid #10b981" : "1.5px solid #10B981")
+                : (isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #CBD5E1"),
+              color: tab === "cuentas"
+                ? (isDark ? "#ffffff" : "#065F46")
+                : (isDark ? "rgba(255,255,255,0.7)" : "#475569"),
+              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s"
             }}
           >
-            <FileSpreadsheet size={16} /> 2. Cuenta de Cobro ({servicios.length} casos - {formatearMonedaCOP(granTotal)})
+            <FileSpreadsheet size={16} /> 2. Cuenta de Cobro ({servicios.length} casos — {formatearMonedaCOP(granTotal)})
           </button>
 
           <button
             onClick={() => setTab("almacenamiento")}
             style={{
-              background: tab === "almacenamiento" ? "rgba(168, 85, 247, 0.35)" : "rgba(255,255,255,0.1)",
-              border: tab === "almacenamiento" ? "1.5px solid #c084fc" : "1px solid rgba(255,255,255,0.2)",
-              color: tab === "almacenamiento" ? "#ffffff" : "rgba(255,255,255,0.85)",
-              padding: "8px 16px",
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "all 0.2s"
+              background: tab === "almacenamiento"
+                ? (isDark ? "rgba(168,85,247,0.25)" : "rgba(168,85,247,0.10)")
+                : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)"),
+              border: tab === "almacenamiento"
+                ? (isDark ? "1.5px solid #c084fc" : "1.5px solid #A855F7")
+                : (isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #CBD5E1"),
+              color: tab === "almacenamiento"
+                ? (isDark ? "#ffffff" : "#6B21A8")
+                : (isDark ? "rgba(255,255,255,0.7)" : "#475569"),
+              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s"
             }}
           >
             <Clock size={16} /> 3. TTL Almacenamiento (7 Días)
@@ -587,29 +616,62 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
               </div>
 
               {/* Acciones zona de imagen */}
-              <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11, color: textSub, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 13 }}>💡</span> También puedes pegar con <strong>Ctrl+V</strong>
-                </span>
-                {imagenPreview && (
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: textSub, display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 13 }}>💡</span> También puedes pegar con <strong>Ctrl+V</strong>
+                  </span>
+                  {imagenPreview && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagenPreview(null);
+                        setImagenBase64(null);
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#ef4444",
+                        fontSize: 11.5,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4
+                      }}
+                    >
+                      <Trash2 size={13} /> Quitar imagen
+                    </button>
+                  )}
+                </div>
+
+                {/* Botón principal: Extraer Datos de Imagen */}
+                {imagenBase64 && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setImagenPreview(null);
-                      setImagenBase64(null);
-                    }}
+                    disabled={procesandoIA}
+                    onClick={handleProcesarIA}
                     style={{
-                      background: "none",
+                      width: "100%",
+                      background: procesandoIA
+                        ? (isDark ? "rgba(100,116,139,0.5)" : "#E2E8F0")
+                        : "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
                       border: "none",
-                      color: "#ef4444",
-                      fontSize: 11.5,
-                      cursor: "pointer",
+                      color: procesandoIA ? (isDark ? "#94A3B8" : "#475569") : "#fff",
+                      borderRadius: 10,
+                      padding: "11px 16px",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: procesandoIA ? "wait" : "pointer",
                       display: "flex",
                       alignItems: "center",
-                      gap: 4
+                      justifyContent: "center",
+                      gap: 8,
+                      boxShadow: procesandoIA ? "none" : "0 4px 14px rgba(2,132,199,0.4)",
+                      transition: "all 0.2s"
                     }}
                   >
-                    <Trash2 size={13} /> Quitar imagen
+                    <Eye size={16} />
+                    {procesandoIA ? "Extrayendo datos con OCR..." : "Extraer Datos de Imagen"}
                   </button>
                 )}
               </div>

@@ -1,11 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Configuración de Modelos Disponibles
+// Configuración de Modelos Disponibles (solo modelos activos y sin errores 404)
 export const MODELOS_GEMINI = [
-  { id: "gemini-2.5-flash", nombre: "Gemini 2.5 Flash", descripcion: "Ultrarrápido y multimodal de última generación", recomendado: true },
+  { id: "gemini-2.5-flash-preview-05-20", nombre: "Gemini 2.5 Flash ★", descripcion: "Ultrarrápido y multimodal de última generación", recomendado: true },
   { id: "gemini-2.0-flash", nombre: "Gemini 2.0 Flash", descripcion: "Alta velocidad y excelente precisión OCR", recomendado: false },
   { id: "gemini-1.5-flash", nombre: "Gemini 1.5 Flash", descripcion: "Modelo balanceado y máxima estabilidad", recomendado: false },
-  { id: "gemini-1.5-pro", nombre: "Gemini 1.5 Pro", descripcion: "Máxima capacidad de razonamiento técnico complejo", recomendado: false },
 ];
 
 const LOCAL_STORAGE_KEYS = ["gemini_api_key", "CRM_GEMINI_API_KEY", "VITE_GEMINI_API_KEY"];
@@ -64,17 +63,17 @@ export async function testGeminiApiKey(apiKey, modelName = "gemini-2.0-flash") {
     const text = response.text();
     return { ok: true, message: `Conexión exitosa con ${modelName}! Respuesta: ${text.trim()}` };
   } catch (err) {
-    // Si falla el modelo 2.0 o 2.5 por no disponibilidad en la región/tier, probar fallback con 1.5-flash
-    if (modelName !== "gemini-1.5-flash") {
+    // Si falla el modelo solicitado, probar con gemini-2.0-flash como fallback seguro
+    if (modelName !== "gemini-2.0-flash") {
       try {
         const genAI = new GoogleGenerativeAI(key);
-        const fallback = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const fallback = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         const res2 = await fallback.generateContent("Test OK");
         const resp2 = await res2.response;
-        return { 
-          ok: true, 
-          message: `Conectado exitosamente usando fallback gemini-1.5-flash. Respuesta: ${resp2.text().trim()}`,
-          fallbackUsed: "gemini-1.5-flash"
+        return {
+          ok: true,
+          message: `Conectado exitosamente usando gemini-2.0-flash. Respuesta: ${resp2.text().trim()}`,
+          fallbackUsed: "gemini-2.0-flash"
         };
       } catch (innerErr) {
         return { ok: false, message: `Error probando API Key: ${innerErr.message || err.message}` };
@@ -136,7 +135,7 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin bloques de mark
 ${textoNotas ? `\nNOTAS ADICIONALES DEL TÉCNICO:\n"${textoNotas}"` : ""}
 `;
 
-  const fallbackChain = [modelId, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const fallbackChain = [modelId, "gemini-2.0-flash", "gemini-2.5-flash-preview-05-20", "gemini-1.5-flash"];
   const uniqueModels = [...new Set(fallbackChain)];
 
   let lastError = null;
