@@ -1,16 +1,43 @@
 import ExcelJS from "exceljs";
 import { numeroALetras } from "../utils/numeroALetras";
+import {
+  EMPRESA,
+  celdaTexto,
+  normalizarFecha,
+  normalizarMoneda
+} from "../utils/excelNormalizadores";
+
+export { EMPRESA, celdaTexto, normalizarFecha, normalizarMoneda };
 
 /**
- * Genera el libro Excel de Cuenta de Cobro exactamente con el formato corporativo oficial
- * observado en 'Formato de cuenta de cobro - Jhon Vasquez # 4.xlsx'
- * @param {Array} servicios - Lista de objetos de servicio a inyectar a partir de la fila 24
- * @param {object} metadata - Datos generales del documento
+ * Genera el libro Excel de Cuenta de Cobro de R&S Soluciones con el formato
+ * corporativo oficial: los datos estructurados del soporte se inyectan desde la
+ * fila 25 respetando los diez campos de la plantilla (N° de Caso, Fecha de
+ * solicitud, Fecha Atención, Fecha de finalización, Mesa, Cliente,
+ * Coordinador de serv., Valor servicios, Valor Viáticos, Valor Materiales).
+ *
+ * @param {Array} servicios - Servicios a inyectar a partir de la fila 25
+ * @param {object} metadata - { nombre, cedula }
  */
 export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
+  // Se normaliza por adelantado: una fila con valores sucios rompería el formato
+  // de moneda o dejaría celdas de fecha con texto crudo de la IA.
+  const registros = (Array.isArray(servicios) ? servicios : []).map((s) => ({
+    numero_caso: celdaTexto(s?.numero_caso),
+    fecha_solicitud: normalizarFecha(s?.fecha_solicitud),
+    fecha_atencion: normalizarFecha(s?.fecha_atencion),
+    fecha_finalizacion: normalizarFecha(s?.fecha_finalizacion),
+    mesa: celdaTexto(s?.mesa),
+    cliente: celdaTexto(s?.cliente),
+    coordinador: celdaTexto(s?.coordinador),
+    valor_servicios: normalizarMoneda(s?.valor_servicios),
+    valor_viaticos: normalizarMoneda(s?.valor_viaticos),
+    valor_materiales: normalizarMoneda(s?.valor_materiales)
+  }));
+
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "RUTA-CRM Soporte Técnico";
-  workbook.lastModifiedBy = "Jhon Alexander Vasquez Reveló";
+  workbook.creator = `${EMPRESA} · CRM Soporte Técnico`;
+  workbook.lastModifiedBy = metadata.nombre || "R&S Soluciones";
   workbook.created = new Date();
   workbook.modified = new Date();
 
@@ -35,6 +62,13 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   const fontGeneral = { name: "Arial", size: 10, color: { argb: "FF000000" } };
   const fontBold = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
 
+  // Fila 9: Razón social del emisor
+  worksheet.mergeCells("B9:K9");
+  const cellEmpresa = worksheet.getCell("B9");
+  cellEmpresa.value = EMPRESA;
+  cellEmpresa.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF135E6B" } };
+  cellEmpresa.alignment = { horizontal: "center", vertical: "middle" };
+
   // Fila 12: DEBE A
   worksheet.mergeCells("B12:K12");
   const cellDebeA = worksheet.getCell("B12");
@@ -49,10 +83,10 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   cellCC.font = fontBold;
   cellCC.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Calcular totales para los encabezados superiores
-  const totalServicios = servicios.reduce((acc, s) => acc + (Number(s.valor_servicios) || 0), 0);
-  const totalViaticos = servicios.reduce((acc, s) => acc + (Number(s.valor_viaticos) || 0), 0);
-  const totalMateriales = servicios.reduce((acc, s) => acc + (Number(s.valor_materiales) || 0), 0);
+  // Calcular totales sobre los registros ya normalizados
+  const totalServicios = registros.reduce((acc, s) => acc + s.valor_servicios, 0);
+  const totalViaticos = registros.reduce((acc, s) => acc + s.valor_viaticos, 0);
+  const totalMateriales = registros.reduce((acc, s) => acc + s.valor_materiales, 0);
   const granTotal = totalServicios + totalViaticos + totalMateriales;
 
   const textoEnLetras = numeroALetras(granTotal);
@@ -127,11 +161,13 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
 
   // Filas de Datos a partir de la fila 25
   const filaInicio = 25;
-  const numItems = Math.max(servicios.length, 7); // Mínimo 7 filas para mantener el espacio visual igual al formato
+  // Mínimo 7 filas visibles para conservar el espacio del formato oficial; por
+  // encima de eso crece con el número real de casos (exportación masiva).
+  const numItems = Math.max(registros.length, 7);
 
   for (let idx = 0; idx < numItems; idx++) {
     const rowNum = filaInicio + idx;
-    const item = servicios[idx] || null;
+    const item = registros[idx] || null;
     const row = worksheet.getRow(rowNum);
     row.height = 20;
 
@@ -147,37 +183,37 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
     const cellK = worksheet.getCell(`K${rowNum}`);
 
     if (item) {
-      cellB.value = item.numero_caso || "";
+      cellB.value = item.numero_caso;
       cellB.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellC.value = item.fecha_solicitud || "";
+      cellC.value = item.fecha_solicitud || "n/d";
       cellC.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellD.value = item.fecha_atencion || "";
+      cellD.value = item.fecha_atencion || "n/d";
       cellD.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellE.value = item.fecha_finalizacion || "";
+      cellE.value = item.fecha_finalizacion || "n/d";
       cellE.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellF.value = item.mesa || "";
+      cellF.value = item.mesa;
       cellF.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellG.value = item.cliente || "";
+      cellG.value = item.cliente;
       cellG.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellH.value = item.coordinador || "";
+      cellH.value = item.coordinador;
       cellH.alignment = { horizontal: "center", vertical: "middle" };
 
       // Valores numéricos con formato moneda
-      cellI.value = Number(item.valor_servicios) || 0;
+      cellI.value = item.valor_servicios;
       cellI.numFmt = '"$" #,##0';
       cellI.alignment = { horizontal: "right", vertical: "middle" };
 
-      cellJ.value = Number(item.valor_viaticos) || 0;
+      cellJ.value = item.valor_viaticos;
       cellJ.numFmt = '"$" #,##0';
       cellJ.alignment = { horizontal: "right", vertical: "middle" };
 
-      cellK.value = Number(item.valor_materiales) || 0;
+      cellK.value = item.valor_materiales;
       cellK.numFmt = '"$" #,##0';
       cellK.alignment = { horizontal: "right", vertical: "middle" };
     }
@@ -226,6 +262,12 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   cellFirma.value = "FIRMA _______________________________________";
   cellFirma.font = fontBold;
 
+  // Encabezado del archivo: se antepone la razón social y la fecha de emisión para
+  // que el .xlsx quede identificable cuando se cargan varios en la misma carpeta.
+  const hoy = new Date();
+  const fechaEmision = `${String(hoy.getDate()).padStart(2, "0")}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${hoy.getFullYear()}`;
+  worksheet.getCell(`B${filaFirma + 1}`).value = `${EMPRESA} · Documento generado el ${fechaEmision}`;
+
   // Generar buffer binario
   const buffer = await workbook.xlsx.writeBuffer();
   return buffer;
@@ -234,7 +276,10 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
 /**
  * Dispara la descarga del archivo Excel en el navegador del usuario.
  */
-export function descargarExcelEnNavegador(buffer, nombreArchivo = "Formato de cuenta de cobro - Jhon Vasquez # 4.xlsx") {
+export function descargarExcelEnNavegador(
+  buffer,
+  nombreArchivo = "Cuenta de Cobro - R&S Soluciones.xlsx"
+) {
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   });

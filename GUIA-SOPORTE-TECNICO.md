@@ -43,7 +43,7 @@ Este módulo corporativo de nivel mundial automatiza el ciclo de vida de los ser
 | Verificación del token | HS256 local con `SUPABASE_JWT_SECRET` (`timingSafeEqual`, valida `exp`) o, en su defecto, consulta a `{SUPABASE_URL}/auth/v1/user` |
 | RBAC | Sólo el correo de `SOPORTE_ADMIN_EMAIL` puede gastar cuota → `403` |
 | Lista blanca de modelos | Sólo la cadena vigente (`gemini-3.8-flash` → `gemini-3.1-flash-lite`). Cualquier otro identificador, incluidos los retirados, se normaliza al vigente |
-| Validación de entrada | Límite de 4 MB en base64, 5000 caracteres de notas, MIME de imagen en lista blanca, cuerpo máximo 4.5 MB |
+| Validación de entrada | Límite de 4 MB en base64, 5000 caracteres de notas, **24.000 caracteres de plantilla institucional**, MIME de imagen en lista blanca, cuerpo máximo 4.5 MB |
 | Rate limiting | 30 peticiones/min por IP (configurable con `GEMINI_RATE_LIMIT`) |
 | Fallo cerrado | Si falta `GEMINI_API_KEY` o la verificación de sesión → `503` con mensaje accionable, nunca acceso abierto |
 | Prompt en servidor | El cliente no puede alterar el prompt ni el modelo |
@@ -69,8 +69,13 @@ Content-Type: application/json
 
 > **Resiliencia.** Google devuelve `503 "This model is currently experiencing high demand"` de forma intermitente. El servidor recorre la cadena `gemini-3.8-flash → gemini-3.7-flash → gemini-3.6-flash → gemini-3.5-flash → gemini-3.1-flash-lite`, probando `v1beta` y luego `v1`, con reintento y backoff en `503`/`429`; en `404` salta al siguiente modelo. `GEMINI_MODEL` permite fijar uno sin redesplegar. Un `404` de un modelo retirado nunca llega al cliente: se traduce a `502`.
 
+- **Paso 0: Entrada de Plantilla Institucional del Banco:**
+  - Textarea independiente (hasta **24.000 caracteres**) para pegar el requerimiento o la plantilla oficial tal como la entrega la entidad (AV Villas, Popular, Almaviva, Davivienda…).
+  - Acepta texto extenso de múltiples líneas con cualquier formato (viñetas, encabezados, tablas copiadas de Excel/Word). El contenido se envía **en bruto** al servidor; no se recorta en el cliente.
+  - El texto pegado es una fuente de entrada válida por sí sola: no hace falta imagen para procesar.
+  - Botón **"Regenerar"** en la tarjeta de la Plantilla Corporativa vuelve a mapear el texto institucional sin reprocesar la captura (útil tras editar el requerimiento del banco).
 - **Paso 1: Extracción de Datos de Servicio (OCR & Parsing):**
-  - Procesa visualmente la imagen o notas dictadas y extrae en el bloque **"1. Datos de servicio requerido"**:
+  - Procesa visualmente la imagen, las notas dictadas y la plantilla institucional, y extrae en el bloque **"1. Datos de servicio requerido"**:
     - N° de Caso / Requerimiento (ej. `RE26014844 / RF637620` o `2303375`)
     - Fechas (Solicitud, Atención, Finalización)
     - Mesa / Soporte (ej. `Mesa IBM`, `Mesa 2`)
@@ -96,10 +101,14 @@ Content-Type: application/json
     Tecnico: JHON ALEXANDER Vasquez Reveló
     ```
   - Botón rápido "Copiar Plantilla" listo para pegar en WhatsApp.
+  - **Mapeo exacto desde la plantilla institucional:** el prompt del servidor obliga a leer el bloque completo de principio a fin, normaliza abreviaturas del sector (`SH/SO`, `HW/HD`, `REM`, `SIT`, `CC`) y convierte cualquier formato de fecha a `DD/MM/AAAA`. Prohíbe resumir con "varios" o puntos suspensivos cuando la información sí está en el texto.
+  - El bloque `plantilla_completa` se devuelve con saltos de línea reales (texto plano) en una llamada dedicada (`accion: "plantilla"`), no incrustados en un string JSON, para evitar truncamientos y escapes en reportes extensos.
 - **Paso 3: Automatización de Cuenta de Cobro:**
   - Al presionar **"3. Agregar servicio a cuenta de cobro"**, se guarda en la base de datos y se lista en la tabla oficial a partir de la fila 24.
   - Calcula automáticamente subtotales, viáticos, materiales y el valor total en números y en letras ("LA SUMA DE Setecientos Ochenta y cinco mil Pesos M/CTE").
-  - Botón **"Descargar Excel Oficial (.xlsx)"** genera el archivo exacto: `Formato de cuenta de cobro - Jhon Vasquez # 4.xlsx` con estilos, colores verde azulado corporativo (`#135E6B`), bordes y fórmulas.
+  - Botón **"Descargar Excel Oficial (.xlsx)"** genera el archivo de **R&S Soluciones**: `Cuenta de Cobro - R&S Soluciones (N casos).xlsx` con estilos, colores verde azulado corporativo (`#135E6B`), bordes y fórmulas.
+  - **Inyección masiva:** los diez campos de la plantilla oficial (N° de Caso, Fecha de solicitud, Fecha Atención, Fecha de finalización, Mesa, Cliente, Coordinador de serv., Valor servicios, Valor Viáticos, Valor Materiales) se escriben desde la fila 25. El número de filas crece con la cantidad real de casos, con un mínimo de 7 filas para conservar el aspecto del formato.
+  - **Normalización previa a la exportación** (`src/utils/excelNormalizadores.js`): las monedas se limpian a número antes de aplicar el formato `"$" #,##0` (así `"$ 70.000"` y `"1.250.500"` no rompen la columna), las fechas se pasan a `DD/MM/AAAA` y los campos de texto vacíos se rellenan con `n/d` para no dejar huecos en la tabla.
 
 ---
 

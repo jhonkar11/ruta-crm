@@ -159,19 +159,22 @@ export async function testGeminiApiKey(_unusedApiKey, modelName = MODELO_GEMINI_
 }
 
 /**
- * Extrae datos estructurados de servicio a partir de una captura de pantalla (OCR)
- * o de notas de texto/voz. El prompt y el modelo se aplican en el servidor.
+ * Extrae datos estructurados de servicio a partir de una captura de pantalla (OCR),
+ * de notas de texto/voz y de la plantilla institucional del cliente pegada en bruto.
+ * El prompt y el modelo se aplican en el servidor.
  *
  * @param {object} params
  * @param {string} [params.imagenBase64] - Imagen en base64 pura (sin el prefijo data:...)
  * @param {string} [params.mimeType] - MimeType de la imagen (ej: 'image/png')
  * @param {string} [params.textoNotas] - Notas dictadas o escritas por el técnico
+ * @param {string} [params.plantillaInstitucional] - Texto crudo de la plantilla del banco
  * @param {string} [params.modelId] - Modelo a usar
  */
 export async function extraerDatosDeServicio({
   imagenBase64,
   mimeType = "image/png",
   textoNotas = "",
+  plantillaInstitucional = "",
   modelId = MODELO_GEMINI_POR_DEFECTO
 }) {
   const resultado = await llamarProxy({
@@ -179,10 +182,35 @@ export async function extraerDatosDeServicio({
     imagenBase64: imagenBase64 || null,
     mimeType: mimeType || "image/png",
     textoNotas: textoNotas || "",
+    plantillaInstitucional: plantillaInstitucional || "",
     modelName: normalizarModeloGemini(modelId)
   });
 
   return resultado.datos || {};
+}
+
+/**
+ * Regenera únicamente la Plantilla Corporativa Oficial a partir del texto
+ * institucional en bruto. Útil cuando el técnico edita la plantilla y quiere
+ * volver a mapearla sin reprocesar la captura.
+ *
+ * @returns {Promise<string>} Texto de la plantilla corporativa.
+ */
+export async function generarPlantillaDesdeInstitucional({
+  plantillaInstitucional = "",
+  textoNotas = "",
+  datos = {},
+  modelId = MODELO_GEMINI_POR_DEFECTO
+}) {
+  const resultado = await llamarProxy({
+    accion: "plantilla",
+    plantillaInstitucional: plantillaInstitucional || "",
+    textoNotas: textoNotas || "",
+    datos: datos || {},
+    modelName: normalizarModeloGemini(modelId)
+  });
+
+  return resultado.plantilla || "";
 }
 
 /**

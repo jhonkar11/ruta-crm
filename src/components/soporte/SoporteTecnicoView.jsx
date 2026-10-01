@@ -25,6 +25,7 @@ import { isSoporteAuthorized, SOPORTE_ADMIN_EMAIL } from "../../utils/rbac";
 import {
   estadoMotorIA,
   extraerDatosDeServicio,
+  generarPlantillaDesdeInstitucional,
   generarPlantillaSolucion,
   MODELO_GEMINI_POR_DEFECTO,
   MODELOS_GEMINI
@@ -48,13 +49,21 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [servicios, setServicios] = useState([]);
   const [loadingServicios, setLoadingServicios] = useState(true);
 
+  // Tope de la plantilla institucional. Debe coincidir con
+  // MAX_PLANTILLA_INSTITUCIONAL en api/_lib/gemini.js (el servidor recorta igual).
+  const MAX_PLANTILLA_INSTITUCIONAL = 24000;
+
   // Estados de IA y OCR
   const [selectedModel, setSelectedModel] = useState(MODELO_GEMINI_POR_DEFECTO);
   const [imagenPreview, setImagenPreview] = useState(null);
   const [imagenBase64, setImagenBase64] = useState(null);
   const [mimeType, setMimeType] = useState("image/png");
   const [notasTecnico, setNotasTecnico] = useState("");
+  // Texto crudo de la plantilla/requerimiento institucional del banco (AV Villas,
+  // Popular, Almaviva, etc.). Se envía tal cual al motor de IA para que lo mapee.
+  const [plantillaInstitucional, setPlantillaInstitucional] = useState("");
   const [procesandoIA, setProcesandoIA] = useState(false);
+  const [generandoPlantilla, setGenerandoPlantilla] = useState(false);
   const [errorIA, setErrorIA] = useState(null);
   const [showConfigKey, setShowConfigKey] = useState(false);
   // La llave ya no vive en el navegador: esto refleja si el servidor la tiene.
@@ -210,10 +219,13 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     }
   };
 
-  // 2. Procesamiento con IA Multimodal (Gemini 2.0 Flash vía /api/gemini)
+  // 2. Procesamiento con IA Multimodal (Gemini vía /api/gemini)
   const handleProcesarIA = async () => {
-    if (!imagenBase64 && !notasTecnico.trim()) {
-      alert("Por favor sube una captura de pantalla de WhatsApp o escribe el requerimiento del servicio.");
+    const hayEntrada = !!imagenBase64 || !!notasTecnico.trim() || !!plantillaInstitucional.trim();
+    if (!hayEntrada) {
+      alert(
+        "Por favor sube una captura de WhatsApp, escribe el requerimiento o pega la plantilla institucional del banco."
+      );
       return;
     }
 
@@ -231,13 +243,21 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
         imagenBase64,
         mimeType,
         textoNotas: notasTecnico,
+        plantillaInstitucional,
         modelId: selectedModel
       });
 
-      // Actualizar datos extraídos
+      // Actualizar datos extraídos. Se descartan los valores vacíos que devuelve
+      // el motor para no pisar lo que el técnico ya capturó a mano.
+      const limpios = {};
+      for (const [clave, valor] of Object.entries(resultado)) {
+        if (valor === null || valor === undefined || valor === "") continue;
+        limpios[clave] = valor;
+      }
+
       const combinados = {
         ...datosExtraidos,
-        ...resultado,
+        ...limpios,
         horas: {
           ...datosExtraidos.horas,
           ...(resultado.horas || {})
@@ -246,14 +266,51 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
 
       setDatosExtraidos(combinados);
 
-      // Generar plantilla oficial
-      const plantilla = resultado.plantilla_completa || generarPlantillaSolucion(combinados);
+      // Generar plantilla oficial: la de la IA si vino completa; si no, la de la
+      // plantilla institucional ya mapeada; en último caso la función local.
+      const plantilla =
+        resultado.plantilla_completa || generarPlantillaSolucion(combinados);
       setPlantillaTexto(plantilla);
     } catch (err) {
       console.error("Error al procesar con Gemini:", err);
       setErrorIA(err.message || "Error procesando con Gemini. Revisa tu API Key.");
     } finally {
       setProcesandoIA(false);
+    }
+  };
+
+  // 2b. Regenerar sólo la Plantilla Corporativa Oficial desde el texto institucional,
+  // sin reprocesar la captura. Útil tras editar el requerimiento del banco.
+  const handleGenerarPlantilla = async () => {
+    if (!plantillaInstitucional.trim() && !notasTecnico.trim()) {
+      alert("Pega la plantilla institucional del banco o escribe notas para generar la plantilla.");
+      return;
+    }
+    if (motorListo === false) {
+      setShowConfigKey(true);
+      return;
+    }
+
+    setGenerandoPlantilla(true);
+    setErrorIA(null);
+
+    try {
+      const plantilla = await generarPlantillaDesdeInstitucional({
+        plantillaInstitucional,
+        textoNotas: notasTecnico,
+        datos: datosExtraidos,
+        modelId: selectedModel
+      });
+      if (plantilla) {
+        setPlantillaTexto(plantilla);
+      } else {
+        setErrorIA("El motor de IA no devolvió contenido para la plantilla.");
+      }
+    } catch (err) {
+      console.error("Error al generar la plantilla con Gemini:", err);
+      setErrorIA(err.message || "Error generando la plantilla corporativa.");
+    } finally {
+      setGenerandoPlantilla(false);
     }
   };
 
@@ -298,7 +355,10 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
         nombre: "Jhon Alexander Vasquez Reveló",
         cedula: "10308105"
       });
-      descargarExcelEnNavegador(buffer, "Formato de cuenta de cobro - Jhon Vasquez # 4.xlsx");
+      descargarExcelEnNavegador(
+        buffer,
+        `Cuenta de Cobro - R&S Soluciones (${servicios.length} casos).xlsx`
+      );
     } catch (err) {
       alert("Error al exportar el archivo Excel: " + err.message);
     } finally {
@@ -344,6 +404,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     setImagenPreview(null);
     setImagenBase64(null);
     setNotasTecnico("");
+    setPlantillaInstitucional("");
     setPlantillaTexto("");
     setErrorIA(null);
     setDatosExtraidos({
@@ -585,7 +646,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
       {/* PESTAÑA 1: ASISTENTE IA & OCR MULTIMODAL */}
       {tab === "ia" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Zona de Entrada: Imagen y Notas */}
+          {/* Zona de Entrada: Imagen, Plantilla Institucional y Detalle del Servicio */}
           <div
             style={{
               display: "grid",
@@ -751,7 +812,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                     <FileText size={15} color="#0284c7" /> Detalle del Servicio
                   </div>
                   <div style={{ fontSize: 11.5, color: textSub }}>
-                    Pega, escribe o dicta el requerimiento del caso. La IA generará la solución corporativa.
+                    Complementa la plantilla institucional con notas, dictadas o escritas por el técnico.
                   </div>
                 </div>
                 {/* Botón Dictado por Voz */}
@@ -875,6 +936,173 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 <Sparkles size={17} />
                 {procesandoIA ? "Analizando con Gemini AI..." : "Procesar Servicio con IA"}
               </button>
+            </div>
+          </div>
+
+          {/* ══ ENTRADA DE PLANTILLA INSTITUCIONAL DEL BANCO ══ */}
+          <div
+            style={{
+              background: cardBg,
+              border: isDark ? "1.5px solid rgba(168, 85, 247, 0.35)" : "1.5px solid #e9d5ff",
+              boxShadow: cardShadow,
+              borderRadius: 18,
+              padding: 20
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+                gap: 10,
+                marginBottom: 14
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    color: isDark ? "#d8b4fe" : "#7e22ce"
+                  }}
+                >
+                  <FileSpreadsheet size={17} /> Plantilla Institucional del Banco
+                </h3>
+                <span style={{ fontSize: 11.5, color: textSub, display: "block", marginTop: 3 }}>
+                  Pega aquí el requerimiento o la plantilla oficial tal como la entrega la entidad
+                  (AV&nbsp;Villas, Popular, Almaviva, Davivienda…). El texto se envía en bruto y la IA
+                  mapea cada campo en la <strong>Plantilla Corporativa Oficial</strong>, sin importar
+                  su extensión o formato.
+                </span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    background: isDark ? "rgba(168, 85, 247, 0.15)" : "rgba(168, 85, 247, 0.1)",
+                    color: isDark ? "#d8b4fe" : "#7e22ce",
+                    padding: "3px 8px",
+                    borderRadius: 6,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap"
+                  }}
+                >
+                  hasta {MAX_PLANTILLA_INSTITUCIONAL.toLocaleString("es-CO")} caracteres
+                </span>
+                {plantillaInstitucional && (
+                  <button
+                    type="button"
+                    onClick={() => setPlantillaInstitucional("")}
+                    title="Limpiar la plantilla institucional"
+                    style={{
+                      background: "none",
+                      border: isDark ? "1px solid rgba(255,255,255,0.18)" : "1px solid #FECACA",
+                      color: isDark ? "#94A3B8" : "#B91C1C",
+                      padding: "5px 10px",
+                      borderRadius: 8,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <Trash2 size={13} /> Limpiar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <textarea
+              value={plantillaInstitucional}
+              onChange={(e) =>
+                setPlantillaInstitucional(e.target.value.slice(0, MAX_PLANTILLA_INSTITUCIONAL))
+              }
+              maxLength={MAX_PLANTILLA_INSTITUCIONAL}
+              placeholder={
+                "Pega aquí la plantilla o requerimiento del banco tal como llega, por ejemplo:\n\n" +
+                "BANCO POPULAR — FORMATO DE SOLICITUD DE SOPORTE TÉCNICO\n" +
+                "=================================================\n" +
+                "N° de Caso: RE26014844 / RF637620\n" +
+                "Fecha de solicitud: 23/09/2026\n" +
+                "Mesa de soporte: 2\n" +
+                "Cliente final: Jumbo Popayán\n" +
+                "Coordinador: Oswaldo\n" +
+                "Equipo / Serial: W005290ADM15 - MJOG6EFA\n" +
+                "Tipo de medio: SITIO\n" +
+                "SH / HW: Software - Hardware\n" +
+                "Falla reportada: ACTUALIZACIÓN SISTEMA OPERATIVO\n" +
+                "Detalle: se solicita actualización de SO a Windows 11 Enterprise, configuración\n" +
+                "de dominio y habilitación de punto de red en sucursal.\n" +
+                "Horario de atención: 11:00 am a 4:00 pm (desplazamiento 10:00 am)"
+              }
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                minHeight: 220,
+                background: isDark ? "rgba(0,0,0,0.4)" : "#F8FAFC",
+                border: isDark ? "1.5px solid rgba(168, 85, 247, 0.28)" : "1.5px solid #CBD5E1",
+                borderRadius: 12,
+                padding: "12px 14px",
+                color: inputText,
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 12.5,
+                lineHeight: 1.6,
+                resize: "vertical",
+                outline: "none",
+                whiteSpace: "pre",
+                overflowWrap: "normal",
+                overflowX: "auto",
+                transition: "all 0.2s"
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#A855F7";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = isDark ? "rgba(168, 85, 247, 0.28)" : "#CBD5E1";
+              }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 10,
+                marginTop: 10
+              }}
+            >
+              <span style={{ fontSize: 11, color: textSub }}>
+                Se procesa con el botón <strong>Procesar Servicio con IA</strong> de abajo.
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color:
+                    plantillaInstitucional.length > MAX_PLANTILLA_INSTITUCIONAL * 0.95
+                      ? isDark
+                        ? "#fcd34d"
+                        : "#B45309"
+                      : textSub
+                }}
+              >
+                {plantillaInstitucional.length.toLocaleString("es-CO")} /{" "}
+                {MAX_PLANTILLA_INSTITUCIONAL.toLocaleString("es-CO")} caracteres ·{" "}
+                {plantillaInstitucional.trim()
+                  ? plantillaInstitucional.trim().split(/\s+/).filter(Boolean).length
+                  : 0}{" "}
+                palabras
+              </span>
             </div>
           </div>
 
@@ -1248,8 +1476,31 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                   </span>
                 </div>
 
-                {/* Acciones de la Plantilla */}
-                <div style={{ display: "flex", gap: 6 }}>
+{/* Acciones de la Plantilla */}
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  disabled={generandoPlantilla}
+                  onClick={handleGenerarPlantilla}
+                  title="Volver a mapear la plantilla institucional del banco"
+                  style={{
+                    background: isDark ? "rgba(16,185,129,0.15)" : "rgba(5,150,105,0.1)",
+                    border: isDark ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(5,150,105,0.3)",
+                    color: isDark ? "#6ee7b7" : "#047857",
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: generandoPlantilla ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    opacity: generandoPlantilla ? 0.6 : 1
+                  }}
+                >
+                  {generandoPlantilla ? <RefreshCw size={14} /> : <Wrench size={14} />}
+                  {generandoPlantilla ? "Generando..." : "Regenerar"}
+                </button>
                   <button
                     type="button"
                     onClick={handleCopiarPlantilla}

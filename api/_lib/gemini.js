@@ -44,6 +44,13 @@ const MODELOS_RETIRODOS = new Set([
 const REINTENTOS_503 = 2;
 const ESPERA_BASE_MS = 700;
 const MAX_NOTAS = 5000;
+/**
+ * La plantilla institucional del banco suele ser un texto largo, de múltiples
+ * líneas y con variaciones de formato (tablas, viñetas, encabezados). Se admite
+ * un volumen muy superior al de las notas del técnico para no truncar el
+ * requerimiento original, que es la fuente de verdad del caso.
+ */
+const MAX_PLANTILLA_INSTITUCIONAL = 24_000;
 const MAX_BASE64 = 4_000_000;
 const MAX_CUERPO_JSON = 3_500_000;
 
@@ -185,10 +192,42 @@ async function llamarGemini({ apiKey, contents, config, modelos }) {
 /* Prompt (vive en el servidor: el cliente no puede alterarlo)        */
 /* ------------------------------------------------------------------ */
 
-export function construirPrompt(textoNotas = "") {
+/**
+ * Normaliza un bloque de texto institucional para incrustarlo en el prompt de
+ * forma segura: elimina delimitadores que romperían la estructura, colapsa el
+ * espacio excessivo y conserva los saltos de línea (son requisito del mapeo).
+ */
+function envolverTextoInstitucional(texto) {
+  return String(texto || "")
+    .replace(/```/g, "'''")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]{4,}/g, "  ")
+    .replace(/\n{4,}/g, "\n\n\n")
+    .trim();
+}
+
+export function construirPrompt(textoNotas = "", plantillaInstitucional = "") {
+  const institucional = envolverTextoInstitucional(plantillaInstitucional);
+  const hayInstitucional = institucional.length > 0;
+
   return `
 Eres un Arquitecto de Soporte Técnico e IT empresarial de nivel mundial para mesas de ayuda (Mesa IBM, Redes, Hardware y Software).
-Tu tarea es analizar minuciosamente la entrada provista (que puede ser una captura de pantalla de un chat técnico de WhatsApp o notas dictadas por el ingeniero de campo) y extraer con máxima precisión los siguientes datos de servicio técnico y generar la información necesaria para la liquidación de la cuenta de cobro y la plantilla corporativa de soporte.
+Tu tarea es analizar minuciosamente la entrada provista (que puede ser una captura de pantalla de un chat técnico de WhatsApp, notas dictadas por el ingeniero de campo y la plantilla institucional pegada por el cliente) y extraer con máxima precisión los siguientes datos de servicio técnico y generar la información necesaria para la liquidación de la cuenta de cobro y la plantilla corporativa de soporte.
+
+${
+  hayInstitucional
+    ? `FUENTE PRINCIPAL: PLANTILLA INSTITUCIONAL DEL CLIENTE
+El bloque delimitado por <plantilla_institucional> es el requerimiento oficial tal como lo entrega el banco o la entidad (AV Villas, Banco Popular, Almaviva, Davivienda, etc.). Puede llegar con múltiples líneas, viñetas, encabezados, tablas copiadas de Excel o Word, abreviaturas y variaciones de formato.
+Debes leerlo COMPLETO, de principio a fin, y mapear cada dato con exactitud. No resumas, no omitas secciones y no limites el alcance a las primeras líneas: las secciones aparecen con nombres distintos (p.ej. "N° de Caso", "Numero de requerimiento", "Ticket", "Radicado", "ID de la llamada") y todas apuntan al mismo campo.
+
+Reglas de mapeo de la plantilla institucional:
+- Si un valor aparece explícito, cópialo tal cual, sin reinterpretarlo ni "corregirlo".
+- Si el texto es extenso o describe varios equipos, casos o actividades, consolídalos en descripciones completas y detalladas: nunca uses "varios", "los equipos" ni puntos suspensivos como sustituto de la información.
+- Interpreta abreviaturas recurrentes del sector: SH/SO = Software, HW/HD = Hardware, SO = Sistema Operativo, REM = Remoto, SIT = Sitio, CC = Copia.
+- Si un campo no aparece en la plantilla institucional, recurre a la imagen y a las notas del técnico antes de aplicar un valor por defecto.
+- Las fechas pueden venir como "2026-09-23", "23/09/2026", "23 de septiembre de 2026" o "23-Sep-26": conviértelas SIEMPRE a DD/MM/AAAA.`
+    : `No se pegó plantilla institucional: extrae los datos exclusivamente de la imagen y de las notas del técnico.`
+}
 
 DATOS A EXTRAER Y SU SIGNIFICADO:
 1. numero_caso: Código de caso, requerimiento, ticket o ID (ej: "RE26014844 / RF637620" o "2303375").
@@ -198,23 +237,111 @@ DATOS A EXTRAER Y SU SIGNIFICADO:
 5. mesa: Nombre de la mesa de soporte o tipo de servicio (ej: "Mesa IBM", "Mesa 2", "Soporte en Sitio").
 6. cliente: Nombre del cliente o entidad bancaria final (ej: "Banco Popular", "Davivienda", "Banco AV Villas", "Jumbo Popayán").
 7. coordinador: Nombre del coordinador o supervisor de servicio (ej: "Oswaldo", etc.). Si no aparece, coloca "Oswaldo".
-8. valor_servicios: Valor numérico en pesos colombianos acordado o estimado (ej: 70000, 150000, 200000). Si no aparece, estima un valor base estándar según complejidad (ej: 70000).
-9. valor_viaticos: Valor numérico de viáticos si aplica (normalmente 0).
-10. valor_materiales: Valor numérico de repuestos o materiales (normalmente 0).
+8. valor_servicios: Valor numérico en pesos colombianos acordado o estimado (ej: 70000, 150000, 200000). Si no aparece, estima un valor base estándar según complejidad (ej: 70000). Devuelve sólo el número, sin "$", sin puntos ni comas.
+9. valor_viaticos: Valor numérico de viáticos si aplica (normalmente 0). Sólo el número.
+10. valor_materiales: Valor numérico de repuestos o materiales (normalmente 0). Sólo el número.
 11. sh: Tipo de intervención: "SOFTWARE - HARDWARE", "SOFTWARE" o "HARDWARE".
 12. tecnico: Nombre del técnico de campo responsable (ej: "Jhon Alexander Vasquez Reveló" o "JHON ALEXANDER").
 13. medio: Medio de atención ("SITIO" o "REMOTO").
-14. equipo: Nombre del equipo, serial o hostname corporativo (ej: "W005290ADM15 MJOG6EFA").
+14. equipo: Nombre del equipo, serial o hostname corporativo (ej: "W005290ADM15 MJOG6EFA"). Si la plantilla lista varios, separa los identificadores legibles por coma.
 15. falla: Resumen conciso de la falla o requerimiento (ej: "ACTUALIZACION SISTEMA OPERATIVO").
-16. causa: Diagnóstico técnico de la causa raíz.
-17. solucion: Descripción detallada y minuciosa de todas las actividades ejecutadas en sitio y/o en coordinación remota.
+16. causa: Diagnóstico técnico de la causa raíz, redactado en frases completas.
+17. solucion: Descripción detallada y minuciosa de TODAS las actividades ejecutadas en sitio y/o en coordinación remota, en el orden en que se realizaron.
 18. pruebas: Descripción de las pruebas de validación con el usuario final que certifican el equipo operativo.
 19. horas: Objeto con { "desplazamiento": "10:00 am", "inicio": "11:00 am", "fin": "4:00 pm" }.
 20. plantilla_completa: Texto formateado exactamente como la plantilla oficial corporativa para WhatsApp.
 
+PLANTILLA CORPORATIVA OFICIAL (campo plantilla_completa):
+Es el entregable principal y debe quedar COMPLETO, EXACTO Y DETALLADO. Respeta estas reglas sin excepción:
+- Devuélvela como un único bloque de texto multilínea con saltos de línea reales ("\\n"), en este orden exacto y con estas etiquetas literales:
+  *PLANTILLA {cliente} {numero_caso}*
+  SH: {sh}.
+  Tecnico: {primer y segundo nombre en mayúsculas}
+  Medio: {medio}
+  Nombre del equipo: {equipo}
+  Falla: {falla}
+  Causa: {causa}
+  Solución: {solución}
+  Pruebas: {pruebas}
+  Fecha de 1 atención: {fecha_atencion en DD/MM/AAAA}
+  Hora inicio: {hora de inicio}
+  Hora fin: {hora de fin}
+  Hora de desplazamiento: {hora de desplazamiento}
+  Tecnico: {nombre completo del técnico}
+- Si la plantilla institucional aporta actividades, procedimientos o elementos que no caben en una sola etiqueta, agrégalalos como líneas adicionales de detalle dentro de "Solución", separados por "; " y respetando el orden de ejecución.
+- No uses corchetes, guiones de listado ni marcadores pendientes como [pendiente] o "N/A" cuando la información exista en la plantilla institucional.
+- Completa todas las líneas: si un dato no aparece en ninguna fuente, usa un valor coherente por defecto (coordinador "Oswaldo", sh "SOFTWARE - HARDWARE", medio "SITIO", valor base 70000) en lugar de dejar la línea vacía.
+
 IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin bloques de markdown adicionales (sin \`\`\`json ni \`\`\`), con los campos especificados.
-${textoNotas ? `\nNOTAS ADICIONALES DEL TÉCNICO:\n"${textoNotas}"` : ""}
+${textoNotas ? `\nNOTAS ADICIONALES DEL TÉCNICO:\n<notas_tecnico>\n${envolverTextoInstitucional(textoNotas)}\n</notas_tecnico>` : ""}
+${hayInstitucional ? `\n<plantilla_institucional>\n${institucional}\n</plantilla_institucional>` : ""}
 `.trim();
+}
+
+/**
+ * Prompt exclusivo para regenerar la Plantilla Corporativa Oficial a partir del
+ * texto institucional en bruto. Se usa cuando el técnico edita la plantilla y
+ * vuelve a pulsar "Generar plantilla", sin reprocesar la captura.
+ */
+export function construirPromptSoloPlantilla(plantillaInstitucional = "", notas = "", datosBase = {}) {
+  const institucional = envolverTextoInstitucional(plantillaInstitucional);
+  const contexto = {
+    numero_caso: datosBase.numero_caso || "",
+    fecha_solicitud: datosBase.fecha_solicitud || "",
+    fecha_atencion: datosBase.fecha_atencion || "",
+    fecha_finalizacion: datosBase.fecha_finalizacion || "",
+    mesa: datosBase.mesa || "",
+    cliente: datosBase.cliente || "",
+    coordinador: datosBase.coordinador || "",
+    valor_servicios: datosBase.valor_servicios || 0,
+    valor_viaticos: datosBase.valor_viaticos || 0,
+    valor_materiales: datosBase.valor_materiales || 0,
+    sh: datosBase.sh || "",
+    tecnico: datosBase.tecnico || "",
+    medio: datosBase.medio || "",
+    equipo: datosBase.equipo || "",
+    falla: datosBase.falla || "",
+    causa: datosBase.causa || "",
+    solucion: datosBase.solucion || "",
+    pruebas: datosBase.pruebas || "",
+    horas: datosBase.horas || {}
+  };
+
+  return `
+Eres un Arquitecto de Soporte Técnico e IT empresarial. Debes convertir la PLANTILLA INSTITUCIONAL del cliente (requerimiento oficial del banco o entidad) en la PLANTILLA CORPORATIVA OFICIAL de R&S Soluciones que se envía por WhatsApp a la mesa de ayuda.
+
+El texto institucional puede tener múltiples líneas, viñetas, encabezados, tablas copiadas de Excel o Word, abreviaturas y variaciones de formato. Léelo COMPLETO y mapea cada dato con exactitud. No resumas, no omitas secciones y no te limites a las primeras líneas.
+
+Salida EXACTA: un único campo de texto multilínea, con saltos de línea reales, sin JSON, sin markdown, sin commentary, con estas etiquetas literales en este orden:
+*PLANTILLA {cliente} {numero_caso}*
+SH: {sh}.
+Tecnico: {primer y segundo nombre en mayúsculas}
+Medio: {medio}
+Nombre del equipo: {equipo}
+Falla: {falla}
+Causa: {causa}
+Solución: {solución}
+Pruebas: {pruebas}
+Fecha de 1 atención: {DD/MM/AAAA}
+Hora inicio: {hora de inicio}
+Hora fin: {hora de fin}
+Hora de desplazamiento: {hora de desplazamiento}
+Tecnico: {nombre completo del técnico}
+
+Reglas:
+- Todos los datos ya capturados en el formulario tienen prioridad; la plantilla institucional sólo rellena lo que falte o lo contradice.
+- Convierte todas las fechas a DD/MM/AAAA.
+- Si la plantilla institucional describe varios equipos, casos o actividades, inclúyelos completos y en orden, sin "varios" ni puntos suspensivos.
+- No dejes ninguna línea vacía ni uses marcadores como [pendiente] o "N/A" cuando la información esté disponible.
+- Redacta en español técnico claro, en frases completas.
+
+<datos_ya_capturados>
+${envolverTextoInstitucional(JSON.stringify(contexto, null, 2))}
+</datos_ya_capturados>
+${notas ? `<notas_tecnico>\n${envolverTextoInstitucional(notas)}\n</notas_tecnico>` : ""}
+<plantilla_institucional>
+${institucional}
+</plantilla_institucional>`.trim();
 }
 
 export function parsearRespuesta(text) {
@@ -269,12 +396,15 @@ function construirIntentos(modelName) {
   return [...new Set([elegido, ...base])];
 }
 
-export async function accionExtraer({ imagenBase64, mimeType, textoNotas, modelName }) {
+export async function accionExtraer({ imagenBase64, mimeType, textoNotas, plantillaInstitucional, modelName }) {
   const apiKey = exigirLlave();
   const notas = String(textoNotas || "").slice(0, MAX_NOTAS);
+  const institucional = String(plantillaInstitucional || "").slice(0, MAX_PLANTILLA_INSTITUCIONAL);
 
-  if (!imagenBase64 && !notas.trim()) {
-    const err = new Error("Se requiere una imagen o notas técnicas para procesar.");
+  if (!imagenBase64 && !notas.trim() && !institucional.trim()) {
+    const err = new Error(
+      "Se requiere una imagen, notas técnicas o la plantilla institucional del cliente para procesar."
+    );
     err.status = 400;
     throw err;
   }
@@ -288,7 +418,7 @@ export async function accionExtraer({ imagenBase64, mimeType, textoNotas, modelN
   if (imagenBase64) {
     parts.push({ inlineData: { mimeType: normalizarMime(mimeType), data: String(imagenBase64) } });
   }
-  parts.push({ text: construirPrompt(notas) });
+  parts.push({ text: construirPrompt(notas, institucional) });
 
   const contents = [{ role: "user", parts }];
   if (JSON.stringify(contents).length > MAX_CUERPO_JSON) {
@@ -300,12 +430,71 @@ export async function accionExtraer({ imagenBase64, mimeType, textoNotas, modelN
   const { texto, model, apiVersion } = await llamarGemini({
     apiKey,
     contents,
-    config: { temperature: 0.2, responseMimeType: "application/json" },
+    // Salida generosa: la plantilla institucional extensa produce una
+    // plantilla_completa larga y no debe truncarse a mitad de frase.
+    config: { temperature: 0.2, responseMimeType: "application/json", maxOutputTokens: 8192 },
     modelos: construirIntentos(modelName)
   });
 
   const datos = parsearRespuesta(texto);
   return { datos: { ...datos, modelo_usado: model }, modeloUsado: model, apiVersion };
+}
+
+/**
+ * Regenera únicamente la Plantilla Corporativa Oficial desde el texto
+ * institucional en bruto. Devuelve texto plano, no JSON, para no forzar al
+ * modelo a escapar saltos de línea dentro de una cadena.
+ */
+export async function accionGenerarPlantilla({ plantillaInstitucional, textoNotas, datos, modelName }) {
+  const apiKey = exigirLlave();
+  const institucional = String(plantillaInstitucional || "").slice(0, MAX_PLANTILLA_INSTITUCIONAL);
+  const notas = String(textoNotas || "").slice(0, MAX_NOTAS);
+
+  if (!institucional.trim() && !notas.trim()) {
+    const err = new Error("Pega la plantilla institucional o escribe notas para generar la plantilla.");
+    err.status = 400;
+    throw err;
+  }
+
+  const contents = [
+    {
+      role: "user",
+      parts: [{ text: construirPromptSoloPlantilla(institucional, notas, datos || {}) }]
+    }
+  ];
+  if (JSON.stringify(contents).length > MAX_CUERPO_JSON) {
+    const err = new Error("El contenido es demasiado grande para el motor de IA.");
+    err.status = 413;
+    throw err;
+  }
+
+  const { texto, model, apiVersion } = await llamarGemini({
+    apiKey,
+    contents,
+    config: { temperature: 0.15, maxOutputTokens: 8192 },
+    modelos: construirIntentos(modelName)
+  });
+
+  const plantilla = limpiarPlantilla(texto);
+  if (!plantilla) {
+    const err = new Error("El motor de IA devolvió una plantilla vacía.");
+    err.status = 502;
+    throw err;
+  }
+  return { plantilla, modeloUsado: model, apiVersion };
+}
+
+/** Quita vallas de código y espacios finales, conservando los saltos de línea. */
+function limpiarPlantilla(texto) {
+  return String(texto || "")
+    .replace(/^```(?:text|markdown)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l) => l.replace(/[ \t]+$/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export async function accionTestear({ modelName }) {

@@ -1,6 +1,7 @@
 import { verificarToken, aplicarRateLimit, extraerIp, adminEmail } from "./auth.js";
 import {
   accionExtraer,
+  accionGenerarPlantilla,
   accionTestear,
   estadoDelMotor,
   listarModelosDisponibles,
@@ -128,10 +129,26 @@ export async function manejarPeticion({ method = "GET", headers = {}, body = nul
       };
     }
 
+    if (accion === "plantilla") {
+      const resultado = await accionGenerarPlantilla({
+        plantillaInstitucional: datos.plantillaInstitucional,
+        textoNotas: datos.textoNotas,
+        datos: datos.datos,
+        modelName: datos.modelName
+      });
+
+      return {
+        status: 200,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+        body: { ok: true, ...resultado }
+      };
+    }
+
     const resultado = await accionExtraer({
       imagenBase64: datos.imagenBase64,
       mimeType: normalizarMime(datos.mimeType),
       textoNotas: datos.textoNotas,
+      plantillaInstitucional: datos.plantillaInstitucional,
       modelName: datos.modelName
     });
 
