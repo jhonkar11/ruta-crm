@@ -39,6 +39,7 @@ import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../servic
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 import AutoResizeTextarea from "./AutoResizeTextarea";
 import ConfigApiKeyModal from "./ConfigApiKeyModal";
+import { useDictadoVoz } from "../../hooks/useDictadoVoz";
 
 export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const isDark = theme === "dark";
@@ -56,7 +57,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [errorIA, setErrorIA] = useState(null);
   const [showConfigKey, setShowConfigKey] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(() => !!getGeminiApiKey());
-  const [isDictating, setIsDictating] = useState(false);
+  const [errorDictado, setErrorDictado] = useState(null);
 
   // Formulario estructurado "Datos de servicio requerido"
   const [datosExtraidos, setDatosExtraidos] = useState({
@@ -309,47 +310,25 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     setTimeout(() => setCopiadoPlantilla(false), 2000);
   };
 
-  // Dictado por Voz (Web Speech API nativa)
-  const recognitionRef = useRef(null);
+  // Dictado por Voz (Web Speech API nativa) - refactorizado: sólo se acumulan
+  // bloques con isFinal === true, eliminando la repetición infinita de palabras.
+  const { isDictando: isDictating, toggle: toggleDictado, detener: detenerDictado } = useDictadoVoz({
+    lang: "es-CO",
+    onTexto: (texto) => setNotasTecnico(texto.slice(0, 5000)),
+    onError: (mensaje) => setErrorDictado(mensaje)
+  });
+
+  // `notasTecnico` dentro de este handler es siempre el valor del último render,
+  // por lo que el texto previo del técnico se conserva como base del dictado.
   const handleVoiceDictation = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Tu navegador no soporta el dictado por voz. Usa Chrome para esta función.");
-      return;
-    }
-
-    if (isDictating && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsDictating(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = "es-CO";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onstart = () => setIsDictating(true);
-    recognition.onend = () => setIsDictating(false);
-    recognition.onerror = () => setIsDictating(false);
-
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-      }
-      setNotasTecnico((prev) => {
-        const base = prev.trimEnd();
-        return base ? base + " " + transcript : transcript;
-      });
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+    setErrorDictado(null);
+    toggleDictado(() => notasTecnico);
   };
 
   // Resetear formulario después de guardar
   const resetFormulario = () => {
+    detenerDictado();
+    setErrorDictado(null);
     setImagenPreview(null);
     setImagenBase64(null);
     setNotasTecnico("");
@@ -831,6 +810,22 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                   {notasTecnico.length} / 5000 caracteres
                 </span>
               </div>
+
+              {errorDictado && (
+                <div
+                  role="alert"
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 8,
+                    background: "rgba(239,68,68,0.10)",
+                    border: "1px solid rgba(239,68,68,0.45)",
+                    color: isDark ? "#FCA5A5" : "#B91C1C",
+                    borderRadius: 10, padding: "8px 10px", fontSize: 11.5, fontWeight: 600
+                  }}
+                >
+                  <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{errorDictado}</span>
+                </div>
+              )}
 
               {/* CTA Procesar Servicio con IA */}
               <button

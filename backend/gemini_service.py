@@ -1,5 +1,5 @@
 """
-Servicio Python de Orquestación Gemini Multimodal (2.5 Flash, 2.0 Flash, 1.0 Pro)
+Servicio Python de Orquestación Gemini Multimodal (gemini-2.0-flash)
 Procesa capturas de pantalla de soporte (WhatsApp), notas técnicas y genera plantillas corporativas.
 """
 
@@ -10,23 +10,24 @@ from typing import Dict, Any, Optional
 try:
     from google import genai
     from google.genai import types
-except ImportError:
-    import google.generativeai as genai
+except ImportError:  # pragma: no cover
+    genai = None
+    types = None
 
 ADMIN_EMAIL = "jhonka001@gmail.com"
 
+# Modelos retirados por Google (gemini-1.5-* y gemini-2.5-flash) devuelven HTTP 404.
 MODELOS_SOPORTADOS = [
-    "gemini-2.5-flash",
     "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
 ]
+
+MODELO_POR_DEFECTO = "gemini-2.0-flash"
 
 def extraer_datos_soporte(
     image_bytes: Optional[bytes] = None,
     mime_type: str = "image/png",
     notas_dictadas: str = "",
-    model_name: str = "gemini-2.0-flash",
+    model_name: str = MODELO_POR_DEFECTO,
     api_key: Optional[str] = None
 ) -> Dict[str, Any]:
     """
@@ -35,6 +36,15 @@ def extraer_datos_soporte(
     key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("VITE_GEMINI_API_KEY")
     if not key:
         raise ValueError("No se encontró GEMINI_API_KEY en variables de entorno ni parámetros.")
+
+    if genai is None:
+        raise ImportError(
+            "Falta el SDK de Google. Instálalo con: pip install -q google-genai"
+        )
+
+    # Lista blanca estricta: evita requesting modelos retirados (404).
+    if model_name not in MODELOS_SOPORTADOS:
+        model_name = MODELO_POR_DEFECTO
 
     prompt = f"""
 Eres un Arquitecto de Soporte Técnico e IT empresarial de nivel mundial para mesas de ayuda (Mesa IBM, Redes, Hardware y Software).
@@ -66,19 +76,25 @@ NOTAS TÉCNICAS:
 Responde ÚNICAMENTE un JSON con esta estructura exacta sin explicaciones adicionales.
 """
 
-    genai.configure(api_key=key)
-    model = genai.GenerativeModel(model_name)
+    client = genai.Client(api_key=key)
 
-    contents = []
     if image_bytes:
-        contents.append({
-            "mime_type": mime_type,
-            "data": image_bytes
-        })
-    contents.append(prompt)
+        contents = [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type),
+                    types.Part.from_text(text=prompt),
+                ],
+            )
+        ]
+    else:
+        contents = [
+            types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+        ]
 
-    response = model.generate_content(contents)
-    texto = response.text.strip()
+    response = client.models.generate_content(model=model_name, contents=contents)
+    texto = (response.text or "").strip()
     if texto.startswith("```json"):
         texto = texto[7:]
     if texto.endswith("```"):

@@ -26,7 +26,8 @@ Este módulo corporativo de nivel mundial automatiza el ciclo de vida de los ser
 ---
 
 ## 3. MOTOR DE INTELIGENCIA ARTIFICIAL MULTIMODAL (GOOGLE GEMINI)
-Compatible con **Gemini 2.5 Flash**, **Gemini 2.0 Flash** y **Gemini 1.5 Pro**:
+Compatible con **Gemini 2.0 Flash** mediante el SDK oficial `@google/genai` (API estable `v1`):
+> Nota: los modelos `gemini-1.5-flash` / `gemini-1.5-pro` fueron **retirados** por Google y devuelven `HTTP 404`. No deben referenciarse en ninguna llamada.
 - **Paso 1: Extracción de Datos de Servicio (OCR & Parsing):**
   - Procesa visualmente la imagen o notas dictadas y extrae en el bloque **"1. Datos de servicio requerido"**:
     - N° de Caso / Requerimiento (ej. `RE26014844 / RF637620` o `2303375`)

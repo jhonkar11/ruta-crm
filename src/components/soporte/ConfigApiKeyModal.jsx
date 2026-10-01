@@ -126,7 +126,7 @@ export default function ConfigApiKeyModal({ isOpen, onClose, onKeySaved, theme =
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, color: "#0284c7", marginBottom: 4 }}>
             <Shield size={14} /> Modo Seguro y Gratuito
           </div>
-          Puedes obtener tu API Key gratuita directamente en Google AI Studio. Los modelos <strong>Gemini 2.5 Flash</strong>, <strong>Gemini 2.0 Flash</strong> y <strong>Gemini 1.5</strong> son de alta velocidad y cuentan con cuota libre.
+          Puedes obtener tu API Key gratuita directamente en Google AI Studio. El motor usa <strong>Gemini 2.0 Flash</strong> (vía la API estable <strong>v1</strong>), que es de alta velocidad y cuenta con cuota libre. Los modelos <strong>Gemini 1.5</strong> fueron retirados por Google y devuelven error 404.
           <div style={{ marginTop: 6 }}>
             <a
               href="https://aistudio.google.com/app/apikey"

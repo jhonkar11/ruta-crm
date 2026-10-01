@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, Volume2, VolumeX, Maximize2, Minimize2, Copy, Check, Trash2 } from "lucide-react";
 import { C } from "../../styles/tokens";
+import { useDictadoVoz } from "../../hooks/useDictadoVoz";
 
 export default function AutoResizeTextarea({
   value,
@@ -16,11 +17,9 @@ export default function AutoResizeTextarea({
 }) {
   const isDark = theme === "dark";
   const textareaRef = useRef(null);
-  const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
-  const recognitionRef = useRef(null);
   const synthRef = useRef(null);
 
   // Auto-resize dinámico según contenido
@@ -31,71 +30,46 @@ export default function AutoResizeTextarea({
     textareaRef.current.style.height = `${Math.max(scrollHeight, minRows * 24)}px`;
   }, [value, minRows, isExpanded]);
 
-  // Inicializar Web Speech Recognition
+  const onChangeRef = useRef(onChange);
+  const onTranscribeRef = useRef(onSpeechTranscribe);
+  const valueRef = useRef(value);
+
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "es-CO";
+    onChangeRef.current = onChange;
+    onTranscribeRef.current = onSpeechTranscribe;
+    valueRef.current = value;
+  }, [onChange, onSpeechTranscribe, value]);
 
-      recognition.onresult = (event) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
+  // Motor de voz compartido: procesa sólo bloques isFinal === true, evita duplicados.
+  const {
+    isDictando: isListening,
+    toggle: toggleDictado,
+    soportado: vozSoportada
+  } = useDictadoVoz({
+    lang: "es-CO",
+    onTexto: (texto) => {
+      const recortado = texto.slice(0, maxLength);
+      onChangeRef.current(recortado);
+      onTranscribeRef.current?.(recortado);
+    },
+    onError: (mensaje) => console.warn(mensaje)
+  });
 
-        if (event.results[event.results.length - 1].isFinal) {
-          const updatedValue = value ? `${value} ${transcript.trim()}` : transcript.trim();
-          onChange(updatedValue);
-          if (onSpeechTranscribe) onSpeechTranscribe(updatedValue);
-        }
-      };
-
-      recognition.onerror = (event) => {
-        console.warn("Error en reconocimiento de voz:", event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
-
+  useEffect(() => {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       synthRef.current = window.speechSynthesis;
     }
-
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (synthRef.current) {
-        synthRef.current.cancel();
-      }
+      synthRef.current?.cancel();
     };
-  }, [value, onChange, onSpeechTranscribe]);
+  }, []);
 
   const toggleMic = () => {
-    if (!recognitionRef.current) {
+    if (!vozSoportada) {
       alert("El reconocimiento de voz Web Speech API no está soportado en este navegador. Puedes usar Google Chrome o Microsoft Edge.");
       return;
     }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      try {
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (err) {
-        console.warn("Error iniciando micrófono:", err);
-      }
-    }
+    toggleDictado(() => valueRef.current || "");
   };
 
   const toggleTTS = () => {

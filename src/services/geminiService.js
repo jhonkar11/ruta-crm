@@ -1,11 +1,37 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-// Configuración de Modelos Disponibles (solo modelos activos y sin errores 404)
+/**
+ * Modelo único y estable soportado.
+ * Los modelos gemini-1.5-* fueron RETIRADOS por Google y devuelven HTTP 404
+ * en /v1beta/models/{modelo}:generateContent. No volver a referenciarlos.
+ */
+export const MODELO_GEMINI_POR_DEFECTO = "gemini-2.0-flash";
+
+// Versiones de API probadas en orden. "v1" es la GA estable; "v1beta" queda como red de seguridad.
+export const GEMINI_API_VERSIONS = ["v1", "v1beta"];
+
+// Configuración de Modelos Disponibles (solo modelos activos y estables sin errores 404)
 export const MODELOS_GEMINI = [
-  { id: "gemini-2.5-flash-preview-05-20", nombre: "Gemini 2.5 Flash ★", descripcion: "Ultrarrápido y multimodal de última generación", recomendado: true },
-  { id: "gemini-2.0-flash", nombre: "Gemini 2.0 Flash", descripcion: "Alta velocidad y excelente precisión OCR", recomendado: false },
-  { id: "gemini-1.5-flash", nombre: "Gemini 1.5 Flash", descripcion: "Modelo balanceado y máxima estabilidad", recomendado: false },
+  { id: MODELO_GEMINI_POR_DEFECTO, nombre: "Gemini 2.0 Flash", descripcion: "Alta velocidad, precisión OCR y estabilidad", recomendado: true }
 ];
+
+const MODELOS_PERMITIDOS = new Set(MODELOS_GEMINI.map((m) => m.id));
+
+/**
+ * Normaliza cualquier modelo recibido: si no está en la lista blanca se cae
+ * a gemini-2.0-flash para no volver a pedir un modelo retirado (404).
+ */
+export function normalizarModeloGemini(modelId) {
+  return MODELOS_PERMITIDOS.has(modelId) ? modelId : MODELO_GEMINI_POR_DEFECTO;
+}
+
+/**
+ * Instancia el SDK actual (@google/genai) fijando explícitamente la versión de API.
+ * Ya no se usa @google/generative-ai (SDK deprecado que sólo expone la ruta v1beta).
+ */
+export function crearClienteGemini(apiKey, apiVersion = GEMINI_API_VERSIONS[0]) {
+  return new GoogleGenAI({ apiKey, apiVersion });
+}
 
 const LOCAL_STORAGE_KEYS = ["gemini_api_key", "CRM_GEMINI_API_KEY", "VITE_GEMINI_API_KEY"];
 
@@ -47,48 +73,67 @@ export function setGeminiApiKey(key) {
 }
 
 /**
+ * Traduce un error de la API a un mensaje accionable en español.
+ */
+function descErrorGemini(err) {
+  const status = err?.status ?? err?.code ?? err?.response?.status;
+  const msg = err?.message || String(err);
+  if (status === 404 || /not found/i.test(msg)) {
+    return `404 · Modelo o endpoint no encontrado. Revisa que el modelo sea "${MODELO_GEMINI_POR_DEFECTO}" y que la API Key tenga acceso a la API Gemini.`;
+  }
+  if (status === 400) return `400 · Solicitud rechazada por la API: ${msg}`;
+  if (status === 401 || status === 403) return `${status} · API Key inválida o sin permisos: ${msg}`;
+  if (status === 429) return `429 · Límite de cuota alcanzado. Espera unos segundos e intenta de nuevo.`;
+  if (status >= 500) return `${status} · Error del servidor de Google. Reintenta en un momento.`;
+  return msg;
+}
+
+/**
+ * Ejecuta generateContent con reintentos: primero en "v1" (GA) y, si la API
+ * respondiera 404, cae a "v1beta". Así el botón nunca muere por la ruta del endpoint.
+ */
+async function generateContent({ apiKey, model, contents, config }) {
+  let lastError = null;
+
+  for (const apiVersion of GEMINI_API_VERSIONS) {
+    try {
+      const ai = crearClienteGemini(apiKey, apiVersion);
+      const response = await ai.models.generateContent({ model, contents, config });
+      const text = response?.text;
+      if (typeof text === "string" && text.trim()) return text;
+      lastError = new Error("La API de Gemini devolvió una respuesta vacía.");
+    } catch (err) {
+      lastError = err;
+      const status = err?.status ?? err?.code;
+      if (status !== 404) break; // si no es 404 no tiene sentido cambiar de versión
+    }
+  }
+
+  throw new Error(descErrorGemini(lastError));
+}
+
+/**
  * Diagnóstico y verificación en vivo de la API Key.
  */
-export async function testGeminiApiKey(apiKey, modelName = "gemini-2.0-flash") {
+export async function testGeminiApiKey(apiKey, modelName = MODELO_GEMINI_POR_DEFECTO) {
   const key = apiKey || getGeminiApiKey();
   if (!key) {
     return { ok: false, message: "No se ha configurado ninguna API Key de Gemini." };
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: modelName });
-    const result = await model.generateContent("Hola, responde únicamente con la palabra OK si estás activo.");
-    const response = await result.response;
-    const text = response.text();
-    return { ok: true, message: `Conexión exitosa con ${modelName}! Respuesta: ${text.trim()}` };
-  } catch (err) {
-    // Si falla el modelo solicitado, probar con gemini-2.0-flash como fallback seguro
-    if (modelName !== "gemini-2.0-flash") {
-      try {
-        const genAI = new GoogleGenerativeAI(key);
-        const fallback = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-        const res2 = await fallback.generateContent("Test OK");
-        const resp2 = await res2.response;
-        return {
-          ok: true,
-          message: `Conectado exitosamente usando gemini-2.0-flash. Respuesta: ${resp2.text().trim()}`,
-          fallbackUsed: "gemini-2.0-flash"
-        };
-      } catch (innerErr) {
-        return { ok: false, message: `Error probando API Key: ${innerErr.message || err.message}` };
-      }
-    }
-    return { ok: false, message: `Error probando API Key: ${err.message}` };
-  }
-}
+  const model = normalizarModeloGemini(modelName);
 
-/**
- * Instancia el cliente de Google Generative AI con tolerancia a fallos y fallback de modelos.
- */
-function getGenerativeModelWithFallback(apiKey, requestedModel = "gemini-2.0-flash") {
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return { genAI, modelName: requestedModel };
+  try {
+    const text = await generateContent({
+      apiKey: key,
+      model,
+      contents: "Hola, responde únicamente con la palabra OK si estás activo.",
+      config: { maxOutputTokens: 32 }
+    });
+    return { ok: true, message: `Conexión exitosa con ${model} (API v1). Respuesta: ${text.trim()}` };
+  } catch (err) {
+    return { ok: false, message: `Error probando API Key: ${descErrorGemini(err)}` };
+  }
 }
 
 /**
@@ -99,7 +144,7 @@ function getGenerativeModelWithFallback(apiKey, requestedModel = "gemini-2.0-fla
  * @param {string} [params.textoNotas] - Notas dictadas o escritas por el técnico
  * @param {string} [params.modelId] - Modelo a usar
  */
-export async function extraerDatosDeServicio({ imagenBase64, mimeType = "image/png", textoNotas = "", modelId = "gemini-2.0-flash" }) {
+export async function extraerDatosDeServicio({ imagenBase64, mimeType = "image/png", textoNotas = "", modelId = MODELO_GEMINI_POR_DEFECTO }) {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
     throw new Error("No hay una API Key de Gemini configurada. Por favor ingrésala en la configuración superior.");
@@ -135,53 +180,60 @@ IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin bloques de mark
 ${textoNotas ? `\nNOTAS ADICIONALES DEL TÉCNICO:\n"${textoNotas}"` : ""}
 `;
 
-  const fallbackChain = [modelId, "gemini-2.0-flash", "gemini-2.5-flash-preview-05-20", "gemini-1.5-flash"];
-  const uniqueModels = [...new Set(fallbackChain)];
+  // Lista blanca estricta: cualquier modelo desconocido (p.ej. gemini-1.5-*) cae en gemini-2.0-flash.
+  const modeloSolicitado = normalizarModeloGemini(modelId);
+  const uniqueModels = [modeloSolicitado];
+
+  const contents = [];
+  if (imagenBase64) {
+    contents.push({
+      inlineData: {
+        data: imagenBase64,
+        mimeType: mimeType || "image/png"
+      }
+    });
+  }
+  contents.push({ text: prompt });
 
   let lastError = null;
 
   for (const modelToTry of uniqueModels) {
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
+      const textResult = await generateContent({
+        apiKey,
         model: modelToTry,
-        generationConfig: {
+        contents,
+        config: {
           temperature: 0.2,
-          responseMimeType: "application/json",
-        },
+          responseMimeType: "application/json"
+        }
       });
 
-      const contents = [];
-      if (imagenBase64) {
-        contents.push({
-          inlineData: {
-            data: imagenBase64,
-            mimeType: mimeType || "image/png",
-          },
-        });
+      // Limpiar y parsear JSON (el modelo puede envolverlo en ```json)
+      const jsonStr = textResult
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/```\s*$/i, "")
+        .trim();
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(jsonStr);
+      } catch {
+        const primerObjeto = jsonStr.slice(jsonStr.indexOf("{"), jsonStr.lastIndexOf("}") + 1);
+        parsedData = JSON.parse(primerObjeto);
       }
-      contents.push(prompt);
-
-      const result = await model.generateContent(contents);
-      const response = await result.response;
-      const textResult = response.text();
-
-      // Limpiar y parsear JSON
-      const jsonStr = textResult.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
-      const parsedData = JSON.parse(jsonStr);
 
       return {
         ...parsedData,
         modelo_usado: modelToTry
       };
     } catch (err) {
-      console.warn(`Fallo con el modelo ${modelToTry}:`, err.message);
+      console.warn(`Fallo con el modelo ${modelToTry}:`, err?.message);
       lastError = err;
-      // Probar siguiente modelo en la cadena de fallback
     }
   }
 
-  throw new Error(`Error en el motor IA Multimodal: ${lastError?.message || "No se pudo procesar la solicitud"}`);
+  throw new Error(`Error en el motor IA Multimodal: ${descErrorGemini(lastError)}`);
 }
 
 /**
