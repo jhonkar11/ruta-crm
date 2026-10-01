@@ -10,7 +10,6 @@
     "test:proxy": "node scripts/test-api-gemini.mjs"
   },
   "dependencies": {
-    "@google/genai": "^2.25.0",
     "@supabase/supabase-js": "^2.45.4",
     "browser-image-compression": "^2.0.2",
     "exceljs": "^4.4.0",
@@ -23,3 +22,4 @@
     "vite": "^5.4.2"
   }
 }
+

@@ -1,5 +1,14 @@
 import crypto from "node:crypto";
 import { manejarPeticion } from "../api/_lib/handler.js";
+import {
+  construirUrl,
+  construirUrlDiagnostica,
+  MODELO_POR_DEFECTO,
+  normalizarModelo,
+  cadenaDeModelos
+} from "../api/_lib/gemini.js";
+
+const URL_OFICIAL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 const SECRET = "test-secret-supabase-jwt-para-pruebas";
 const OTRO = "jhonka001@gmail.com";
@@ -55,16 +64,18 @@ console.log("\n=== 3. Método no permitido ===");
 await caso("PUT -> 405", { method: "PUT", headers: hdr(tokenAdmin), body: {} }, 405);
 
 console.log("\n=== 4. Lista blanca de modelos (no 404 por modelo retirado) ===");
-for (const malo of ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash", "../../etc/passwd", ""]) {
+for (const malo of ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash", "gemini-2.5-flash", "../../etc/passwd", ""]) {
   const r = await manejarPeticion({
     method: "POST",
     headers: hdr(tokenAdmin),
     body: { accion: "testear", modelName: malo }
   });
   const usado = r.body.modeloUsado || (r.body.error || "").slice(0, 40);
-  const ok = usado === "gemini-2.0-flash" || String(usado).includes("GEMINI_API_KEY") || r.status === 503;
-  if (!ok) fallos++;
-  console.log(`${ok ? "PASS" : "FAIL"}  modelName="${malo}" -> normalizado: ${usado}`);
+  // Nunca debe devolver 404 (modelo retirado) ni el identificador retirado.
+  const ok = usado === MODELO_POR_DEFECTO || String(usado).includes("GEMINI_API_KEY") || r.status === 503;
+  const sin404 = r.status !== 404;
+  if (!ok || !sin404) fallos++;
+  console.log(`${ok && sin404 ? "PASS" : "FAIL"}  modelName="${malo}" -> normalizado: ${usado}`);
 }
 
 console.log("\n=== 5. Sin GEMINI_API_KEY en el servidor -> 503 con mensaje claro ===");
@@ -88,6 +99,10 @@ const texto = JSON.stringify(r7.body);
 const noFuga = !texto.includes("clave-falsa-para-probar-el-camino-de-error");
 if (!noFuga) fallos++;
 console.log(`${r7.status >= 400 ? "PASS" : "FAIL"}  status=${r7.status}  error=${r7.body.error}`);
+// El mensaje debe ser de la API de Google, nunca un error interno del servidor.
+const noBugInterno = !/Assignment to constant|is not defined|Cannot read|undefined is not/i.test(r7.body.error || "");
+if (!noBugInterno) fallos++;
+console.log(`${noBugInterno ? "PASS" : "FAIL"}  el error viene de la API, no de un bug interno: ${noBugInterno}`);
 console.log(`${noFuga ? "PASS" : "FAIL"}  la GEMINI_API_KEY NO aparece en la respuesta: ${noFuga}`);
 
 console.log("\n=== 8. Rate limit (30/min por IP) ===");
@@ -104,7 +119,95 @@ console.log("\n=== 9. Verificación con configuración ausente -> 503, nunca abi
 delete process.env.SUPABASE_JWT_SECRET;
 await caso("sin SUPABASE_JWT_SECRET ni URL -> 503", { method: "POST", headers: hdr(tokenAdmin), body: { accion: "estado" } }, 503, (r) => r.body.error.slice(0, 80));
 
+/* ================================================================== */
+console.log("\n=== 10. CORRECCION DE LA URL (causa raiz del 404) ===");
+
+function afirmar(condicion, etiqueta) {
+  if (!condicion) fallos++;
+  console.log(`${condicion ? "PASS" : "FAIL"}  ${etiqueta}`);
+}
+
+process.env.SUPABASE_JWT_SECRET = SECRET;
+
+afirmar(
+  construirUrl({ model: "gemini-3.8-flash", apiKey: "K" }) ===
+    `${URL_OFICIAL.replace("gemini-2.0-flash", "gemini-3.8-flash")}?key=K`,
+  "La URL sigue exactamente el formato oficial: /v1beta/models/{modelo}:generateContent?key="
+);
+afirmar(
+  construirUrl({ model: "gemini-3.8-flash", apiVersion: "v1beta", apiKey: "K" }).startsWith(
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+  ),
+  "Host y version v1beta correctos"
+);
+afirmar(
+  construirUrl({ model: "gemini-3.8-flash", apiKey: "K" }).includes(":generateContent"),
+  "Incluye la accion :generateContent (su ausencia es lo que produce 404)"
+);
+afirmar(
+  construirUrlDiagnostica("gemini-3.8-flash") ===
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=***REDACTADA***",
+  "La URL de diagnostico redacta la llave"
+);
+afirmar(!construirUrlDiagnostica("gemini-3.8-flash").match(/AIza|AQ\./), "No hay llave en la URL de diagnostico");
+afirmar(cadenaDeModelos().every((m) => !/^gemini-(1\.5|2\.0|2\.5)-/.test(m)), "La cadena no incluye modelos retirados");
+afirmar(normalizarModelo("gemini-2.0-flash") === MODELO_POR_DEFECTO, "gemini-2.0-flash se redirige al modelo vigente");
+afirmar(normalizarModelo("gemini-1.5-pro") === MODELO_POR_DEFECTO, "gemini-1.5-pro se redirige al modelo vigente");
+afirmar(normalizarModelo("gemini-3.7-flash") === "gemini-3.7-flash", "Un modelo vigente se respeta tal cual");
+afirmar(
+  MODELO_POR_DEFECTO !== "gemini-2.0-flash" && !/no longer available/.test(""),
+  `El modelo por defecto NO es un modelo retirado (es ${MODELO_POR_DEFECTO})`
+);
+try {
+  construirUrl({ model: "gemini-2.0-flash/../../admin", apiKey: "K" });
+  afirmar(false, "Se rechaza un model con inyeccion de ruta");
+} catch {
+  afirmar(true, "Se rechaza un model con inyeccion de ruta");
+}
+afirmar(
+  construirUrl({ model: "gemini-3.8-flash", apiVersion: "v1betaALGO", apiKey: "K" }).includes("/v1beta/"),
+  "Una apiVersion desconocida cae a v1beta"
+);
+
+/* ================================================================== */
+console.log("\n=== 11. Estado del motor reporta la URL que se usara ===");
+const r11 = await manejarPeticion({
+  method: "POST",
+  headers: hdr(tokenAdmin),
+  body: { accion: "estado" }
+});
+afirmar(
+  typeof r11.body.urlPrevista === "string" &&
+    r11.body.urlPrevista.includes("/v1beta/models/") &&
+    r11.body.urlPrevista.includes(":generateContent"),
+  `urlPrevista bien formada: ${r11.body.urlPrevista}`
+);
+afirmar(
+  !JSON.stringify(r11.body).match(/AIza|AQ\.Ab/),
+  "El estado del motor no filtra la llave"
+);
+
+/* ================================================================== */
+console.log("\n=== 12. accion=modelos (diagnostico, requiere llave) ===");
+delete process.env.GEMINI_API_KEY;
+const r12 = await manejarPeticion({
+  method: "POST",
+  headers: hdr(tokenAdmin),
+  body: { accion: "modelos" }
+});
+afirmar(r12.status === 502 && !r12.body.ok, `sin llave -> 502 controlado: ${r12.status}`);
+afirmar(
+  !JSON.stringify(r12.body).match(/AIza|AQ\.Ab/),
+  "modelos no filtra la llave"
+);
+const r12b = await manejarPeticion({
+  method: "POST",
+  headers: hdr(tokenAjeno),
+  body: { accion: "modelos" }
+});
+afirmar(r12b.status === 403, `RBAC tambien protege el diagnostico: ${r12b.status}`);
+
 console.log(fallos === 0 ? "\n*** TODAS LAS PRUEBAS PASARON ***" : `\n*** ${fallos} PRUEBA(S) FALLARON ***`);
-// process.exitCode en vez de process.exit(): evita el assert de libuv en Windows
-// al cortar sockets pendientes del agente HTTP de @google/genai.
+// process.exitCode en vez de process.exit(): evita cortar sockets pendientes
+// de las llamadas reales a Google sin completar.
 process.exitCode = fallos === 0 ? 0 : 1;

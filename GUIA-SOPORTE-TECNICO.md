@@ -42,18 +42,33 @@ Este módulo corporativo de nivel mundial automatiza el ciclo de vida de los ser
 | Autenticación | Exige `Authorization: Bearer <token de sesión de Supabase>`. Sin token → `401` (antes la petición pasaba sin header) |
 | Verificación del token | HS256 local con `SUPABASE_JWT_SECRET` (`timingSafeEqual`, valida `exp`) o, en su defecto, consulta a `{SUPABASE_URL}/auth/v1/user` |
 | RBAC | Sólo el correo de `SOPORTE_ADMIN_EMAIL` puede gastar cuota → `403` |
-| Lista blanca de modelos | Sólo `gemini-2.0-flash`. Cualquier otro identificador se normaliza |
+| Lista blanca de modelos | Sólo la cadena vigente (`gemini-3.8-flash` → `gemini-3.1-flash-lite`). Cualquier otro identificador, incluidos los retirados, se normaliza al vigente |
 | Validación de entrada | Límite de 4 MB en base64, 5000 caracteres de notas, MIME de imagen en lista blanca, cuerpo máximo 4.5 MB |
 | Rate limiting | 30 peticiones/min por IP (configurable con `GEMINI_RATE_LIMIT`) |
 | Fallo cerrado | Si falta `GEMINI_API_KEY` o la verificación de sesión → `503` con mensaje accionable, nunca acceso abierto |
 | Prompt en servidor | El cliente no puede alterar el prompt ni el modelo |
 
 ### 3.3 Variables de entorno requeridas en Vercel
-`GEMINI_API_KEY` · `SUPABASE_JWT_SECRET` (o `SUPABASE_URL` + `SUPABASE_ANON_KEY`) · opcional `SOPORTE_ADMIN_EMAIL`, `GEMINI_RATE_LIMIT`
+`GEMINI_API_KEY` · `SUPABASE_JWT_SECRET` (o `SUPABASE_URL` + `SUPABASE_ANON_KEY`) · opcional `SOPORTE_ADMIN_EMAIL`, `GEMINI_RATE_LIMIT`, `GEMINI_MODEL`
 
 ### 3.4 Extracción
-Compatible con **Gemini 2.0 Flash** mediante el SDK oficial `@google/genai` (API estable `v1`):
-> Nota: los modelos `gemini-1.5-flash` / `gemini-1.5-pro` fueron **retirados** por Google y devuelven `HTTP 404`. No deben referenciarse en ninguna llamada.
+
+La llamada se hace con `fetch` directo a la URL oficial, sin SDK, para que el endpoint sea auditable:
+
+```
+POST https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={GEMINI_API_KEY}
+Content-Type: application/json
+
+{ "contents": [ { "role": "user", "parts": [ { "inlineData": { "mimeType": "image/png", "data": "<base64>" } }, { "text": "<prompt>" } ] } ],
+  "generationConfig": { "temperature": 0.2, "responseMimeType": "application/json" } }
+```
+
+> **Por qué el módulo devolvía `HTTP 404`.** No era la URL: la ruta es exactamente esa. Google **retiró** los modelos `gemini-1.5-*`, `gemini-2.0-flash` y `gemini-2.5-*`, así que pedirlos responde
+> `404 This model models/gemini-2.0-flash is no longer available. Please update your code to use models/gemini-3.8-flash...`.
+> Verificado contra la API real: `gemini-2.0-flash` ya no aparece en `ListModels`. Por eso el identificador por defecto es **`gemini-3.8-flash`**.
+
+> **Resiliencia.** Google devuelve `503 "This model is currently experiencing high demand"` de forma intermitente. El servidor recorre la cadena `gemini-3.8-flash → gemini-3.7-flash → gemini-3.6-flash → gemini-3.5-flash → gemini-3.1-flash-lite`, probando `v1beta` y luego `v1`, con reintento y backoff en `503`/`429`; en `404` salta al siguiente modelo. `GEMINI_MODEL` permite fijar uno sin redesplegar. Un `404` de un modelo retirado nunca llega al cliente: se traduce a `502`.
+
 - **Paso 1: Extracción de Datos de Servicio (OCR & Parsing):**
   - Procesa visualmente la imagen o notas dictadas y extrae en el bloque **"1. Datos de servicio requerido"**:
     - N° de Caso / Requerimiento (ej. `RE26014844 / RF637620` o `2303375`)

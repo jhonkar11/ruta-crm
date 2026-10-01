@@ -1,81 +1,183 @@
-import { GoogleGenAI } from "@google/genai";
+import { setTimeout as dormir } from "node:timers/promises";
 
 /**
- * Lado servidor del motor Gemini.
+ * Motor Gemini - LADO SERVIDOR.
+ *
  * La GEMINI_API_KEY vive únicamente en process.env (Vercel): nunca viaja al navegador.
+ *
+ * Se usa fetch directo contra la URL oficial en lugar del SDK para tener control
+ * explícito y auditable del endpoint:
+ *
+ *   https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={API_KEY}
+ *
+ * IMPORTANTE - por qué NO gemini-2.0-flash:
+ *   Google RETIRÓ los modelos gemini-1.5-* y gemini-2.0-flash. Llamarlos devuelve
+ *   HTTP 404 con el mensaje "This model models/gemini-2.0-flash is no longer available".
+ *   Verificado contra la API real: gemini-2.0-flash NO aparece en ListModels.
+ *   El 404 provenía del modelo retirado, no de una URL mal construida.
  */
 
-/** Los gemini-1.5-* fueron RETIRADOS por Google y devuelven HTTP 404. */
-export const MODELO_POR_DEFECTO = "gemini-2.0-flash";
-export const MODELOS_PERMITIDOS = new Set([MODELO_POR_DEFECTO]);
+export const MODELO_POR_DEFECTO = "gemini-3.8-flash";
 
-// "v1" es la GA estable; "v1beta" queda como red de seguridad ante un 404 puntual.
-const API_VERSIONS = ["v1", "v1beta"];
+/** Todos existen hoy en v1beta. La cadena cubre los 503 intermitentes de Google. */
+const MODELOS_FALLBACK = [
+  MODELO_POR_DEFECTO,
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite"
+];
 
-export function normalizarModelo(modelId) {
-  return MODELOS_PERMITIDOS.has(modelId) ? modelId : MODELO_POR_DEFECTO;
+const BASE = "https://generativelanguage.googleapis.com";
+const VERSION_PREFERIDA = "v1beta";
+const VERSIONES = [VERSION_PREFERIDA, "v1"];
+const API_VERSIONES_VALIDAS = new Set(VERSIONES);
+const MODELOS_RETIRODOS = new Set([
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-pro"
+]);
+
+const REINTENTOS_503 = 2;
+const ESPERA_BASE_MS = 700;
+const MAX_NOTAS = 5000;
+const MAX_BASE64 = 4_000_000;
+const MAX_CUERPO_JSON = 3_500_000;
+
+/**
+ * Construye la URL de la API. Exportada y testeada: es el punto donde un error
+ * de nombre de modelo o de ruta se manifiesta como HTTP 404.
+ */
+export function construirUrl({ model, apiVersion = VERSION_PREFERIDA, apiKey }) {
+  if (!apiKey) throw new Error("Falta la GEMINI_API_KEY al construir la petición.");
+  if (!/^[a-z0-9][a-z0-9._-]*$/i.test(model || "")) {
+    throw new Error(`Nombre de modelo con formato inválido: ${model}`);
+  }
+  const version = API_VERSIONES_VALIDAS.has(apiVersion) ? apiVersion : VERSION_PREFERIDA;
+  return `${BASE}/${version}/models/${model}:generateContent?key=${apiKey}`;
+}
+
+/** Ruta sin la llave, para logs y diagnóstico. */
+export function construirUrlDiagnostica(model, apiVersion = VERSION_PREFERIDA) {
+  return `${BASE}/${apiVersion}/models/${model}:generateContent?key=***REDACTADA***`;
 }
 
 export function apiKeyDelServidor() {
   return (process.env.GEMINI_API_KEY || "").trim();
 }
 
-/**
- * Extrae el mensaje real de Google. El SDK devuelve un JSON enorme anidado
- * ({error:{code,message,status,details[]}}) que no debe mostrarse al usuario.
- */
-function mensajeDeGoogle(err) {
-  const crudo = err?.message || String(err);
-  try {
-    const i = crudo.indexOf("{");
-    if (i >= 0) {
-      const json = JSON.parse(crudo.slice(i));
-      if (json?.error?.message) return json.error.message;
-      if (json?.error?.status) return json.error.status;
-    }
-  } catch {
-    /* no era JSON */
-  }
-  return crudo.slice(0, 200);
+/** Cadena efectiva de modelos, respetando GEMINI_MODEL sin redeploy. */
+export function cadenaDeModelos() {
+  const override = (process.env.GEMINI_MODEL || "").trim();
+  const base = override && !MODELOS_RETIRODOS.has(override) ? [override, ...MODELOS_FALLBACK] : MODELOS_FALLBACK;
+  return [...new Set(base)];
 }
 
-function descErrorGemini(err) {
-  const status = err?.status ?? err?.code ?? err?.response?.status;
-  const msg = mensajeDeGoogle(err);
+export function normalizarModelo(modelId) {
+  // El cliente nunca puede forzar un modelo retirado: cae al inicio de la cadena.
+  if (!modelId || MODELOS_RETIRODOS.has(modelId)) return cadenaDeModelos()[0];
+  return modelId;
+}
 
-  if (/API_KEY_INVALID|API key not valid/i.test(msg)) {
+function mensajeDeGoogle(cuerpoTexto) {
+  try {
+    const json = JSON.parse(cuerpoTexto);
+    return json?.error?.message || cuerpoTexto.slice(0, 200);
+  } catch {
+    return cuerpoTexto.slice(0, 200);
+  }
+}
+
+function descError({ status, mensaje }) {
+  if (/no longer available|is not found|not found for API version/i.test(mensaje)) {
+    return `404 · Modelo retirado o inexistente: ${mensaje}`;
+  }
+  if (/API_KEY_INVALID|API key not valid|API_KEY_INVALID/i.test(mensaje)) {
     return "GEMINI_API_KEY inválida. Revisa la variable de entorno en Vercel y vuelve a desplegar.";
   }
-  if (status === 404 || /not found/i.test(msg)) {
-    return `404 · Modelo o endpoint no encontrado. El modelo válido es "${MODELO_POR_DEFECTO}".`;
+  if (/PERMISSION_DENIED|permission/i.test(mensaje)) {
+    return "403 · La GEMINI_API_KEY no tiene acceso a este modelo.";
   }
-  if (status === 401 || status === 403) return `${status} · GEMINI_API_KEY sin permisos en el servidor.`;
-  if (status === 429) return "429 · Cuota de Gemini agotada. Espera unos segundos e intenta de nuevo.";
+  if (status === 429 || /RESOURCE_EXHAUSTED|quota/i.test(mensaje)) {
+    return "429 · Cuota de Gemini agotada. Espera unos segundos e intenta de nuevo.";
+  }
+  if (status === 503 || /high demand|overloaded|UNAVAILABLE/i.test(mensaje)) {
+    return `503 · El modelo está sobrecargado ahora mismo (${mensaje}).`;
+  }
+  if (status === 400) return `400 · La API de Gemini rechazó la petición: ${mensaje}`;
   if (status >= 500) return `${status} · Error del servidor de Google. Reintenta en un momento.`;
-  if (status === 400) return `400 · Solicitud rechazada por la API de Gemini: ${msg}`;
-  return msg;
+  return mensaje;
 }
 
-/** generateContent con reintento de versión de API sólo ante 404. */
-async function llamarGemini({ apiKey, model, contents, config }) {
-  let lastError = null;
+/**
+ * Llama a generateContent recorriendo la cadena de modelos y versiones.
+ * - 404 (modelo retirado) -> salta al siguiente modelo
+ * - 503 (sobrecarga)      -> reintenta con backoff y luego salta
+ * - 401/403/429           -> aborta (no es cosa del modelo)
+ */
+async function llamarGemini({ apiKey, contents, config, modelos }) {
+  let ultimo = { status: 502, mensaje: "Sin intentos." };
 
-  for (const apiVersion of API_VERSIONS) {
-    try {
-      const ai = new GoogleGenAI({ apiKey, apiVersion });
-      const response = await ai.models.generateContent({ model, contents, config });
-      const text = response?.text;
-      if (typeof text === "string" && text.trim()) return { text, apiVersion };
-      lastError = new Error("La API de Gemini devolvió una respuesta vacía.");
-    } catch (err) {
-      lastError = err;
-      if ((err?.status ?? err?.code) !== 404) break;
+  for (const model of modelos) {
+    for (const apiVersion of VERSIONES) {
+      const url = construirUrl({ model, apiVersion, apiKey });
+
+      for (let intento = 1; intento <= REINTENTOS_503; intento++) {
+        let res;
+        let texto = "";
+        try {
+          res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents, generationConfig: config })
+          });
+          texto = await res.text();
+        } catch (err) {
+          ultimo = { status: 502, mensaje: `Fallo de red: ${err?.message || err}` };
+          await dormir(ESPERA_BASE_MS * intento);
+          continue;
+        }
+
+        if (res.ok) {
+          let json;
+          try {
+            json = JSON.parse(texto);
+          } catch {
+            ultimo = { status: 502, mensaje: "Respuesta no interpretable de la API de Gemini." };
+            break;
+          }
+          const respuesta = json?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
+          if (respuesta.trim()) {
+            return { texto: respuesta, model: model, apiVersion };
+          }
+          ultimo = { status: 502, mensaje: "La API de Gemini devolvió una respuesta vacía." };
+          break;
+        }
+
+        const mensaje = mensajeDeGoogle(texto);
+        ultimo = { status: res.status, mensaje };
+
+        if (res.status === 404) break; // modelo/versión inválida: siguiente candidato
+        if (res.status === 503 || res.status === 429) {
+          if (intento < REINTENTOS_503) {
+            await dormir(ESPERA_BASE_MS * intento * 2);
+            continue;
+          }
+          break; // sobrecarga persistente: siguiente modelo
+        }
+        break; // 400/401/403 u otro: no adianta cambiar de modelo
+      }
     }
   }
 
-  const mensaje = descErrorGemini(lastError);
-  const error = new Error(mensaje);
-  error.status = lastError?.status ?? lastError?.code ?? 502;
+  // Un problema de configuracion del servidor no debe parecer un error del cliente.
+  const esConfiguracion =
+    /GEMINI_API_KEY inválida|403 ·|Fallo de red|no tiene acceso/i.test(descError(ultimo));
+  const error = new Error(descError(ultimo));
+  error.status = esConfiguracion ? 502 : ultimo.status === 404 ? 502 : ultimo.status;
   throw error;
 }
 
@@ -137,10 +239,15 @@ export function parsearRespuesta(text) {
 /* Acciones públicas de la API                                          */
 /* ------------------------------------------------------------------ */
 
-const LIMITE_NOTAS = 5000;
-const LIMITE_BASE64 = 4_000_000;
+const MIME_PERMITIDOS = new Set(["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"]);
 
-export async function accionExtraer({ imagenBase64, mimeType, textoNotas, modelName }) {
+function normalizarMime(mimeType) {
+  const m = String(mimeType || "").toLowerCase().trim();
+  if (!MIME_PERMITIDOS.has(m)) return "image/png";
+  return m === "image/jpg" ? "image/jpeg" : m;
+}
+
+function exigirLlave() {
   const apiKey = apiKeyDelServidor();
   if (!apiKey) {
     const err = new Error(
@@ -149,80 +256,108 @@ export async function accionExtraer({ imagenBase64, mimeType, textoNotas, modelN
     err.status = 503;
     throw err;
   }
+  return apiKey;
+}
 
-  const modelo = normalizarModelo(modelName);
-  const notas = String(textoNotas || "").slice(0, LIMITE_NOTAS);
+/**
+ * Cadena de modelos a intentar. Si el cliente pide uno explícito y no está
+ * retirado, se prueba primero; después se recorre la cadena de respaldo.
+ */
+function construirIntentos(modelName) {
+  const base = cadenaDeModelos();
+  const elegido = normalizarModelo(modelName);
+  return [...new Set([elegido, ...base])];
+}
+
+export async function accionExtraer({ imagenBase64, mimeType, textoNotas, modelName }) {
+  const apiKey = exigirLlave();
+  const notas = String(textoNotas || "").slice(0, MAX_NOTAS);
 
   if (!imagenBase64 && !notas.trim()) {
     const err = new Error("Se requiere una imagen o notas técnicas para procesar.");
     err.status = 400;
     throw err;
   }
-
-  if (imagenBase64 && String(imagenBase64).length > LIMITE_BASE64) {
+  if (imagenBase64 && String(imagenBase64).length > MAX_BASE64) {
     const err = new Error("La imagen supera el tamaño máximo permitido (4 MB).");
     err.status = 413;
     throw err;
   }
 
-  const contents = [];
+  const parts = [];
   if (imagenBase64) {
-    contents.push({
-      inlineData: {
-        data: String(imagenBase64),
-        mimeType: mimeType || "image/png"
-      }
-    });
+    parts.push({ inlineData: { mimeType: normalizarMime(mimeType), data: String(imagenBase64) } });
   }
-  contents.push({ text: construirPrompt(notas) });
+  parts.push({ text: construirPrompt(notas) });
 
-  const { text, apiVersion } = await llamarGemini({
-    apiKey,
-    model: modelo,
-    contents,
-    config: {
-      temperature: 0.2,
-      responseMimeType: "application/json"
-    }
-  });
-
-  const datos = parsearRespuesta(text);
-  return { datos: { ...datos, modelo_usado: modelo }, modeloUsado: modelo, apiVersion };
-}
-
-export async function accionTestear({ modelName }) {
-  const apiKey = apiKeyDelServidor();
-  if (!apiKey) {
-    const err = new Error(
-      "GEMINI_API_KEY no está configurada en el servidor Vercel. Agrégala en Settings → Environment Variables y vuelve a desplegar."
-    );
-    err.status = 503;
+  const contents = [{ role: "user", parts }];
+  if (JSON.stringify(contents).length > MAX_CUERPO_JSON) {
+    const err = new Error("El contenido es demasiado grande para el motor de IA.");
+    err.status = 413;
     throw err;
   }
 
-  const modelo = normalizarModelo(modelName);
-  const { text, apiVersion } = await llamarGemini({
+  const { texto, model, apiVersion } = await llamarGemini({
     apiKey,
-    model: modelo,
-    contents: "Hola, responde únicamente con la palabra OK si estás activo.",
-    config: { maxOutputTokens: 32 }
+    contents,
+    config: { temperature: 0.2, responseMimeType: "application/json" },
+    modelos: construirIntentos(modelName)
+  });
+
+  const datos = parsearRespuesta(texto);
+  return { datos: { ...datos, modelo_usado: model }, modeloUsado: model, apiVersion };
+}
+
+export async function accionTestear({ modelName }) {
+  const apiKey = exigirLlave();
+
+  const { texto, model, apiVersion } = await llamarGemini({
+    apiKey,
+    contents: [{ role: "user", parts: [{ text: "Responde únicamente con la palabra OK." }] }],
+    config: { maxOutputTokens: 32 },
+    modelos: construirIntentos(modelName)
   });
 
   return {
-    mensaje: `Conexión exitosa con ${modelo} (API ${apiVersion}). Respuesta: ${text.trim()}`,
-    modeloUsado: modelo,
-    apiVersion
+    mensaje: `Conexión exitosa con ${model} (API ${apiVersion}). Respuesta: ${texto.trim()}`,
+    modeloUsado: model,
+    apiVersion,
+    url: construirUrlDiagnostica(model, apiVersion)
   };
 }
 
-/** Diagnóstico sin gastar cuota: ¿existe GEMINI_API_KEY en el servidor? */
+/** Diagnóstico sin gastar cuota: ¿existe GEMINI_API_KEY y qué URL se usaría? */
 export function estadoDelMotor() {
   const configurado = !!apiKeyDelServidor();
+  const modelos = cadenaDeModelos();
   return {
     configurado,
-    modelo: MODELO_POR_DEFECTO,
+    modelo: modelos[0],
+    cadenaModelos: modelos,
+    urlPrevista: construirUrlDiagnostica(modelos[0], VERSION_PREFERIDA),
     mensaje: configurado
-      ? `GEMINI_API_KEY detectada en el servidor. Listo para usar ${MODELO_POR_DEFECTO}.`
+      ? `GEMINI_API_KEY detectada. Se usará ${construirUrlDiagnostica(modelos[0], VERSION_PREFERIDA)}`
       : "GEMINI_API_KEY no está configurada en el servidor Vercel."
   };
+}
+
+/** Lista los modelos que la llave puede usar realmente (diagnóstico opcional). */
+export async function listarModelosDisponibles() {
+  const apiKey = apiKeyDelServidor();
+  if (!apiKey) return { ok: false, error: "GEMINI_API_KEY no configurada." };
+  try {
+    const res = await fetch(`${BASE}/${VERSION_PREFERIDA}/models?pageSize=200&key=${apiKey}`);
+    const json = await res.json();
+    const disponibles = (json?.models || [])
+      .filter((m) => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map((m) => m.name.replace(/^models\//, ""));
+    return {
+      ok: res.ok,
+      disponibles,
+      flashedUsables: disponibles.filter((m) => /flash/i.test(m) && !/tts|image|omni/i.test(m)),
+      url: `${BASE}/${VERSION_PREFERIDA}/models?key=***REDACTADA***`
+    };
+  } catch (err) {
+    return { ok: false, error: err?.message || String(err) };
+  }
 }

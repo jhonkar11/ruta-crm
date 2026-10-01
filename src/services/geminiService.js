@@ -9,17 +9,40 @@ import { supabase } from "./supabaseClient";
  */
 
 /**
- * Modelo único y estable soportado.
- * Los modelos gemini-1.5-* fueron RETIRADOS por Google y devuelven HTTP 404.
+ * Modelos que el SERVIDOR acepta. Deben coincidir con `api/_lib/gemini.js`.
+ *
+ * Google RETIRÓ gemini-1.5-*, gemini-2.0-flash y gemini-2.5-*: llamarlos devuelve
+ * HTTP 404 ("This model ... is no longer available"). Esos identificadores se
+ * normalizan al modelo vigente, nunca se envían a la API.
  */
-export const MODELO_GEMINI_POR_DEFECTO = "gemini-2.0-flash";
+export const MODELO_GEMINI_POR_DEFECTO = "gemini-3.8-flash";
 
 export const MODELOS_GEMINI = [
   {
-    id: MODELO_GEMINI_POR_DEFECTO,
-    nombre: "Gemini 2.0 Flash",
-    descripcion: "Alta velocidad, precisión OCR y estabilidad",
+    id: "gemini-3.8-flash",
+    nombre: "Gemini 3.8 Flash",
+    descripcion: "Modelo vigente. Precisión OCR y estabilidad",
     recomendado: true
+  },
+  {
+    id: "gemini-3.7-flash",
+    nombre: "Gemini 3.7 Flash",
+    descripcion: "Respaldo estable del anterior"
+  },
+  {
+    id: "gemini-3.6-flash",
+    nombre: "Gemini 3.6 Flash",
+    descripcion: "Respaldo con mayor capacidad"
+  },
+  {
+    id: "gemini-3.5-flash",
+    nombre: "Gemini 3.5 Flash",
+    descripcion: "Respaldo de mayor estabilidad"
+  },
+  {
+    id: "gemini-3.1-flash-lite",
+    nombre: "Gemini 3.1 Flash Lite",
+    descripcion: "Opción ligera y económica"
   }
 ];
 
@@ -56,6 +79,11 @@ function descErrorRed(status, mensaje) {
       return "La imagen es demasiado grande. Reduce su tamaño e intenta de nuevo.";
     case 429:
       return `Cuota o límite alcanzado. ${mensaje || "Espera unos segundos e inténtalo de nuevo."}`;
+    case 502:
+      return (
+        mensaje ||
+        "El motor de IA no pudo responder ahora mismo (Google está saturado o el modelo no está disponible). Intenta de nuevo en unos segundos."
+      );
     case 503:
       return mensaje || "El servidor de IA no está configurado (falta GEMINI_API_KEY en Vercel).";
     default:

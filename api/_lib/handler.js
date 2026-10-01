@@ -1,5 +1,11 @@
 import { verificarToken, aplicarRateLimit, extraerIp, adminEmail } from "./auth.js";
-import { accionExtraer, accionTestear, estadoDelMotor, MODELO_POR_DEFECTO } from "./gemini.js";
+import {
+  accionExtraer,
+  accionTestear,
+  estadoDelMotor,
+  listarModelosDisponibles,
+  MODELO_POR_DEFECTO
+} from "./gemini.js";
 
 const MAX_BODY = 4_500_000; // límite de Vercel para serverless (4.5 MB)
 
@@ -100,6 +106,16 @@ export async function manejarPeticion({ method = "GET", headers = {}, body = nul
         status: 200,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
         body: { ok: true, ...estadoDelMotor() }
+      };
+    }
+
+    if (accion === "modelos") {
+      // Diagnóstico: qué modelos ve realmente la llave configurada.
+      const resultado = await listarModelosDisponibles();
+      return {
+        status: resultado.ok ? 200 : 502,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+        body: { ok: !!resultado.ok, ...resultado }
       };
     }
 
