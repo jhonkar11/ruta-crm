@@ -23,9 +23,10 @@ import {
 import { C } from "../../styles/tokens";
 import { isSoporteAuthorized, SOPORTE_ADMIN_EMAIL } from "../../utils/rbac";
 import {
-  getGeminiApiKey,
+  estadoMotorIA,
   extraerDatosDeServicio,
   generarPlantillaSolucion,
+  MODELO_GEMINI_POR_DEFECTO,
   MODELOS_GEMINI
 } from "../../services/geminiService";
 import {
@@ -48,7 +49,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [loadingServicios, setLoadingServicios] = useState(true);
 
   // Estados de IA y OCR
-  const [selectedModel, setSelectedModel] = useState("gemini-2.0-flash");
+  const [selectedModel, setSelectedModel] = useState(MODELO_GEMINI_POR_DEFECTO);
   const [imagenPreview, setImagenPreview] = useState(null);
   const [imagenBase64, setImagenBase64] = useState(null);
   const [mimeType, setMimeType] = useState("image/png");
@@ -56,7 +57,8 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [procesandoIA, setProcesandoIA] = useState(false);
   const [errorIA, setErrorIA] = useState(null);
   const [showConfigKey, setShowConfigKey] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState(() => !!getGeminiApiKey());
+  // La llave ya no vive en el navegador: esto refleja si el servidor la tiene.
+  const [motorListo, setMotorListo] = useState(null); // null = comprobando, true/false = resultado
   const [errorDictado, setErrorDictado] = useState(null);
 
   // Formulario estructurado "Datos de servicio requerido"
@@ -93,8 +95,14 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const isAuthorized = isSoporteAuthorized(user, profile);
 
   useEffect(() => {
-    setHasApiKey(!!getGeminiApiKey());
     cargarServicios();
+
+    // Comprobar si el servidor tiene la GEMINI_API_KEY configurada
+    let cancelado = false;
+    (async () => {
+      const r = await estadoMotorIA();
+      if (!cancelado) setMotorListo(!!r?.configurado);
+    })();
 
     // Soporte para pegar imágenes desde el portapapeles (Ctrl+V / WhatsApp Web)
     const handlePaste = (e) => {
@@ -114,7 +122,10 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     };
 
     window.addEventListener("paste", handlePaste);
-    return () => window.removeEventListener("paste", handlePaste);
+    return () => {
+      cancelado = true;
+      window.removeEventListener("paste", handlePaste);
+    };
   }, []);
 
   const cargarServicios = async () => {
@@ -199,14 +210,15 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     }
   };
 
-  // 2. Procesamiento con IA Multimodal (Gemini 2.5 / 2.0 / 1.5)
+  // 2. Procesamiento con IA Multimodal (Gemini 2.0 Flash vía /api/gemini)
   const handleProcesarIA = async () => {
     if (!imagenBase64 && !notasTecnico.trim()) {
       alert("Por favor sube una captura de pantalla de WhatsApp o escribe el requerimiento del servicio.");
       return;
     }
 
-    if (!hasApiKey && !getGeminiApiKey()) {
+    // Si el servidor no tiene la llave, el proxy responderá 503. Abrimos el diagnóstico.
+    if (motorListo === false) {
       setShowConfigKey(true);
       return;
     }
@@ -472,16 +484,17 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
 
             <button
               onClick={() => setShowConfigKey(true)}
+              title="Diagnosticar la conexión segura con Google Gemini"
               style={{
-                background: hasApiKey
-                  ? (isDark ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.1)")
-                  : (isDark ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.12)"),
-                border: hasApiKey
-                  ? (isDark ? "1px solid #10b981" : "1px solid #6EE7B7")
-                  : (isDark ? "1px solid #f59e0b" : "1px solid #FCD34D"),
-                color: hasApiKey
-                  ? (isDark ? "#a7f3d0" : "#059669")
-                  : (isDark ? "#fef08a" : "#92400E"),
+                background: motorListo === false
+                  ? (isDark ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.12)")
+                  : (isDark ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.1)"),
+                border: motorListo === false
+                  ? (isDark ? "1px solid #f59e0b" : "1px solid #FCD34D")
+                  : (isDark ? "1px solid #10b981" : "1px solid #6EE7B7"),
+                color: motorListo === false
+                  ? (isDark ? "#fef08a" : "#92400E")
+                  : (isDark ? "#a7f3d0" : "#059669"),
                 padding: "8px 12px",
                 borderRadius: 10,
                 fontSize: 12,
@@ -492,8 +505,14 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
                 gap: 6
               }}
             >
-              <Key size={14} />
-              <span>{hasApiKey ? "✓ Gemini Conectado" : "Configurar API Key"}</span>
+              {motorListo === false ? <Key size={14} /> : <ShieldCheck size={14} />}
+              <span>
+                {motorListo === null
+                  ? "Comprobando Gemini..."
+                  : motorListo
+                    ? "✓ Gemini Conectado"
+                    : "Configurar Gemini"}
+              </span>
             </button>
           </div>
         </div>
@@ -1636,11 +1655,11 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
         </div>
       )}
 
-      {/* Modal de Configuración y Diagnóstico de API Key */}
+      {/* Modal de diagnóstico del motor de IA (la llave vive en el servidor) */}
       <ConfigApiKeyModal
         isOpen={showConfigKey}
         onClose={() => setShowConfigKey(false)}
-        onKeySaved={(newKey) => setHasApiKey(!!newKey)}
+        onEstadoVerificado={(r) => setMotorListo(!!r?.configurado)}
         theme={theme}
       />
     </div>

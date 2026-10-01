@@ -16,7 +16,10 @@ Este módulo corporativo de nivel mundial automatiza el ciclo de vida de los ser
   - Ajuste dinámico de altura multilínea optimizado para textos largos, bitácoras y diagnósticos técnicos sin romper el diseño.
   - Modo pantalla completa con un clic para redacciones extensas.
 - **Entrada de Voz Multimodal (Micrófono & Altavoz):**
-  - **Dictado por voz en tiempo real:** Integración nativa con Web Speech API (`es-CO`). Dicta el reporte en el sitio y el texto se transcribirá directamente en la caja de notas.
+  - **Dictado por voz en tiempo real:** Integración nativa con Web Speech API (`es-CO`) mediante el hook `useDictadoVoz`.
+    - **Sin texto duplicado:** sólo se procesan los bloques definitivos (`isFinal === true`), recorriendo únicamente los índices nuevos a partir de `event.resultIndex`. Los resultados intermedios se muestran como vista previa y se *reemplazan* en el siguiente evento, en vez de acumularse.
+    - El texto previo escrito por el técnico se captura de forma síncrona al pulsar el botón y se usa como base, de modo que el dictado se añade sin borrar lo anterior.
+    - Libera el micrófono al navegar fuera, evita motores duplicados y reinicia la escucha si el motor se corta por silencio.
   - **Altavoz (Text-to-Speech):** Lee en voz alta la plantilla corporativa generada o las notas técnicas con entonación natural.
 - **Gestión Inteligente de Imágenes Temporales:**
   - Carga rápida o drag-and-drop de pantallazos de WhatsApp o fotos desde el móvil.
@@ -26,6 +29,29 @@ Este módulo corporativo de nivel mundial automatiza el ciclo de vida de los ser
 ---
 
 ## 3. MOTOR DE INTELIGENCIA ARTIFICIAL MULTIMODAL (GOOGLE GEMINI)
+
+### 3.1 Arquitectura segura (la llave NUNCA llega al navegador)
+- La `GEMINI_API_KEY` vive **sólo** como variable de entorno de Vercel. El navegador no la pide, no la guarda en `localStorage` y no la recibe: no está en el bundle público.
+- Todo el tráfico de IA pasa por la función serverless **`/api/gemini`**, que valida la sesión, aplica RBAC, aplica el modelo permitido, construye el prompt y recién entonces llama a Google.
+- `vite.config.js` monta el mismo manejador en desarrollo, así que `npm run dev` y producción se comportan idénticamente.
+- `envPrefix: ["VITE_"]` garantiza que ninguna variable sin ese prefijo llegue al bundle.
+
+### 3.2 Controles de seguridad aplicados en `/api/gemini`
+| Control | Detalle |
+|---|---|
+| Autenticación | Exige `Authorization: Bearer <token de sesión de Supabase>`. Sin token → `401` (antes la petición pasaba sin header) |
+| Verificación del token | HS256 local con `SUPABASE_JWT_SECRET` (`timingSafeEqual`, valida `exp`) o, en su defecto, consulta a `{SUPABASE_URL}/auth/v1/user` |
+| RBAC | Sólo el correo de `SOPORTE_ADMIN_EMAIL` puede gastar cuota → `403` |
+| Lista blanca de modelos | Sólo `gemini-2.0-flash`. Cualquier otro identificador se normaliza |
+| Validación de entrada | Límite de 4 MB en base64, 5000 caracteres de notas, MIME de imagen en lista blanca, cuerpo máximo 4.5 MB |
+| Rate limiting | 30 peticiones/min por IP (configurable con `GEMINI_RATE_LIMIT`) |
+| Fallo cerrado | Si falta `GEMINI_API_KEY` o la verificación de sesión → `503` con mensaje accionable, nunca acceso abierto |
+| Prompt en servidor | El cliente no puede alterar el prompt ni el modelo |
+
+### 3.3 Variables de entorno requeridas en Vercel
+`GEMINI_API_KEY` · `SUPABASE_JWT_SECRET` (o `SUPABASE_URL` + `SUPABASE_ANON_KEY`) · opcional `SOPORTE_ADMIN_EMAIL`, `GEMINI_RATE_LIMIT`
+
+### 3.4 Extracción
 Compatible con **Gemini 2.0 Flash** mediante el SDK oficial `@google/genai` (API estable `v1`):
 > Nota: los modelos `gemini-1.5-flash` / `gemini-1.5-pro` fueron **retirados** por Google y devuelven `HTTP 404`. No deben referenciarse en ninguna llamada.
 - **Paso 1: Extracción de Datos de Servicio (OCR & Parsing):**

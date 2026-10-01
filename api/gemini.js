@@ -1,61 +1,26 @@
-// Vercel Serverless Function: Proxy Gemini API con RBAC para Jhonka001@gmail.com
-import { GoogleGenAI } from "@google/genai";
-
-const ADMIN_EMAIL = "jhonka001@gmail.com";
-
-// Modelo único y estable. Los gemini-1.5-* fueron retirados por Google (HTTP 404).
-const MODELO_POR_DEFECTO = "gemini-2.0-flash";
-const MODELOS_PERMITIDOS = new Set([MODELO_POR_DEFECTO]);
-const API_VERSIONS = ["v1", "v1beta"];
+// Vercel Serverless Function: proxy seguro hacia Google Gemini.
+//
+// La GEMINI_API_KEY se lee de process.env (Variables de Entorno de Vercel) y NUNCA
+// se envía al navegador. El cliente sólo manda sesión + imagen/notas; el prompt,
+// el modelo y la llamada a Google ocurren íntegramente aquí.
+//
+// Requiere en Vercel:
+//   GEMINI_API_KEY            -> llave de Google AI Studio (obligatoria)
+//   SUPABASE_JWT_SECRET       -> para validar la sesión en local (recomendado)
+//   (o alternativamente) SUPABASE_URL + SUPABASE_ANON_KEY
+//   SOPORTE_ADMIN_EMAIL       -> opcional, por defecto jhonka001@gmail.com
+import { manejarPeticion } from "./_lib/handler.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+  const resultado = await manejarPeticion({
+    method: req.method,
+    headers: req.headers || {},
+    // Vercel parsea application/json; si no lo hizo, cae al texto plano.
+    body: req.body ?? null
+  });
+
+  for (const [clave, valor] of Object.entries(resultado.headers || {})) {
+    res.setHeader(clave, valor);
   }
-
-  // Validación de seguridad backend
-  const authHeader = req.headers["x-user-email"] || req.headers.authorization;
-  const userEmail = (authHeader || "").toLowerCase();
-
-  // En producción, comprobar que la llamada provenga del correo del administrador
-  if (userEmail && !userEmail.includes("jhonka001")) {
-    return res.status(403).json({ error: `Acceso denegado. Módulo exclusivo para ${ADMIN_EMAIL}` });
-  }
-
-  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: "GEMINI_API_KEY no configurada en las variables del servidor Vercel." });
-  }
-
-  const { prompt, imagenBase64, mimeType, modelName } = req.body || {};
-  // Lista blanca estricta: nunca permitir que el cliente pida un modelo retirado.
-  const model = MODELOS_PERMITIDOS.has(modelName) ? modelName : MODELO_POR_DEFECTO;
-
-  const contents = [];
-  if (imagenBase64) {
-    contents.push({
-      inlineData: {
-        data: imagenBase64,
-        mimeType: mimeType || "image/png"
-      }
-    });
-  }
-  contents.push({ text: prompt });
-
-  let lastError = null;
-
-  for (const apiVersion of API_VERSIONS) {
-    try {
-      const ai = new GoogleGenAI({ apiKey, apiVersion });
-      const response = await ai.models.generateContent({ model, contents });
-      const text = response?.text ?? "";
-      return res.status(200).json({ result: text, modelUsed: model, apiVersion });
-    } catch (err) {
-      lastError = err;
-      if ((err?.status ?? err?.code) !== 404) break;
-    }
-  }
-
-  console.error("Error en backend Gemini:", lastError);
-  return res.status(500).json({ error: lastError?.message || "Error desconocido en la API de Gemini", modelUsed: model });
+  return res.status(resultado.status).json(resultado.body);
 }
