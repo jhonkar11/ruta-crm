@@ -1,4 +1,4 @@
-import { Filter, Users, Search, Plus, CalendarClock, Wrench } from "lucide-react";
+import { Filter, Users, Search, Plus, CalendarClock, Wrench, Network } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { NavTab } from "../ui/UIKit";
 import { isSoporteAuthorized } from "../../utils/rbac";
@@ -13,7 +13,7 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount, user, p
       left: "50%", 
       transform: "translateX(-50%)", 
       width: "92%", 
-      maxWidth: canAccessSoporte ? 520 : 460,
+      maxWidth: canAccessSoporte ? 600 : 460,
       background: "rgba(15, 23, 42, 0.95)",
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)",
@@ -61,6 +61,14 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount, user, p
           label="Soporte"
           active={view === "soporte"}
           onClick={() => setView("soporte")}
+        />
+      )}
+      {canAccessSoporte && (
+        <NavTab
+          icon={Network}
+          label="Redes"
+          active={view === "redes"}
+          onClick={() => setView("redes")}
         />
       )}
     </div>

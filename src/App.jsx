@@ -19,6 +19,7 @@ import AlertasModal from "./components/alertas/AlertasModal";
 import HistorialClienteModal from "./components/historial/HistorialClienteModal";
 import SimuladorCredito from "./components/simulador/SimuladorCredito";
 import RegistrarAbonoModal from "./components/pagos/RegistrarAbonoModal";
+import RedesView from "./components/redes/RedesView";
 import SoporteTecnicoView from "./components/soporte/SoporteTecnicoView";
 import { isSoporteAuthorized } from "./utils/rbac";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
@@ -539,6 +540,9 @@ export default function App() {
 
           {view === "soporte" && (
             <SoporteTecnicoView user={user} profile={profile} theme={theme} />
+          )}
+          {view === "redes" && (
+            <RedesView theme={theme} />
           )}
         </div>
 
