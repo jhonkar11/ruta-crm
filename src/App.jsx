@@ -21,6 +21,9 @@ import SimuladorCredito from "./components/simulador/SimuladorCredito";
 import RegistrarAbonoModal from "./components/pagos/RegistrarAbonoModal";
 import RedesView from "./components/redes/RedesView";
 import SoporteTecnicoView from "./components/soporte/SoporteTecnicoView";
+import LandingInstitucional from "./components/landing/LandingInstitucional";
+import VisitantesView from "./components/visitantes/VisitantesView";
+import ModuloContable from "./components/contable/ModuloContable";
 import { isSoporteAuthorized } from "./utils/rbac";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
@@ -29,7 +32,7 @@ export default function App() {
   const { records, loading: recordsLoading, error, saveCliente, actualizarCampos, archivar, desarchivar, eliminar, registrarNovedad } = useClientes();
   const { pagos, registrar: registrarAbono } = usePagosCredito();
 
-  const [view, setView] = useState(() => localStorage.getItem("crm_view") || "mapa");
+  const [view, setView] = useState(() => localStorage.getItem("crm_view") || "inicio");
   const [editing, setEditing] = useState(undefined);
   const [query, setQuery] = useState("");
   const [confirmTarget, setConfirmTarget] = useState(null);
@@ -376,7 +379,7 @@ export default function App() {
         </div>
       )}
 
-      <div style={{ maxWidth: "1100px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: "1240px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
         <TopBar
           profile={profile}
           userId={user.id}
@@ -538,6 +541,23 @@ export default function App() {
             </>
           )}
 
+          {view === "inicio" && (
+            <LandingInstitucional
+              setView={setView}
+              profile={profile}
+              theme={theme}
+              onOpenSimulador={() => setShowSimulador(true)}
+            />
+          )}
+
+          {view === "visitantes" && (
+            <VisitantesView theme={theme} />
+          )}
+
+          {view === "contable" && (
+            <ModuloContable theme={theme} />
+          )}
+
           {view === "soporte" && (
             <SoporteTecnicoView user={user} profile={profile} theme={theme} />
           )}
@@ -577,7 +597,7 @@ export default function App() {
       )}
 
       {showSimulador && (
-        <SimuladorCredito onClose={() => setShowSimulador(false)} />
+        <SimuladorCredito onClose={() => setShowSimulador(false)} theme={theme} />
       )}
 
       {abonoCliente && (

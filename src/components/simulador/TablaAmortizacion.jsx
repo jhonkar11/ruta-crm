@@ -1,33 +1,45 @@
-const cell = { padding: "7px 10px", textAlign: "right", color: "rgba(255,255,255,0.85)", whiteSpace: "nowrap" };
+import React from "react";
+
 const fmt = (n) => (n || 0).toLocaleString("es-CO", { maximumFractionDigits: 0 });
 
 export default function TablaAmortizacion({ filas = [] }) {
   if (!filas.length) return null;
+
   return (
-    <div style={{ marginTop: 14, maxHeight: 300, overflow: "auto", borderRadius: 10, border: "1px solid rgba(255,255,255,0.12)" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5 }}>
-        <thead style={{ position: "sticky", top: 0, background: "rgba(15,23,42,0.95)", zIndex: 1 }}>
-          <tr>
-            {["#", "Fecha", "Saldo inicial", "Cuota", "Abono capital", "Interés", "Seguro", "Saldo final"].map((h) => (
-              <th key={h} style={{ padding: "8px 10px", textAlign: "right", color: "rgba(255,255,255,0.6)", fontWeight: 700, whiteSpace: "nowrap" }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map((f) => (
-            <tr key={f.periodo} style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-              <td style={cell}>{f.periodo}</td>
-              <td style={cell}>{f.fecha}</td>
-              <td style={cell}>{fmt(f.saldoInicial)}</td>
-              <td style={{ ...cell, color: "#fff", fontWeight: 700 }}>{fmt(f.cuota)}</td>
-              <td style={cell}>{fmt(f.abonoCapital)}</td>
-              <td style={cell}>{fmt(f.interes)}</td>
-              <td style={cell}>{fmt(f.seguro)}</td>
-              <td style={cell}>{fmt(f.saldoFinal)}</td>
+    <div className="w-full overflow-hidden rounded-2xl border border-slate-500/20 shadow-inner">
+      <div className="max-h-72 overflow-y-auto overflow-x-auto">
+        <table className="w-full border-collapse text-xs font-mono">
+          <thead className="sticky top-0 bg-slate-900/90 text-slate-300 backdrop-blur-md z-10">
+            <tr className="border-b border-white/10 text-right">
+              <th className="py-2.5 px-3 text-center font-bold">#</th>
+              <th className="py-2.5 px-3 text-left font-bold font-sans">Fecha</th>
+              <th className="py-2.5 px-3 font-bold">Saldo Inicial</th>
+              <th className="py-2.5 px-3 font-bold text-orange-400">Cuota</th>
+              <th className="py-2.5 px-3 font-bold text-emerald-400">Capital</th>
+              <th className="py-2.5 px-3 font-bold text-amber-400">Interés</th>
+              <th className="py-2.5 px-3 font-bold">Seguro</th>
+              <th className="py-2.5 px-3 font-bold">Saldo Final</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-500/10">
+            {filas.map((f) => (
+              <tr
+                key={f.periodo}
+                className="hover:bg-white/5 transition-colors text-right text-slate-200"
+              >
+                <td className="py-2 px-3 text-center text-slate-400 font-bold">{f.periodo}</td>
+                <td className="py-2 px-3 text-left font-sans text-slate-300">{f.fecha}</td>
+                <td className="py-2 px-3 text-slate-400">${fmt(f.saldoInicial)}</td>
+                <td className="py-2 px-3 font-bold text-orange-300">${fmt(f.cuota)}</td>
+                <td className="py-2 px-3 text-emerald-300 font-semibold">${fmt(f.abonoCapital)}</td>
+                <td className="py-2 px-3 text-amber-300">${fmt(f.interes)}</td>
+                <td className="py-2 px-3 text-slate-400">${fmt(f.seguro)}</td>
+                <td className="py-2 px-3 font-semibold text-slate-200">${fmt(f.saldoFinal)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
