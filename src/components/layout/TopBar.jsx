@@ -65,36 +65,39 @@ export default function TopBar({
 
   return (
     <div
-      className={`sticky top-0 z-50 w-full border-b backdrop-blur-2xl transition-all duration-200 px-4 sm:px-6 py-3 shadow-md ${
+      className={`sticky top-0 z-50 w-full border-b backdrop-blur-2xl transition-all duration-200 px-4 sm:px-6 py-3 shadow-2xl ${
         isDark
-          ? "bg-slate-900/85 border-white/10 text-white"
-          : "bg-white/90 border-slate-200/80 text-slate-900 shadow-slate-200/50"
+          ? "bg-slate-950/90 border-slate-800/80 text-white"
+          : "bg-white/95 border-slate-200 text-slate-900 shadow-slate-200/50"
       }`}
     >
       <div className="flex items-center justify-between gap-4">
         {/* LOGO CORPORATIVO & ROL */}
         <div
           onClick={() => setView("inicio")}
-          className="cursor-pointer flex items-center gap-3 shrink-0"
+          className="cursor-pointer flex items-center gap-3 shrink-0 group"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-orange-500/25">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-500 via-amber-500 to-emerald-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-orange-500/30 group-hover:scale-105 transition-transform">
             I
           </div>
           <div>
-            <div className="font-display font-extrabold text-base tracking-tight flex items-center gap-1.5">
-              <span>INTERRED</span>
-              <span className="text-orange-500 text-xs px-1.5 py-0.2 rounded bg-orange-500/10 border border-orange-500/20">
-                LTDA
+            <div className="font-display font-extrabold text-base tracking-tight flex items-center gap-2">
+              <span className="text-white group-hover:text-orange-400 transition-colors">INTERRED</span>
+              <span className="text-emerald-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
+                LTDA · SENA
               </span>
             </div>
-            <div className="text-[10.5px] font-mono text-slate-400 truncate max-w-[200px] sm:max-w-xs">
-              {profile?.nombre || "Usuario"} · {profile?.rol === "admin" ? "Administrador" : "Asesor"}
+            <div className="text-[11px] font-mono text-slate-300 truncate max-w-[220px] sm:max-w-xs flex items-center gap-1.5 mt-0.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+              <span>{profile?.nombre || "Usuario"}</span>
+              <span className="text-slate-400">·</span>
+              <span className="text-emerald-300 font-semibold">{profile?.rol === "admin" ? "Administrador TI" : "Asesor Comercial"}</span>
             </div>
           </div>
         </div>
 
         {/* NAVEGACIÓN PRINCIPAL DE ESCRITORIO (DEPARTAMENTOS) */}
-        <div className="hidden lg:flex items-center gap-1 bg-slate-500/10 p-1 rounded-2xl border border-slate-500/15">
+        <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-700/80 shadow-inner">
           {navItems.map((item) => {
             const Icon = item.icon;
             const activo = view === item.id || (item.id === "todos" && ["todos", "mapa", "citas", "buscar", "form"].includes(view));
@@ -102,15 +105,15 @@ export default function TopBar({
               <button
                 key={item.id}
                 onClick={() => setView(item.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                   activo
-                    ? "bg-orange-500 text-white shadow-md shadow-orange-500/25"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 border border-orange-400/40"
                     : isDark
-                      ? "text-slate-300 hover:text-white hover:bg-white/5"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white"
+                      ? "text-slate-200 hover:text-white hover:bg-white/10"
+                      : "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
                 }`}
               >
-                <Icon size={14} />
+                <Icon size={15} className={activo ? "text-white" : "text-slate-400"} />
                 <span>{item.label}</span>
               </button>
             );
@@ -125,13 +128,13 @@ export default function TopBar({
               type="button"
               onClick={toggleTheme}
               title={isDark ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
-              className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-semibold flex items-center gap-1.5 transition-all ${
+              className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm ${
                 isDark
-                  ? "bg-white/5 hover:bg-white/10 border-white/15 text-amber-300"
-                  : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700"
+                  ? "bg-slate-900 hover:bg-slate-800 border-slate-700 text-amber-300"
+                  : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800"
               }`}
             >
-              {isDark ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-slate-600" />}
+              {isDark ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-slate-700" />}
               <span className="hidden sm:inline">{isDark ? "Claro" : "Oscuro"}</span>
             </button>
           )}
@@ -141,9 +144,9 @@ export default function TopBar({
             <button
               onClick={onOpenSimulador}
               title="Abrir simulador rápido"
-              className="hidden sm:flex px-3 py-1.5 rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 font-mono text-xs font-semibold items-center gap-1.5 transition"
+              className="hidden sm:flex px-3 py-1.5 rounded-xl border border-orange-500/40 bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 font-mono text-xs font-bold items-center gap-1.5 transition shadow-sm"
             >
-              <Calculator size={14} className="text-orange-500" />
+              <Calculator size={14} className="text-orange-400" />
               <span>Simulador</span>
             </button>
           )}
@@ -156,9 +159,9 @@ export default function TopBar({
               }
             }}
             title="Cerrar sesión"
-            className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-semibold flex items-center gap-1.5 transition ${
+            className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition ${
               isDark
-                ? "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-300"
+                ? "bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/40 text-rose-300 shadow-sm"
                 : "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-600"
             }`}
           >

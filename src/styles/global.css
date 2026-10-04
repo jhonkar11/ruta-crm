@@ -1,58 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
 
+/* Variables Globales de Tema - Modo Oscuro Corporativo por Defecto */
 :root {
-  --bg-app: #F1F5F9;
-  --bg-surface: #FFFFFF;
-  --text-main: #0F172A;
-  --text-muted: #475569;
-  --border-subtle: #CBD5E1;
-  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --bg-app: #060D17;
+  --bg-surface: #0B132B;
+  --bg-surface-glass: rgba(11, 19, 43, 0.85);
+  --text-main: #FFFFFF;
+  --text-muted: #CBD5E1;
+  --text-accent: #10B981;
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --border-glow: rgba(16, 185, 129, 0.35);
+  --card-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"], body.dark-theme, body:not(.light-theme) {
+  --bg-app: #060D17;
+  --bg-surface: #0B132B;
+  --bg-surface-glass: rgba(11, 19, 43, 0.85);
+  --text-main: #FFFFFF;
+  --text-muted: #CBD5E1;
+  --text-accent: #10B981;
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --border-glow: rgba(16, 185, 129, 0.35);
+  --card-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 body.light-theme, [data-theme="light"] {
-  --bg-app: #F1F5F9;
+  --bg-app: #F8FAFC;
   --bg-surface: #FFFFFF;
+  --bg-surface-glass: rgba(255, 255, 255, 0.95);
   --text-main: #0F172A;
-  --text-muted: #475569;
-  --border-subtle: #CBD5E1;
-  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --text-muted: #334155;
+  --text-accent: #059669;
+  --border-subtle: #E2E8F0;
+  --border-glow: rgba(16, 185, 129, 0.3);
+  --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 }
 
-[data-theme="dark"], body.dark-theme {
-  --bg-app: #080E1E;
-  --bg-surface: rgba(15, 23, 42, 0.9);
-  --text-main: #F8FAFC;
-  --text-muted: #94A3B8;
-  --border-subtle: rgba(255, 255, 255, 0.15);
-  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-/* Modo Claro por Defecto */
+/* Base Body Styling */
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #F1F5F9;
+  background-color: #060D17;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.10) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(99, 102, 241, 0.06) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.06) 0px, transparent 50%);
+  background-attachment: fixed;
   font-family: 'Inter', sans-serif;
-  color: #0F172A;
+  color: #FFFFFF;
   overflow-x: hidden;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Modo Oscuro dinámico */
-body.dark-theme {
-  background-color: #080E1E;
-  background-image: url('/fondo-ruta.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  color: #F8FAFC;
+body.light-theme {
+  background-color: #F8FAFC;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(241, 245, 249, 1) 0px, transparent 50%);
+  color: #0F172A;
 }
 
 #root {
@@ -60,75 +79,86 @@ body.dark-theme {
   background: transparent !important;
 }
 
-/* Tipografías y contraste según el tema */
+/* Tipografía de Alto Contraste */
 h1, h2, h3, h4, h5, h6, .view-title {
-  color: #0F172A;
+  color: #FFFFFF;
+  letter-spacing: -0.02em;
+  font-weight: 700;
   transition: color 0.2s ease;
 }
 
-body:not(.dark-theme) h1,
-body:not(.dark-theme) h2,
-body:not(.dark-theme) h3,
-body:not(.dark-theme) h4,
-body:not(.dark-theme) h5,
-body:not(.dark-theme) h6,
 body.light-theme h1,
 body.light-theme h2,
 body.light-theme h3,
 body.light-theme h4,
 body.light-theme h5,
-body.light-theme h6 {
+body.light-theme h6,
+body.light-theme .view-title {
   color: #0F172A !important;
 }
 
-body.dark-theme h1, 
-body.dark-theme h2, 
-body.dark-theme h3, 
-body.dark-theme h4, 
-body.dark-theme h5, 
-body.dark-theme h6, 
-body.dark-theme .view-title {
-  color: #FFFFFF !important;
-}
-
 p, span.description, .subtitle {
-  color: #475569;
+  color: #CBD5E1;
+  line-height: 1.5;
   transition: color 0.2s ease;
 }
 
-body:not(.dark-theme) p,
-body.light-theme p {
-  color: #475569 !important;
+body.light-theme p,
+body.light-theme span.description,
+body.light-theme .subtitle {
+  color: #334155 !important;
 }
 
-body.dark-theme p, 
-body.dark-theme span.description, 
-body.dark-theme .subtitle {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Tarjetas */
+/* Tarjetas Corporativas Glassmorphism Ultra Premium */
 .glass-card {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  border-radius: 16px;
-  color: #0F172A;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-body.dark-theme .glass-card {
-  background: rgba(30, 41, 59, 0.85) !important;
+  background: rgba(11, 19, 43, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  color: #FFFFFF;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+body.light-theme .glass-card {
+  background: #FFFFFF !important;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  color: #0F172A !important;
+}
+
+/* Estilos de Insignias y Estados Activos */
+.badge-active-emerald {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 185, 129, 0.18);
+  color: #34D399;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+}
+
+.badge-wan-online {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-weight: 800;
+  letter-spacing: 0.05em;
 }
 
 /* Menú inferior flotante */
 .floating-bottom-nav {
   position: fixed;
-  bottom: 25px;
+  bottom: 20px;
   left: 0;
   right: 0;
   z-index: 99999;
@@ -139,20 +169,20 @@ body.dark-theme .glass-card {
 
 .floating-bottom-nav > div {
   pointer-events: auto;
-  background: rgba(15, 23, 42, 0.94) !important;
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(6, 13, 23, 0.92) !important;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
   border-radius: 28px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-  max-width: 480px;
-  width: 90%;
-  padding: 8px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 25px rgba(16, 185, 129, 0.15);
+  max-width: 520px;
+  width: 92%;
+  padding: 8px 12px;
 }
 
 .floating-bottom-nav svg {
   color: #ffffff !important;
-  stroke-width: 2.5;
+  stroke-width: 2.2;
 }
 
 .floating-bottom-nav span {
@@ -162,21 +192,23 @@ body.dark-theme .glass-card {
 
 /* Etiquetas de formulario */
 label, .input-label, .field-title {
-  color: #475569;
-  font-weight: 600 !important;
+  color: #CBD5E1;
+  font-weight: 700 !important;
   text-transform: uppercase;
   font-size: 0.75rem;
+  letter-spacing: 0.06em;
 }
-body.dark-theme label, 
-body.dark-theme .input-label, 
-body.dark-theme .field-title {
-  color: #fdba74 !important;
+
+body.light-theme label, 
+body.light-theme .input-label, 
+body.light-theme .field-title {
+  color: #334155 !important;
 }
 
 /* Semáforo de urgencia */
 .semaforo-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
   display: inline-block;
@@ -187,8 +219,24 @@ body.dark-theme .field-title {
 }
 
 @keyframes semaforoPulso {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55); }
-  50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.6); }
+  50% { box-shadow: 0 0 0 7px rgba(220, 38, 38, 0); }
+}
+
+/* Custom Scrollbar Corporativo Oscuro */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(6, 13, 23, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.6);
 }
 
 @media (max-width: 420px) {

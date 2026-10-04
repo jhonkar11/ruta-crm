@@ -4,7 +4,8 @@ import { Stamp, IconBtn } from "../ui/UIKit";
 import SemaforoBadge from "../ui/SemaforoBadge";
 import EstadoCarteraBadge from "../pagos/EstadoCarteraBadge";
 
-export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onDesarchivar, onOpenDocs, onOpenHistorial, onOpenAbono, onRegistrarContacto, pagosPorCliente, canDelete }) {
+export default function ClientCard({ client, r: clientProp, profile, onEdit, onArchive, onDelete, onDesarchivar, onOpenDocs, onOpenHistorial, onOpenAbono, onRegistrarContacto, pagosPorCliente, canDelete, theme = "light" }) {
+  const isDark = theme === "dark";
   // Soporte universal para ambas formas en que las vistas pasan el registro
   const currentClient = client || clientProp;
   if (!currentClient) return null;
@@ -30,12 +31,12 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
 
   return (
     <div style={{
-      background: "#FFFFFF",
+      background: isDark ? "rgba(11, 19, 43, 0.85)" : "#FFFFFF",
       borderRadius: 12,
       padding: 20,
       marginBottom: 16,
-      border: `1px solid #E2E8F0`,
-      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+      border: isDark ? "1px solid rgba(100, 116, 139, 0.4)" : "1px solid #E2E8F0",
+      boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.06)" : "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
       position: "relative",
       transition: "transform 0.2s ease"
     }}>

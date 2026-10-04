@@ -157,26 +157,27 @@ export default function RedesView({ theme = 'light' }) {
     <div className="w-full space-y-8 animate-fadeIn pb-12">
       {/* CABECERA PRINCIPAL DEL MÓDULO CON GLASSMORFISM */}
       <div className={`p-6 sm:p-8 rounded-3xl border backdrop-blur-2xl transition-all shadow-2xl ${
-        isDark ? 'bg-slate-900/70 border-white/10 text-white' : 'bg-white/80 border-slate-200 text-slate-900 shadow-slate-200/50'
+        isDark ? 'bg-[#0B132B]/90 border-slate-700/80 text-white shadow-black/60' : 'bg-white/90 border-slate-200 text-slate-900 shadow-slate-200/50'
       }`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30">
-              <Network size={28} />
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-emerald-600 text-white shadow-lg shadow-blue-500/30 border border-white/20">
+              <Network size={30} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono font-bold uppercase tracking-wider text-orange-400">
                   Infraestructura & Telecomunicaciones
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 shadow-sm shadow-emerald-500/30 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   WAN ONLINE
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold font-display">
+              <h1 className="text-2xl sm:text-3xl font-extrabold font-display tracking-tight text-white mt-1">
                 Módulo Administrativo & Redes · Interred Ltda.
               </h1>
-              <p className={`text-xs sm:text-sm mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              <p className={`text-xs sm:text-sm mt-1 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 Documentación técnica de subredes, direccionamiento IP, topología multi-sede y enlaces corporativos (SENA GA6-220501106-AA1).
               </p>
             </div>
@@ -185,7 +186,7 @@ export default function RedesView({ theme = 'light' }) {
           <div className="flex items-center gap-2 self-start md:self-auto">
             <button
               onClick={() => setShowModalNuevaSubred(true)}
-              className="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs transition flex items-center gap-2 shadow-lg shadow-orange-500/25"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-orange-500/30 border border-orange-400/40"
             >
               <Plus size={16} />
               <span>Documentar Segmento de Red</span>
@@ -194,7 +195,7 @@ export default function RedesView({ theme = 'light' }) {
         </div>
 
         {/* SELECTOR INTERACTIVO DE SEDES */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-500/20">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-700/60">
           {sedes.map(s => {
             const activa = s.id === sedeActivaId;
             return (
@@ -203,133 +204,146 @@ export default function RedesView({ theme = 'light' }) {
                 onClick={() => setSedeActivaId(s.id)}
                 className={`p-3.5 rounded-2xl border text-left transition-all backdrop-blur-md ${
                   activa
-                    ? 'bg-orange-500/20 border-orange-500 text-white shadow-md'
+                    ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-400/30'
                     : isDark 
-                      ? 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'
-                      : 'bg-slate-100/70 border-slate-200 hover:bg-slate-100 text-slate-700'
+                      ? 'bg-slate-900/70 border-slate-700/70 hover:bg-slate-800/80 hover:border-slate-600 text-slate-200'
+                      : 'bg-slate-100/80 border-slate-200 hover:bg-slate-100 text-slate-800'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <Building size={16} className={activa ? 'text-orange-400' : 'text-slate-400'} />
-                  <span className={`w-2 h-2 rounded-full ${activa ? 'bg-orange-400 animate-pulse' : 'bg-emerald-500'}`} />
+                <div className="flex items-center justify-between mb-1.5">
+                  <Building size={16} className={activa ? 'text-emerald-400' : 'text-slate-400'} />
+                  <span className={`w-2.5 h-2.5 rounded-full ${activa ? 'bg-emerald-400 shadow-sm shadow-emerald-400 animate-pulse' : 'bg-emerald-500/60'}`} />
                 </div>
-                <div className="font-bold text-xs truncate">{s.nombre.replace('Sede ', '')}</div>
-                <div className="text-[11px] text-slate-400 truncate">{s.subredes.length} subredes activas</div>
+                <div className="font-extrabold text-xs truncate text-white">{s.nombre.replace('Sede ', '')}</div>
+                <div className="text-[11px] font-mono text-slate-300 truncate mt-0.5">{s.subredes.length} subredes activas</div>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* TARJETAS RESUMEN DE LA SEDE SELECCIONADA (Estilo SaaS KPIs) */}
+      {/* TARJETAS RESUMEN DE LA SEDE SELECCIONADA (Estilo SaaS KPIs con fondos diferenciados) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: IP WAN */}
-        <div className={`p-5 rounded-2xl border backdrop-blur-xl ${
-          isDark ? 'bg-slate-900/60 border-white/10 text-white' : 'bg-white/80 border-slate-200 text-slate-900 shadow-sm'
+        {/* KPI 1: IP WAN (Azul Corporativo) */}
+        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all hover:scale-[1.01] ${
+          isDark 
+            ? 'bg-gradient-to-br from-blue-950/60 via-slate-900/90 to-blue-900/30 border-blue-500/40 text-white shadow-lg shadow-blue-950/50' 
+            : 'bg-blue-50/70 border-blue-200 text-slate-900 shadow-sm'
         }`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">IP Pública WAN</span>
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400"><Router size={16} /></div>
+            <span className="text-[11px] font-bold text-blue-300 uppercase tracking-wider font-mono">IP Pública WAN</span>
+            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-sm"><Router size={17} /></div>
           </div>
-          <div className="text-lg font-mono font-bold text-blue-400 flex items-center justify-between">
+          <div className="text-xl font-mono font-black text-blue-300 flex items-center justify-between tracking-tight">
             <span>{sedeActiva.ipWAN}</span>
             <button
               onClick={() => copiarPortapapeles(sedeActiva.ipWAN, 'wan')}
-              className="text-slate-400 hover:text-white transition p-1"
+              className="text-slate-300 hover:text-white transition p-1 rounded-lg hover:bg-white/10"
               title="Copiar IP WAN"
             >
-              {copiado === 'wan' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+              {copiado === 'wan' ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
             </button>
           </div>
-          <div className="text-xs text-slate-400 mt-1">{sedeActiva.routerBorde}</div>
+          <div className="text-xs text-slate-300 font-medium mt-1.5 truncate">{sedeActiva.routerBorde}</div>
         </div>
 
-        {/* KPI 2: Ancho de Banda */}
-        <div className={`p-5 rounded-2xl border backdrop-blur-xl ${
-          isDark ? 'bg-slate-900/60 border-white/10 text-white' : 'bg-white/80 border-slate-200 text-slate-900 shadow-sm'
+        {/* KPI 2: Ancho de Banda (Verde Esmeralda) */}
+        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all hover:scale-[1.01] ${
+          isDark 
+            ? 'bg-gradient-to-br from-emerald-950/60 via-slate-900/90 to-emerald-900/30 border-emerald-500/40 text-white shadow-lg shadow-emerald-950/50' 
+            : 'bg-emerald-50/70 border-emerald-200 text-slate-900 shadow-sm'
         }`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Capacidad de Enlace</span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400"><Activity size={16} /></div>
+            <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider font-mono">Capacidad de Enlace</span>
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm"><Activity size={17} /></div>
           </div>
-          <div className="text-lg font-extrabold text-emerald-400">{sedeActiva.anchoBanda.split(' ')[0]} {sedeActiva.anchoBanda.split(' ')[1]}</div>
-          <div className="text-xs text-slate-400 mt-1">Simetría 1:1 dedicada</div>
+          <div className="text-xl font-extrabold text-emerald-300 tracking-tight">{sedeActiva.anchoBanda.split(' ')[0]} {sedeActiva.anchoBanda.split(' ')[1]}</div>
+          <div className="text-xs text-slate-300 font-medium mt-1.5 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+            <span>Simetría 1:1 Dedicada</span>
+          </div>
         </div>
 
-        {/* KPI 3: Equipos Conectados */}
-        <div className={`p-5 rounded-2xl border backdrop-blur-xl ${
-          isDark ? 'bg-slate-900/60 border-white/10 text-white' : 'bg-white/80 border-slate-200 text-slate-900 shadow-sm'
+        {/* KPI 3: Equipos Conectados (Violeta / Púrpura) */}
+        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all hover:scale-[1.01] ${
+          isDark 
+            ? 'bg-gradient-to-br from-purple-950/60 via-slate-900/90 to-purple-900/30 border-purple-500/40 text-white shadow-lg shadow-purple-950/50' 
+            : 'bg-purple-50/70 border-purple-200 text-slate-900 shadow-sm'
         }`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Hosts / Dispositivos</span>
-            <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400"><HardDrive size={16} /></div>
+            <span className="text-[11px] font-bold text-purple-300 uppercase tracking-wider font-mono">Hosts / Dispositivos</span>
+            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-sm"><HardDrive size={17} /></div>
           </div>
-          <div className="text-lg font-extrabold text-purple-400">{totalEquiposSede} Equipos</div>
-          <div className="text-xs text-slate-400 mt-1">Conectados a {sedeActiva.switchCore}</div>
+          <div className="text-xl font-extrabold text-purple-300 tracking-tight">{totalEquiposSede} Equipos</div>
+          <div className="text-xs text-slate-300 font-medium mt-1.5 truncate">Switch Core: {sedeActiva.switchCore}</div>
         </div>
 
-        {/* KPI 4: Gateway & DNS */}
-        <div className={`p-5 rounded-2xl border backdrop-blur-xl ${
-          isDark ? 'bg-slate-900/60 border-white/10 text-white' : 'bg-white/80 border-slate-200 text-slate-900 shadow-sm'
+        {/* KPI 4: Gateway & DNS (Ámbar Corporativo) */}
+        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition-all hover:scale-[1.01] ${
+          isDark 
+            ? 'bg-gradient-to-br from-amber-950/60 via-slate-900/90 to-amber-900/30 border-amber-500/40 text-white shadow-lg shadow-amber-950/50' 
+            : 'bg-amber-50/70 border-amber-200 text-slate-900 shadow-sm'
         }`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gateway Primario</span>
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400"><Wifi size={16} /></div>
+            <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider font-mono">Gateway Primario</span>
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-sm"><Wifi size={17} /></div>
           </div>
-          <div className="text-lg font-mono font-bold text-amber-400">{sedeActiva.gateway}</div>
-          <div className="text-xs text-slate-400 mt-1">DNS: {sedeActiva.dnsPrimario} | {sedeActiva.dnsSecundario}</div>
+          <div className="text-xl font-mono font-black text-amber-300 tracking-tight">{sedeActiva.gateway}</div>
+          <div className="text-xs text-slate-300 font-medium mt-1.5 font-mono truncate">DNS: {sedeActiva.dnsPrimario} | {sedeActiva.dnsSecundario}</div>
         </div>
       </div>
 
       {/* TABLA DE SUBREDES & VLANS DE LA SEDE */}
-      <div className={`p-6 sm:p-8 rounded-3xl border backdrop-blur-2xl transition-all shadow-xl space-y-6 ${
-        isDark ? 'bg-slate-900/70 border-white/10 text-white' : 'bg-white/90 border-slate-200 text-slate-900 shadow-slate-200/50'
+      <div className={`p-6 sm:p-8 rounded-3xl border backdrop-blur-2xl transition-all shadow-2xl space-y-6 ${
+        isDark ? 'bg-[#0B132B]/90 border-slate-700/80 text-white shadow-black/60' : 'bg-white/95 border-slate-200 text-slate-900 shadow-slate-200/50'
       }`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold font-display flex items-center gap-2">
-              <Layers size={20} className="text-orange-500" />
+            <h2 className="text-xl sm:text-2xl font-bold font-display flex items-center gap-2.5 text-white">
+              <div className="p-2 rounded-xl bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                <Layers size={22} />
+              </div>
               <span>Segmentación de Red y VLANs · {sedeActiva.nombre}</span>
             </h2>
-            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Direccionamiento IPv4 privado y asignación de propósitos corporativos
+            <p className={`text-xs sm:text-sm mt-1.5 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+              Direccionamiento IPv4 privado y asignación de propósitos corporativos con aislamiento de seguridad
             </p>
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <Search size={16} className="absolute left-3.5 top-3 text-slate-400" />
+          <div className="relative w-full sm:w-72">
+            <Search size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar por VLAN o subred…"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2 rounded-xl text-xs border outline-none transition ${
+              className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium border outline-none transition ${
                 isDark 
-                  ? 'bg-slate-950/60 border-white/10 text-white focus:border-orange-500' 
-                  : 'bg-slate-50 border-slate-300 text-slate-800 focus:border-orange-500'
+                  ? 'bg-slate-950/80 border-slate-700 text-white placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30' 
+                  : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-500 focus:border-orange-500'
               }`}
             />
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-2xl border border-slate-700/60 shadow-inner">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className={`border-b ${isDark ? 'border-white/10 text-slate-400' : 'border-slate-200 text-slate-600'}`}>
-                <th className="py-3 px-4 font-bold">VLAN ID</th>
-                <th className="py-3 px-4 font-bold">Nombre / Propósito</th>
-                <th className="py-3 px-4 font-bold">Subred CIDR</th>
-                <th className="py-3 px-4 font-bold">Rango Asignable</th>
-                <th className="py-3 px-4 font-bold">Pool DHCP</th>
-                <th className="py-3 px-4 font-bold text-center">Hosts</th>
-                <th className="py-3 px-4 font-bold text-right">Estado</th>
+              <tr className={`border-b ${isDark ? 'bg-slate-950/80 border-slate-700/80 text-slate-200' : 'bg-slate-100/80 border-slate-200 text-slate-700'}`}>
+                <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-[11px] font-mono">VLAN ID</th>
+                <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-[11px]">Nombre / Propósito</th>
+                <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-[11px] font-mono">Subred CIDR</th>
+                <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-[11px]">Rango Asignable</th>
+                <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-[11px]">Pool DHCP</th>
+                <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-[11px] text-center">Hosts</th>
+                <th className="py-3.5 px-4 font-bold uppercase tracking-wider text-[11px] text-right">Estado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-500/10">
+            <tbody className="divide-y divide-slate-700/50">
               {subredesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-400">
-                    No se encontraron subredes con ese filtro.
+                  <td colSpan={7} className="text-center py-10 text-slate-300 font-medium">
+                    No se encontraron subredes registradas para el filtro ingresado.
                   </td>
                 </tr>
               ) : (
@@ -337,32 +351,32 @@ export default function RedesView({ theme = 'light' }) {
                   <tr
                     key={sub.id}
                     className={`transition-colors ${
-                      isDark ? 'hover:bg-white/5' : 'hover:bg-slate-50'
+                      isDark ? 'hover:bg-slate-800/50 bg-slate-900/40' : 'hover:bg-slate-50 bg-white'
                     }`}
                   >
-                    <td className="py-3.5 px-4 font-bold text-orange-400 font-mono">
+                    <td className="py-4 px-4 font-bold text-amber-400 font-mono text-[13px]">
                       VLAN {sub.vlan}
                     </td>
-                    <td className="py-3.5 px-4 font-semibold">
+                    <td className="py-4 px-4 font-bold text-white text-[13px]">
                       {sub.nombre}
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
+                    <td className="py-4 px-4 font-mono font-bold text-emerald-400 text-[13px]">
                       {sub.subred}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-400">
+                    <td className="py-4 px-4 font-mono text-slate-300">
                       {sub.rango}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-400">
+                    <td className="py-4 px-4 font-mono text-slate-300">
                       {sub.dhcp}
                     </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className="px-2 py-0.5 rounded-full font-bold bg-purple-500/10 text-purple-400">
+                    <td className="py-4 px-4 text-center">
+                      <span className="px-2.5 py-1 rounded-full font-bold font-mono text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30">
                         {sub.equipos}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle size={12} />
+                    <td className="py-4 px-4 text-right">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm shadow-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         <span>{sub.estado}</span>
                       </span>
                     </td>
@@ -374,59 +388,67 @@ export default function RedesView({ theme = 'light' }) {
         </div>
 
         {/* NOTA DE SEGURIDAD & POLÍTICAS DE ACCESO */}
-        <div className={`p-4 rounded-2xl flex items-center gap-3 border ${
-          isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'
+        <div className={`p-4 rounded-2xl flex items-center gap-3.5 border ${
+          isDark ? 'bg-amber-500/15 border-amber-500/30 text-amber-200' : 'bg-amber-50 border-amber-200 text-amber-900'
         }`}>
-          <Shield size={20} className="shrink-0 text-amber-500" />
-          <p className="text-xs leading-relaxed">
-            <strong>Política de Seguridad SENA GA6-220501106-AA1:</strong> Todas las VLANs están aisladas mediante Access Control Lists (ACLs) perimetrales en el Switch Core. La VLAN 40 (Visitantes) y VLAN 58 (Invitados) disponen de salida a Internet exclusiva sin comunicación hacia el Data Center o Gerencia.
+          <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 shrink-0">
+            <Shield size={20} />
+          </div>
+          <p className="text-xs leading-relaxed text-slate-200">
+            <strong className="text-amber-300">Política de Seguridad SENA GA6-220501106-AA1:</strong> Todas las VLANs están aisladas mediante Access Control Lists (ACLs) perimetrales en el Switch Core. La VLAN 40 (Visitantes) y VLAN 58 (Invitados) disponen de salida a Internet exclusiva sin comunicación hacia el Data Center o Gerencia.
           </p>
         </div>
       </div>
 
       {/* TOPOLOGÍA VISUAL ESQUEMÁTICA MULTI-SEDE */}
-      <div className={`p-6 sm:p-8 rounded-3xl border backdrop-blur-2xl transition-all shadow-xl space-y-4 ${
-        isDark ? 'bg-slate-900/70 border-white/10 text-white' : 'bg-white/90 border-slate-200 text-slate-900'
+      <div className={`p-6 sm:p-8 rounded-3xl border backdrop-blur-2xl transition-all shadow-2xl space-y-5 ${
+        isDark ? 'bg-[#0B132B]/90 border-slate-700/80 text-white shadow-black/60' : 'bg-white/95 border-slate-200 text-slate-900'
       }`}>
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base sm:text-lg font-bold font-display">
+            <h3 className="text-lg sm:text-xl font-bold font-display text-white">
               Arquitectura de Conectividad WAN / VPN IPSec
             </h3>
-            <p className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+            <p className={`text-xs sm:text-sm mt-1 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               Esquema de malla radial (Hub and Spoke) con núcleo en Bogotá D.C.
             </p>
           </div>
-          <span className="text-xs font-mono px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <span className="text-xs font-mono font-bold px-3 py-1.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm shadow-blue-500/20">
             Túneles AES-256
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-          <div className={`p-4 rounded-2xl border text-center space-y-2 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="w-10 h-10 mx-auto rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-bold">
+          <div className={`p-5 rounded-2xl border text-center space-y-2.5 transition-all hover:scale-[1.01] ${
+            isDark ? 'bg-gradient-to-b from-orange-950/40 to-slate-900/90 border-orange-500/30' : 'bg-orange-50 border-orange-200'
+          }`}>
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black text-lg shadow-sm">
               HQ
             </div>
-            <div className="font-bold text-sm">Nodo Central Bogotá</div>
-            <div className="text-xs font-mono text-slate-400">10.120.0.0/8</div>
+            <div className="font-extrabold text-sm text-white">Nodo Central Bogotá</div>
+            <div className="text-xs font-mono font-bold text-amber-300">10.120.0.0/8</div>
             <div className="text-[11px] text-emerald-400 font-semibold">Hub Principal & Servidores</div>
           </div>
 
-          <div className={`p-4 rounded-2xl border text-center space-y-2 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="w-10 h-10 mx-auto rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+          <div className={`p-5 rounded-2xl border text-center space-y-2.5 transition-all hover:scale-[1.01] ${
+            isDark ? 'bg-gradient-to-b from-blue-950/40 to-slate-900/90 border-blue-500/30' : 'bg-blue-50 border-blue-200'
+          }`}>
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center font-black text-lg shadow-sm">
               VPN
             </div>
-            <div className="font-bold text-sm">Interconexión Encriptada</div>
-            <div className="text-xs font-mono text-slate-400">IPSec Site-to-Site</div>
+            <div className="font-extrabold text-sm text-white">Interconexión Encriptada</div>
+            <div className="text-xs font-mono font-bold text-blue-300">IPSec Site-to-Site</div>
             <div className="text-[11px] text-blue-400 font-semibold">Túneles Redundantes BGP</div>
           </div>
 
-          <div className={`p-4 rounded-2xl border text-center space-y-2 ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-            <div className="w-10 h-10 mx-auto rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+          <div className={`p-5 rounded-2xl border text-center space-y-2.5 transition-all hover:scale-[1.01] ${
+            isDark ? 'bg-gradient-to-b from-purple-950/40 to-slate-900/90 border-purple-500/30' : 'bg-purple-50 border-purple-200'
+          }`}>
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center font-black text-lg shadow-sm">
               SPK
             </div>
-            <div className="font-bold text-sm">Sedes Remotas (Spokes)</div>
-            <div className="text-xs font-mono text-slate-400">Medellín · Cali · B/quilla</div>
+            <div className="font-extrabold text-sm text-white">Sedes Remotas (Spokes)</div>
+            <div className="text-xs font-mono font-bold text-purple-300">Medellín · Cali · B/quilla</div>
             <div className="text-[11px] text-purple-400 font-semibold">Acceso a Servicios Centralizados</div>
           </div>
         </div>

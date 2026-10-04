@@ -77,25 +77,38 @@ export default function ModuloContable({ theme = "light" }) {
           {lineasCredito.map((linea, idx) => (
             <div
               key={idx}
-              className={`p-4 rounded-2xl border backdrop-blur-md ${
-                isDark ? "bg-white/5 border-white/10" : "bg-slate-50 border-slate-200"
-              }`}
+              className={`relative p-4 rounded-2xl border backdrop-blur-md overflow-hidden transition-all bg-gradient-to-br ${linea.color} ${
+                idx === 0 ? "border-blue-500/30 shadow-blue-900/20" :
+                idx === 1 ? "border-emerald-500/30 shadow-emerald-900/20" :
+                "border-amber-500/30 shadow-amber-900/20"
+              } shadow-lg`}
             >
               <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
+                  idx === 0 ? "bg-blue-500/20 text-blue-400" :
+                  idx === 1 ? "bg-emerald-500/20 text-emerald-400" :
+                  "bg-amber-500/20 text-amber-400"
+                }`}>
                   {linea.badge}
                 </span>
-                <span className="text-xs font-bold text-orange-400">{linea.plazo}</span>
+                <span className={`text-xs font-bold ${
+                  idx === 0 ? "text-blue-300" : idx === 1 ? "text-emerald-300" : "text-amber-300"
+                }`}>{linea.plazo}</span>
               </div>
-              <h3 className={`font-bold text-sm mb-1 ${isDark ? "text-white" : "text-slate-900"}`}>
+              <h3 className="font-bold text-sm mb-1 text-white">
                 {linea.titulo}
               </h3>
-              <p className={`text-xs mb-3 ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+              <p className="text-xs mb-3 text-slate-300">
                 {linea.desc}
               </p>
-              <div className="text-xs font-mono font-semibold text-emerald-400">
+              <div className={`text-xs font-mono font-semibold ${
+                idx === 0 ? "text-blue-400" : idx === 1 ? "text-emerald-400" : "text-amber-400"
+              }`}>
                 {linea.tasa}
               </div>
+              <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent ${
+                idx === 0 ? "via-blue-500/60" : idx === 1 ? "via-emerald-500/60" : "via-amber-500/60"
+              } to-transparent`} />
             </div>
           ))}
         </div>

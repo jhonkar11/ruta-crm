@@ -194,7 +194,7 @@ export function NavTab({ icon: Icon, label, active, onClick, badge }) {
     <button onClick={onClick} style={{
       flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex",
       flexDirection: "column", alignItems: "center", gap: 3, 
-      color: active ? C.coral : "#ffffff", 
+      color: active ? "#10B981" : "#ffffff", 
       padding: "2px 0",
       position: "relative",
     }}>

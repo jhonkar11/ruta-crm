@@ -45,7 +45,7 @@ export default function App() {
   const [abonoCliente, setAbonoCliente] = useState(null);
 
   const [showMananaModal, setShowMananaModal] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem("crm_theme") || "light");
+  const [theme, setTheme] = useState(() => localStorage.getItem("crm_theme") || "dark");
 
   useEffect(() => {
     localStorage.setItem("crm_view", view);
@@ -341,8 +341,11 @@ export default function App() {
 
   if (recordsLoading || records === null) {
     return (
-      <div style={{ minHeight: "100vh", background: "#1a0a3e", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-        Cargando registros…
+      <div style={{ minHeight: "100vh", background: "#060D17", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#fff", gap: 12, fontFamily: "'Inter', sans-serif" }}>
+        <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #10B981, #0EA5E9)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 25px rgba(16, 185, 129, 0.4)", animation: "pulse 2s infinite" }}>
+          <span style={{ fontWeight: 800, fontSize: 20 }}>I</span>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#E2E8F0" }}>Cargando portal Interred Ltda…</div>
       </div>
     );
   }
@@ -352,7 +355,7 @@ export default function App() {
       minHeight: "100vh",
       width: "100%",
       position: "relative",
-      background: theme === "dark" ? "#1a0a3e" : "#F1F5F9",
+      background: theme === "dark" ? "#060D17" : "#F8FAFC",
       overflowX: "hidden",
       fontFamily: "'Inter', sans-serif",
       color: theme === "dark" ? "#ffffff" : "#0F172A",
@@ -364,19 +367,13 @@ export default function App() {
           inset: 0,
           zIndex: 0,
           background: `
-            radial-gradient(ellipse at 20% 30%, rgba(180,80,20,0.5) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 20%, rgba(120,40,200,0.6) 0%, transparent 50%),
-            radial-gradient(ellipse at 10% 80%, rgba(15,120,130,0.6) 0%, transparent 50%),
-            linear-gradient(135deg, #2d1b69 0%, #1e0f4a 100%)
+            radial-gradient(ellipse at 10% 15%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
+            radial-gradient(ellipse at 90% 10%, rgba(14, 165, 233, 0.14) 0%, transparent 45%),
+            radial-gradient(ellipse at 50% 90%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+            #060D17
           `,
           pointerEvents: "none"
-        }}>
-          <svg style={{ position: "absolute", width: "100%", height: "100%" }} viewBox="0 0 1000 1000" preserveAspectRatio="none">
-            <path d="M0,200 Q250,100 500,250 T1000,200 L1000,0 L0,0 Z" fill="rgba(200,90,20,0.25)" />
-            <path d="M0,600 Q300,500 600,650 T1000,600 L1000,0 L0,0 Z" fill="rgba(80,30,180,0.4)" />
-            <path d="M0,700 Q400,600 800,750 T1000,700 L1000,1000 L0,1000 Z" fill="rgba(15,100,120,0.5)" />
-          </svg>
-        </div>
+        }} />
       )}
 
       <div style={{ maxWidth: "1240px", margin: "0 auto", minHeight: "100vh", position: "relative", zIndex: 1 }}>
@@ -464,8 +461,8 @@ export default function App() {
           {view === "mapa" && (
             <>
               <div style={{ marginBottom: 16 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A" }}>Panel de Metas y Filtros</h2>
-                <p style={{ fontSize: 13, color: theme === "dark" ? "rgba(255,255,255,0.75)" : "#64748B", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos</p>
+                <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A", letterSpacing: "-0.02em" }}>Panel de Metas y Filtros</h2>
+                <p style={{ fontSize: 13, color: theme === "dark" ? "#CBD5E1" : "#475569", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos de Interred Ltda.</p>
               </div>
               <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} theme={theme} />
             </>
@@ -498,17 +495,17 @@ export default function App() {
           {view === "buscar" && (
             <>
               <div style={{ marginBottom: 16 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A" }}>Búsqueda rápida</h2>
-                <p style={{ fontSize: 13, color: theme === "dark" ? "rgba(255,255,255,0.75)" : "#64748B", margin: "4px 0 0 0" }}>Por nombre o cédula</p>
+                <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A", letterSpacing: "-0.02em" }}>Búsqueda Rápida de Clientes</h2>
+                <p style={{ fontSize: 13, color: theme === "dark" ? "#CBD5E1" : "#475569", margin: "4px 0 0 0" }}>Consulta por nombre, razón social o número de cédula / NIT</p>
               </div>
               <div style={{ position: "relative", marginBottom: 16 }}>
-                <Search size={16} color={C.ink40} style={{ position: "absolute", left: 12, top: 13 }} />
+                <Search size={18} color={theme === "dark" ? "#94A3B8" : C.ink40} style={{ position: "absolute", left: 14, top: 13 }} />
                 <TextInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Escribe un nombre o número de cédula…"
-                  style={{ ...inputStyle(false), paddingLeft: 36 }} />
+                  style={{ ...inputStyle(false), paddingLeft: 42 }} />
               </div>
               {query.trim() && buscados.length === 0 && <EmptyState text="Sin resultados para esa búsqueda." />}
               {buscados.map((r) => (
-                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} canDelete={profile?.rol === "admin"} profile={profile || {}} theme={theme} />
               ))}
             </>
           )}
@@ -516,11 +513,11 @@ export default function App() {
           {view === "todos" && (
             <>
               <div style={{ marginBottom: 16 }}>
-                <h2 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A" }}>Base de datos de créditos</h2>
-                <p style={{ fontSize: 13, color: theme === "dark" ? "rgba(255,255,255,0.75)" : "#64748B", margin: "4px 0 0 0" }}>{todos.length} registros en total</p>
+                <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A", letterSpacing: "-0.02em" }}>Base de Datos y Cartera de Créditos</h2>
+                <p style={{ fontSize: 13, color: theme === "dark" ? "#CBD5E1" : "#475569", margin: "4px 0 0 0" }}>{todos.length} expedientes registrados en el sistema</p>
               </div>
               
-              <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
                 <FiltroChip active={filtroActivo === "TODOS"} onClick={() => setFiltroActivo("TODOS")} label="Todos" />
                 <FiltroChip active={filtroActivo === "PENDIENTES"} onClick={() => setFiltroActivo("PENDIENTES")} label="📅 Con fecha / Pendientes" />
                 <FiltroChip active={filtroActivo === "NO_LOCALIZADOS"} onClick={() => setFiltroActivo("NO_LOCALIZADOS")} label="❌ No localizados" />
@@ -535,7 +532,7 @@ export default function App() {
                 <EmptyState text="No hay registros en este filtro." />
               ) : (
                 todos.map((r) => (
-                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} canDelete={profile?.rol === "admin"} profile={profile || {}} />
+                  <ClientCard key={r.id} r={r} onEdit={openEdit} onArchive={handleArchive} onDelete={handleDelete} onDesarchivar={handleDesarchivar} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} canDelete={profile?.rol === "admin"} profile={profile || {}} theme={theme} />
                 ))
               )}
             </>

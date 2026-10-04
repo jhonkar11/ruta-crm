@@ -277,46 +277,46 @@ export default function VisitantesView({ theme = "light" }) {
 
       {/* METRICAS DE RESUMEN (Estilo SaaS Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* KPI 1: En instalaciones */}
-        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition ${
-          isDark ? "bg-slate-900/60 border-white/10 text-white" : "bg-white/80 border-slate-200 text-slate-900 shadow-sm"
-        }`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Actualmente en Sedes</span>
-            <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-400">
+        {/* KPI 1: En instalaciones — Emerald */}
+        <div className="relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden bg-gradient-to-br from-emerald-950/60 via-slate-900/90 to-emerald-900/30 border-emerald-500/40 shadow-lg shadow-emerald-900/20 text-white">
+          <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl pointer-events-none" />
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-emerald-400/80">Actualmente en Sedes</span>
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
               <UserCheck size={18} />
             </div>
           </div>
-          <div className="text-2xl font-black text-emerald-400">{enInstalacionesCount}</div>
-          <div className="text-xs text-slate-400 mt-1">Visitantes con permanencia activa</div>
+          <div className="text-3xl font-black text-emerald-300 drop-shadow-sm">{enInstalacionesCount}</div>
+          <div className="text-xs text-emerald-400/70 mt-1 font-medium">Visitantes con permanencia activa</div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
         </div>
 
-        {/* KPI 2: Salidas registradas */}
-        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition ${
-          isDark ? "bg-slate-900/60 border-white/10 text-white" : "bg-white/80 border-slate-200 text-slate-900 shadow-sm"
-        }`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Salidas Completadas</span>
-            <div className="p-2 rounded-xl bg-blue-500/15 text-blue-400">
+        {/* KPI 2: Salidas registradas — Blue */}
+        <div className="relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden bg-gradient-to-br from-blue-950/60 via-slate-900/90 to-blue-900/30 border-blue-500/40 shadow-lg shadow-blue-900/20 text-white">
+          <div className="absolute inset-0 bg-blue-500/5 rounded-2xl pointer-events-none" />
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-blue-400/80">Salidas Completadas</span>
+            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
               <LogOut size={18} />
             </div>
           </div>
-          <div className="text-2xl font-black text-blue-400">{salidasHoyCount}</div>
-          <div className="text-xs text-slate-400 mt-1">Con carné y equipos devueltos</div>
+          <div className="text-3xl font-black text-blue-300 drop-shadow-sm">{salidasHoyCount}</div>
+          <div className="text-xs text-blue-400/70 mt-1 font-medium">Con carné y equipos devueltos</div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
         </div>
 
-        {/* KPI 3: Total del día */}
-        <div className={`p-5 rounded-2xl border backdrop-blur-xl transition ${
-          isDark ? "bg-slate-900/60 border-white/10 text-white" : "bg-white/80 border-slate-200 text-slate-900 shadow-sm"
-        }`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Flujo Total Registrado</span>
-            <div className="p-2 rounded-xl bg-purple-500/15 text-purple-400">
+        {/* KPI 3: Total del día — Purple */}
+        <div className="relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden bg-gradient-to-br from-purple-950/60 via-slate-900/90 to-purple-900/30 border-purple-500/40 shadow-lg shadow-purple-900/20 text-white">
+          <div className="absolute inset-0 bg-purple-500/5 rounded-2xl pointer-events-none" />
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-purple-400/80">Flujo Total Registrado</span>
+            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
               <Users size={18} />
             </div>
           </div>
-          <div className="text-2xl font-black text-purple-400">{totalHoyCount}</div>
-          <div className="text-xs text-slate-400 mt-1">Ingresos monitoreados por seguridad</div>
+          <div className="text-3xl font-black text-purple-300 drop-shadow-sm">{totalHoyCount}</div>
+          <div className="text-xs text-purple-400/70 mt-1 font-medium">Ingresos monitoreados por seguridad</div>
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
         </div>
       </div>
 
