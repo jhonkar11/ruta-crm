@@ -191,24 +191,27 @@ export function SectionLabel({ children }) {
 
 export function NavTab({ icon: Icon, label, active, onClick, badge, isDark = true }) {
   return (
-    <button onClick={onClick} style={{
-      flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex",
-      flexDirection: "column", alignItems: "center", gap: 3, 
-      color: active ? (isDark ? "#10B981" : "#059669") : (isDark ? "#ffffff" : "#334155"), 
-      padding: "2px 0",
-      position: "relative",
-    }}>
-      <span style={{ position: "relative" }}>
-        <Icon size={18} />
+    <button
+      onClick={onClick}
+      className={`flex-1 flex flex-col items-center gap-1 py-1.5 px-2 rounded-xl border text-center transition-all duration-150 relative ${
+        active
+          ? isDark
+            ? "bg-slate-800/80 border-slate-700 text-emerald-400 font-bold shadow-md"
+            : "bg-white border-slate-300 text-slate-900 font-bold shadow-sm"
+          : isDark
+            ? "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-slate-900/40"
+            : "bg-transparent border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 hover:border-slate-300"
+      }`}
+    >
+      <span className="relative flex items-center justify-center">
+        <Icon size={18} className="shrink-0" />
         {badge > 0 && (
-          <span style={{
-            position: "absolute", top: -4, right: -8, background: "#ef4444", color: "#fff",
-            fontSize: 9, fontWeight: 700, borderRadius: 8, minWidth: 14, height: 14,
-            display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px",
-          }}>{badge > 9 ? "9+" : badge}</span>
+          <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[9px] font-black rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5 shadow-sm">
+            {badge > 9 ? "9+" : badge}
+          </span>
         )}
       </span>
-      <span style={{ fontSize: 9.5, fontWeight: active ? 700 : 600, fontFamily: "'IBM Plex Mono', monospace" }}>{label}</span>
+      <span className="text-[10px] tracking-tight font-mono leading-none">{label}</span>
     </button>
   );
 }

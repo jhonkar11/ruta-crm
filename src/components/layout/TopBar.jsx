@@ -107,8 +107,8 @@ export default function TopBar({
         </div>
 
         {/* NAVEGACIÓN PRINCIPAL DE ESCRITORIO (DEPARTAMENTOS) */}
-        <div className={`hidden lg:flex items-center gap-1 p-1.5 rounded-2xl border backdrop-blur-md shadow-lg ${
-          isDark ? "bg-slate-900/70 border-slate-700/80" : "bg-white/80 border-slate-200/80 shadow-slate-300/30"
+        <div className={`hidden lg:flex items-center gap-2 p-1.5 rounded-full border ${
+          isDark ? "bg-slate-900/90 border-slate-700" : "bg-slate-50 border-slate-200 shadow-sm"
         }`}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -117,19 +117,18 @@ export default function TopBar({
               <button
                 key={item.id}
                 onClick={() => setView(item.id)}
-                className={`group relative px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all duration-300 ease-out ${
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2.5 transition-all duration-200 ${
                   activo
-                    ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-xl shadow-orange-500/40 scale-[1.02]"
+                    ? isDark
+                      ? "bg-orange-600 text-white shadow-lg"
+                      : "bg-white text-slate-900 shadow-md border border-slate-300"
                     : isDark
-                      ? "text-slate-300 hover:text-white hover:bg-white/10 hover:scale-[1.03]"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/90 hover:shadow-md hover:scale-[1.03]"
+                      ? "text-slate-400 hover:text-white hover:bg-slate-800"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white hover:border-slate-300 border border-transparent"
                 }`}
               >
-                <Icon size={16} className={`transition-colors duration-200 ${activo ? "text-white" : isDark ? "text-slate-400 group-hover:text-orange-400" : "text-slate-500 group-hover:text-orange-600"}`} />
+                <Icon size={16} />
                 <span>{item.label}</span>
-                {!activo && (
-                  <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/0 via-orange-500/0 to-orange-500/0 group-hover:from-orange-500/10 group-hover:to-orange-500/5 transition-all pointer-events-none" />
-                )}
               </button>
             );
           })}
@@ -146,7 +145,7 @@ export default function TopBar({
               className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm ${
                 isDark
                   ? "bg-slate-900 hover:bg-slate-800 border-slate-700 text-amber-300"
-                  : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800"
+                  : "bg-white hover:bg-slate-50 border-slate-300 text-slate-900"
               }`}
             >
               {isDark ? <Sun size={15} className="text-amber-400" /> : <Moon size={15} className="text-slate-700" />}
@@ -162,7 +161,7 @@ export default function TopBar({
               className={`hidden sm:flex px-3 py-1.5 rounded-xl border font-mono text-xs font-bold items-center gap-1.5 transition shadow-sm ${
                 isDark
                   ? "border-orange-500/40 bg-orange-500/15 hover:bg-orange-500/25 text-orange-300"
-                  : "border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-800"
+                  : "border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-900 font-extrabold"
               }`}
             >
               <Calculator size={14} className={isDark ? "text-orange-400" : "text-orange-600"} />
@@ -178,10 +177,10 @@ export default function TopBar({
               }
             }}
             title="Cerrar sesión"
-            className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition ${
+            className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition shadow-sm ${
               isDark
-                ? "bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/40 text-rose-300 shadow-sm"
-                : "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700"
+                ? "bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/40 text-rose-300"
+                : "bg-rose-50 hover:bg-rose-100 border-rose-300 text-rose-800 font-extrabold"
             }`}
           >
             <LogOut size={14} />

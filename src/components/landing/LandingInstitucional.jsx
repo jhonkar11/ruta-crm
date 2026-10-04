@@ -85,7 +85,8 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Topología multi-sede, asignación de VLANs, subredes IPv4/IPv6 y monitoreo de enlaces.",
       icon: Network,
       badge: "Infraestructura",
-      badgeColor: "bg-blue-500/20 text-blue-400 border-blue-500/30"
+      badgeColorLight: "bg-blue-100 text-blue-900 border-blue-300 font-extrabold shadow-sm",
+      badgeColorDark: "bg-blue-500/20 text-blue-300 border-blue-500/30"
     },
     {
       id: "soporte",
@@ -93,7 +94,8 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Mesa de servicios, OCR inteligente de órdenes de trabajo, cuentas de cobro y hardware.",
       icon: Headphones,
       badge: "Área Técnica",
-      badgeColor: "bg-amber-500/20 text-amber-400 border-amber-500/30"
+      badgeColorLight: "bg-amber-100 text-amber-950 border-amber-300 font-extrabold shadow-sm",
+      badgeColorDark: "bg-amber-500/20 text-amber-300 border-amber-500/30"
     },
     {
       id: "contable",
@@ -101,7 +103,8 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Simulador de créditos, amortizaciones y proyecciones de financiamiento de hardware.",
       icon: Calculator,
       badge: "Finanzas",
-      badgeColor: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+      badgeColorLight: "bg-emerald-100 text-emerald-950 border-emerald-300 font-extrabold shadow-sm",
+      badgeColorDark: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
     },
     {
       id: "visitantes",
@@ -109,7 +112,8 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Registro de ingresos, asignación de carné, control de portátiles y bitácora de seguridad.",
       icon: Users,
       badge: "Seguridad Física",
-      badgeColor: "bg-purple-500/20 text-purple-400 border-purple-500/30"
+      badgeColorLight: "bg-purple-100 text-purple-950 border-purple-300 font-extrabold shadow-sm",
+      badgeColorDark: "bg-purple-500/20 text-purple-300 border-purple-500/30"
     },
     {
       id: "todos",
@@ -117,7 +121,8 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Cartera comercial, agenda de citas, expedientes documentales y seguimiento de clientes.",
       icon: Layers,
       badge: "Comercial",
-      badgeColor: "bg-rose-500/20 text-rose-400 border-rose-500/30"
+      badgeColorLight: "bg-rose-100 text-rose-950 border-rose-300 font-extrabold shadow-sm",
+      badgeColorDark: "bg-rose-500/20 text-rose-300 border-rose-500/30"
     }
   ];
 
@@ -142,8 +147,12 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
 
         <div className="relative z-10">
           {/* Badge superior institucional */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold mb-6 border backdrop-blur-md bg-emerald-500/15 border-emerald-400/40 text-emerald-300 shadow-sm shadow-emerald-500/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold mb-6 border backdrop-blur-md shadow-sm ${
+            isDark
+              ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-300 shadow-emerald-500/20"
+              : "bg-emerald-100 border-emerald-300 text-emerald-950 font-extrabold shadow-slate-200"
+          }`}>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>ENTER Ltda. · Infraestructura Empresarial</span>
           </div>
 
@@ -320,29 +329,31 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
               <div
                 key={dep.id}
                 onClick={() => setView(dep.id)}
-                className={`group p-6 rounded-2xl border transition-all duration-200 cursor-pointer shadow-lg hover:shadow-2xl transform hover:-translate-y-1 backdrop-blur-lg ${
+                className={`group p-6 rounded-2xl border transition-all duration-200 cursor-pointer shadow-md hover:shadow-xl transform hover:-translate-y-1 backdrop-blur-lg ${
                   isDark 
                     ? "bg-[#0B132B]/85 hover:bg-slate-900 border-slate-700/80 hover:border-emerald-500/50 shadow-black/50" 
-                    : "bg-white/90 hover:bg-white border-slate-200 hover:border-orange-500/50 shadow-slate-200/50"
+                    : "bg-white hover:bg-slate-50/90 border-slate-200 hover:border-slate-300 shadow-slate-200/80"
                 }`}
               >
                 <div className="flex justify-between items-start mb-3.5">
                   <div className={`p-3 rounded-xl transition ${
-                    isDark ? "bg-white/10 group-hover:bg-emerald-500/20 text-emerald-400 group-hover:text-emerald-300 border border-white/10" : "bg-orange-50 group-hover:bg-orange-100 text-orange-600"
+                    isDark ? "bg-white/10 group-hover:bg-emerald-500/20 text-emerald-400 group-hover:text-emerald-300 border border-white/10" : "bg-orange-50 group-hover:bg-orange-100 text-orange-600 border border-orange-200"
                   }`}>
                     <Icon size={24} />
                   </div>
-                  <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${dep.badgeColor}`}>
+                  <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${isDark ? dep.badgeColorDark : dep.badgeColorLight}`}>
                     {dep.badge}
                   </span>
                 </div>
-                <h3 className={`font-extrabold text-base mb-1.5 group-hover:text-orange-400 transition ${isDark ? "text-white" : "text-slate-900"}`}>
+                <h3 className={`font-extrabold text-base mb-1.5 group-hover:text-orange-600 transition ${isDark ? "text-white group-hover:text-orange-400" : "text-slate-900"}`}>
                   {dep.name}
                 </h3>
-                <p className={`text-xs leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+                <p className={`text-xs leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600 font-medium"}`}>
                   {dep.desc}
                 </p>
-                <div className="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs font-bold text-orange-400 group-hover:translate-x-1 transition-transform">
+                <div className={`mt-4 pt-3 border-t flex items-center justify-between text-xs font-bold transition-transform group-hover:translate-x-1 ${
+                  isDark ? "border-slate-700/60 text-orange-400" : "border-slate-100 text-orange-600"
+                }`}>
                   <span>Ingresar al módulo</span>
                   <ArrowRight size={14} />
                 </div>
@@ -404,7 +415,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
               <div
                 key={idx}
                 className={`p-6 rounded-2xl border transition-all backdrop-blur-lg hover:scale-[1.01] ${
-                  isDark ? "bg-[#0B132B]/85 border-slate-700/80 hover:border-slate-600 shadow-lg shadow-black/40" : "bg-white/80 border-slate-200 hover:border-slate-300 shadow-sm"
+                  isDark ? "bg-[#0B132B]/85 border-slate-700/80 hover:border-slate-600 shadow-lg shadow-black/40" : "bg-white border-slate-200 hover:border-slate-300 shadow-md hover:shadow-lg"
                 }`}
               >
                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${srv.color} border border-white/10 flex items-center justify-center mb-3.5 ${srv.iconColor}`}>
@@ -431,7 +442,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
 
       {/* MONITOR DE SEDES EN VIVO */}
       <div className={`p-6 sm:p-8 rounded-3xl border backdrop-blur-xl shadow-2xl ${
-        isDark ? "bg-[#0B132B]/90 border-slate-700/80 shadow-black/60" : "bg-white/90 border-slate-200 shadow-md shadow-slate-100"
+        isDark ? "bg-slate-900/90 border-slate-700/80 shadow-black/60" : "bg-white border-slate-200 shadow-lg shadow-slate-200/50"
       }`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
           <div>
@@ -444,7 +455,11 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
           </div>
           <button
             onClick={() => setView("redes")}
-            className="text-xs font-bold text-orange-400 hover:text-orange-300 flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/30"
+            className={`text-xs font-bold flex items-center gap-1.5 self-start sm:self-auto px-3.5 py-1.5 rounded-xl border transition ${
+              isDark 
+                ? "text-orange-400 hover:text-orange-300 bg-orange-500/10 border-orange-500/30" 
+                : "text-orange-800 hover:text-orange-950 bg-orange-50 border-orange-200 shadow-sm"
+            }`}
           >
             <span>Ver detalle técnico completo</span>
             <ArrowRight size={14} />
@@ -456,7 +471,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
             <div
               key={idx}
               className={`p-5 rounded-2xl border flex flex-col justify-between transition-all hover:scale-[1.01] ${
-                isDark ? "bg-slate-950/80 border-slate-700/80" : "bg-slate-50/90 border-slate-200"
+                isDark ? "bg-slate-900/80 border-slate-700/80" : "bg-white border-slate-200 shadow-sm hover:shadow-md"
               }`}
             >
               <div>
