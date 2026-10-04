@@ -248,7 +248,7 @@ export default function VisitantesView({ theme = "light" }) {
                 Control de Visitantes & Accesos · Interred Ltda.
               </h1>
               <p className={`text-xs sm:text-sm mt-1 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
-                Registro y trazabilidad de ingresos en las sedes corporativas, asignación de carné y control de activos portátiles (SENA GA6-220501106-AA1).
+                Registro y trazabilidad de ingresos en las sedes corporativas, asignación de carné y control de activos portátiles de Interred Ltda.
               </p>
             </div>
           </div>

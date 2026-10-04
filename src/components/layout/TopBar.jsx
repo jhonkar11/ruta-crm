@@ -83,14 +83,14 @@ export default function TopBar({
           <div>
             <div className="font-display font-extrabold text-base tracking-tight flex items-center gap-2">
               <span className={`${isDark ? "text-white" : "text-slate-900"} group-hover:text-orange-500 transition-colors`}>
-                INTERRED
+                Interred Ltda.
               </span>
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shadow-sm ${
                 isDark 
-                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/20" 
-                  : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                  ? "bg-orange-500/20 text-orange-400 border-orange-500/40 shadow-orange-500/20" 
+                  : "bg-orange-50 text-orange-700 border-orange-300"
               }`}>
-                LTDA · SENA
+                Gestión de Procesos
               </span>
             </div>
             <div className={`text-[11px] font-mono truncate max-w-[220px] sm:max-w-xs flex items-center gap-1.5 mt-0.5 ${
@@ -107,8 +107,8 @@ export default function TopBar({
         </div>
 
         {/* NAVEGACIÓN PRINCIPAL DE ESCRITORIO (DEPARTAMENTOS) */}
-        <div className={`hidden lg:flex items-center gap-1.5 p-1.5 rounded-2xl border shadow-inner ${
-          isDark ? "bg-slate-900/90 border-slate-700/80" : "bg-slate-100 border-slate-300"
+        <div className={`hidden lg:flex items-center gap-1 p-1.5 rounded-2xl border backdrop-blur-md shadow-lg ${
+          isDark ? "bg-slate-900/70 border-slate-700/80" : "bg-white/80 border-slate-200/80 shadow-slate-300/30"
         }`}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -117,16 +117,19 @@ export default function TopBar({
               <button
                 key={item.id}
                 onClick={() => setView(item.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                className={`group relative px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all duration-300 ease-out ${
                   activo
-                    ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 border border-orange-400/40"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-xl shadow-orange-500/40 scale-[1.02]"
                     : isDark
-                      ? "text-slate-200 hover:text-white hover:bg-white/10"
-                      : "text-slate-700 hover:text-slate-950 hover:bg-white shadow-sm border border-transparent hover:border-slate-200"
+                      ? "text-slate-300 hover:text-white hover:bg-white/10 hover:scale-[1.03]"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/90 hover:shadow-md hover:scale-[1.03]"
                 }`}
               >
-                <Icon size={15} className={activo ? "text-white" : isDark ? "text-slate-400" : "text-slate-500"} />
+                <Icon size={16} className={`transition-colors duration-200 ${activo ? "text-white" : isDark ? "text-slate-400 group-hover:text-orange-400" : "text-slate-500 group-hover:text-orange-600"}`} />
                 <span>{item.label}</span>
+                {!activo && (
+                  <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-orange-500/0 via-orange-500/0 to-orange-500/0 group-hover:from-orange-500/10 group-hover:to-orange-500/5 transition-all pointer-events-none" />
+                )}
               </button>
             );
           })}
@@ -170,7 +173,7 @@ export default function TopBar({
           {/* BOTÓN CERRAR SESIÓN */}
           <button
             onClick={() => {
-              if (confirm("¿Seguro que deseas cerrar la sesión de Interred Ltda.?")) {
+              if (confirm("¿Seguro que deseas cerrar la sesión de Interred Ltda. - Gestión de Procesos?")) {
                 onLogout();
               }
             }}

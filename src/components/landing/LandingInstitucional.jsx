@@ -144,7 +144,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
           {/* Badge superior institucional */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold mb-6 border backdrop-blur-md bg-emerald-500/15 border-emerald-400/40 text-emerald-300 shadow-sm shadow-emerald-500/20">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>INTERRED LTDA. • SENA GA6-220501106-AA1</span>
+            <span>Interred Ltda. · Infraestructura Empresarial</span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -220,58 +220,78 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
               <div className={`p-6 rounded-2xl border backdrop-blur-xl shadow-2xl relative space-y-4 ${
                 isDark 
                   ? "bg-slate-950/90 border-slate-700/80 shadow-black/80" 
-                  : "bg-slate-900 text-white border-slate-800"
+                  : "bg-white border-slate-200 shadow-slate-300/40"
               }`}>
                 {/* Cabecera de la tarjeta */}
-                <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                <div className={`flex items-center justify-between border-b pb-3 ${
+                  isDark ? "border-slate-700/60" : "border-slate-200"
+                }`}>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                    <span className="text-xs font-mono font-bold tracking-wider text-emerald-300 uppercase">
+                    <span className={`text-xs font-mono font-bold tracking-wider uppercase ${
+                      isDark ? "text-emerald-300" : "text-emerald-700"
+                    }`}>
                       Core Network · Activo
                     </span>
                   </div>
-                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 font-mono text-emerald-300 font-bold">
-                    SENA GA6
+                  <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-mono font-bold ${
+                    isDark 
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300" 
+                      : "bg-emerald-100 border-emerald-300 text-emerald-800"
+                  }`}>
+                    Infraestructura Crítica
                   </span>
                 </div>
 
                 {/* Datos de la sede principal */}
                 <div className="space-y-2.5">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">Sede Principal:</span>
-                    <span className="font-bold text-white">Bogotá D.C. (Cll 72)</span>
+                    <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>Sede Principal:</span>
+                    <span className={`font-bold ${isDark ? "text-white" : "text-slate-900"}`}>Bogotá D.C. (Cll 72)</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">Segmento LAN Primario:</span>
-                    <span className="font-mono text-amber-300 font-extrabold">10.120.0.0/8</span>
+                    <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>Segmento LAN Primario:</span>
+                    <span className={`font-mono font-extrabold ${isDark ? "text-amber-300" : "text-amber-700"}`}>10.120.0.0/8</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">VLANs Desplegadas:</span>
-                    <span className="text-slate-200 font-semibold">10 (Admin), 20 (Server), 30 (Soporte)</span>
+                    <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>VLANs Desplegadas:</span>
+                    <span className={`font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>10 (Admin), 20 (Server), 30 (Soporte)</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-medium">Seguridad Perimetral:</span>
-                    <span className="text-emerald-300 font-bold flex items-center gap-1.5">
-                      <Lock size={13} className="text-emerald-400" /> FortiGate NGFW Activo
+                    <span className={`font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>Seguridad Perimetral:</span>
+                    <span className={`font-bold flex items-center gap-1.5 ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>
+                      <Lock size={13} className={isDark ? "text-emerald-400" : "text-emerald-600"} /> FortiGate NGFW Activo
                     </span>
                   </div>
                 </div>
 
                 {/* Banner de acceso directo a módulos */}
-                <div className="p-3.5 rounded-xl bg-gradient-to-r from-orange-500/15 via-emerald-500/10 to-blue-500/15 border border-slate-700 text-xs">
-                  <div className="font-bold text-orange-300 flex items-center gap-1.5 mb-1">
+                <div className={`p-3.5 rounded-xl border text-xs ${
+                  isDark 
+                    ? "bg-gradient-to-r from-orange-500/15 via-emerald-500/10 to-blue-500/15 border-slate-700" 
+                    : "bg-gradient-to-r from-orange-50 via-emerald-50 to-blue-50 border-slate-200"
+                }`}>
+                  <div className={`font-bold flex items-center gap-1.5 mb-1 ${
+                    isDark ? "text-orange-300" : "text-orange-700"
+                  }`}>
                     <Activity size={15} /> Estado Institucional de Interred Ltda.
                   </div>
-                  <div className="text-[11.5px] text-slate-300 leading-relaxed">
+                  <div className={`text-[11.5px] leading-relaxed ${
+                    isDark ? "text-slate-300" : "text-slate-600"
+                  }`}>
                     Todos los subsistemas de hardware, cartera y control de accesos se encuentran sincronizados.
                   </div>
                 </div>
 
                 <button
                   onClick={() => setView("redes")}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 border border-orange-400/30"
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2 shadow-lg border ${
+                    isDark
+                      ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white shadow-orange-500/25 border-orange-400/30"
+                      : "bg-gradient-to-r from-orange-600 to-amber-700 hover:from-orange-700 hover:to-amber-800 text-white shadow-orange-500/30 border-orange-400/40"
+                  }`}
                 >
-                  <span>Ver Mapa y Direccionamiento Multi-Sede</span>
+                  <span>Ver Mapa de Redes y Direccionamiento</span>
                   <ChevronRight size={15} />
                 </button>
               </div>
@@ -345,7 +365,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
             Conectividad Confiable, Telecomunicaciones y Transformación Digital
           </h2>
           <p className={`text-sm sm:text-base leading-relaxed ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-            <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>Interred Ltda.</strong> es una empresa colombiana especializada en soluciones de telecomunicaciones, diseño de redes corporativas, cableado estructurado, soporte de sistemas e integración financiera para el sector productivo. En el marco de la formación del SENA (Ruta GA6-220501106-AA1), este portal consolida la operación de nuestras sedes principales y sucursales.
+            <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>Interred Ltda.</strong> es una empresa colombiana especializada en soluciones de telecomunicaciones, diseño de redes corporativas, cableado estructurado, soporte de sistemas e integración financiera para el sector productivo. Este portal consolida la operación de nuestras sedes principales y sucursales, bajo los más altos estándares de calidad y seguridad.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
@@ -392,7 +412,11 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
                 </div>
                 <div className="flex items-center justify-between mb-1.5">
                   <h3 className={`font-extrabold text-sm ${isDark ? "text-white" : "text-slate-900"}`}>{srv.title}</h3>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono font-bold">
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full border backdrop-blur-sm font-mono font-bold transition-colors ${
+                    isDark 
+                      ? "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10" 
+                      : "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200"
+                  }`}>
                     {srv.tag}
                   </span>
                 </div>
@@ -438,10 +462,14 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
               <div>
                 <div className="flex items-center justify-between mb-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse shadow-sm shadow-emerald-400" />
-                    <span className="text-xs font-bold text-emerald-400 font-mono">{s.estado}</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse shadow-sm shadow-emerald-500" />
+                    <span className={`text-xs font-bold font-mono ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>{s.estado}</span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border backdrop-blur-sm ${
+                    isDark 
+                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+                      : "bg-emerald-100 text-emerald-700 border-emerald-300"
+                  }`}>
                     {s.ping}
                   </span>
                 </div>
@@ -464,12 +492,12 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       </div>
 
 
-      {/* PIE INSTITUCIONAL / SENA CREDITS */}
+      {/* PIE INSTITUCIONAL / CRÉDITOS */}
       <div className={`p-6 rounded-2xl border text-center space-y-2 backdrop-blur-md ${
         isDark ? "bg-white/5 border-white/10 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-600"
       }`}>
         <div className="text-xs font-mono font-semibold uppercase tracking-wider text-orange-500">
-          Actividad Académica SENA · GA6-220501106-AA1
+          Interred Ltda. · Gestión de Procesos
         </div>
         <p className="text-xs max-w-xl mx-auto">
           Sistema de información corporativo, direccionamiento de redes y CRM de Interred Ltda. Desarrollado con arquitectura moderna en React, Vite, Tailwind CSS y Supabase.

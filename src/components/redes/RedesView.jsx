@@ -182,7 +182,7 @@ export default function RedesView({ theme = 'light' }) {
                 Módulo Administrativo & Redes · Interred Ltda.
               </h1>
               <p className={`text-xs sm:text-sm mt-1 leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700 font-medium'}`}>
-                Documentación técnica de subredes, direccionamiento IP, topología multi-sede y enlaces corporativos (SENA GA6-220501106-AA1).
+                Documentación técnica de subredes, direccionamiento IP, topología multi-sede y enlaces corporativos de Interred Ltda.
               </p>
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function RedesView({ theme = 'light' }) {
             <Shield size={20} />
           </div>
           <p className="text-xs leading-relaxed">
-            <strong className={isDark ? 'text-amber-300' : 'text-amber-900 font-extrabold'}>Política de Seguridad SENA GA6-220501106-AA1:</strong> Todas las VLANs están aisladas mediante Access Control Lists (ACLs) perimetrales en el Switch Core. La VLAN 40 (Visitantes) y VLAN 58 (Invitados) disponen de salida a Internet exclusiva sin comunicación hacia el Data Center o Gerencia.
+            <strong className={isDark ? 'text-amber-300' : 'text-amber-900 font-extrabold'}>Política de Seguridad Corporativa Interred Ltda.:</strong> Todas las VLANs están aisladas mediante Listas de Control de Acceso (ACLs) perimetrales en el Switch Core. La VLAN 40 (Visitantes) y VLAN 58 (Invitados) disponen de salida a Internet exclusiva sin comunicación directa hacia el Data Center o Gerencia.
           </p>
         </div>
       </div>

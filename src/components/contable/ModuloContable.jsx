@@ -68,7 +68,7 @@ export default function ModuloContable({ theme = "light" }) {
                 Módulo Contable & Simulador Financiero · Interred Ltda.
               </h1>
               <p className={`text-xs sm:text-sm mt-1 ${isDark ? "text-slate-300" : "text-slate-600 font-medium"}`}>
-                Simulación de créditos de infraestructura tecnológica, tablas de amortización francesa y alemana (SENA GA6-220501106-AA1).
+                Simulación de créditos de infraestructura tecnológica, tablas de amortización francesa y alemana para Proyectos Empresariales.
               </p>
             </div>
           </div>
@@ -127,13 +127,13 @@ export default function ModuloContable({ theme = "light" }) {
       {/* SIMULADOR DE CRÉDITO EMBEBIDO */}
       <SimuladorCredito embedded={true} theme={theme} />
 
-      {/* NOTA METODOLÓGICA SENA */}
+      {/* NOTA METODOLÓGICA */}
       <div className={`p-5 rounded-2xl border backdrop-blur-md flex items-center gap-3 ${
         isDark ? "bg-white/5 border-white/10 text-slate-300" : "bg-slate-100 border-slate-200 text-slate-700"
       }`}>
         <ShieldCheck size={22} className="text-emerald-500 shrink-0" />
         <p className="text-xs leading-relaxed">
-          <strong>Validación de Algoritmos Financieros (SENA GA6):</strong> Las fórmulas matemáticas aplican la conversión exacta entre Tasa Efectiva Anual (TEA), Tasa Nominal Anual (TNA) y Tasa Efectiva Mensual (TEM), garantizando total concordancia con la circular reglamentaria de la Superintendencia Financiera de Colombia.
+          <strong>Validación de Algoritmos Financieros Interred Ltda.:</strong> Las fórmulas matemáticas aplican la conversión exacta entre Tasa Efectiva Anual (TEA), Tasa Nominal Anual (TNA) y Tasa Efectiva Mensual (TEM), garantizando total concordancia con la circular reglamentaria de la Superintendencia Financiera de Colombia.
         </p>
       </div>
     </div>
