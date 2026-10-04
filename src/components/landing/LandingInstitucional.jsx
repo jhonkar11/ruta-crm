@@ -144,7 +144,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
           {/* Badge superior institucional */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold mb-6 border backdrop-blur-md bg-emerald-500/15 border-emerald-400/40 text-emerald-300 shadow-sm shadow-emerald-500/20">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Interred Ltda. · Infraestructura Empresarial</span>
+            <span>ENTER Ltda. · Infraestructura Empresarial</span>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -159,7 +159,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
               <p className={`text-base sm:text-lg leading-relaxed max-w-2xl ${
                 isDark ? "text-slate-200" : "text-slate-700"
               }`}>
-                Portal corporativo integral para la gestión multi-sede de <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>Interred Ltda.</strong> Monitoreo de direccionamiento de redes, mesa de soporte de sistemas, control de visitantes y simuladores financieros bajo arquitectura modular de alto desempeño.
+                Portal corporativo integral para la gestión multi-sede de <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>ENTER Ltda.</strong> Monitoreo de direccionamiento de redes, mesa de soporte de sistemas, control de visitantes y simuladores financieros bajo arquitectura modular de alto desempeño.
               </p>
 
               {/* Botones de acción rápida */}
@@ -274,7 +274,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
                   <div className={`font-bold flex items-center gap-1.5 mb-1 ${
                     isDark ? "text-orange-300" : "text-orange-700"
                   }`}>
-                    <Activity size={15} /> Estado Institucional de Interred Ltda.
+                    <Activity size={15} /> Estado Institucional de ENTER Ltda.
                   </div>
                   <div className={`text-[11.5px] leading-relaxed ${
                     isDark ? "text-slate-300" : "text-slate-600"
@@ -305,7 +305,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
         <div className="flex items-center justify-between">
           <div>
             <h2 className={`text-xl sm:text-2xl font-bold font-display ${isDark ? "text-white" : "text-slate-900"}`}>
-              Departamentos y Áreas de Interred Ltda.
+              Departamentos y Áreas de ENTER Ltda.
             </h2>
             <p className={`text-xs sm:text-sm mt-1 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
               Selecciona el área institucional a la que deseas acceder:
@@ -359,13 +359,13 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
         <div className="max-w-3xl space-y-4">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/40">
             <Award size={15} />
-            <span>Perfil Corporativo · Interred Ltda.</span>
+            <span>Perfil Corporativo · ENTER Ltda.</span>
           </div>
           <h2 className={`text-2xl sm:text-3xl font-extrabold font-display ${isDark ? "text-white" : "text-slate-900"}`}>
             Conectividad Confiable, Telecomunicaciones y Transformación Digital
           </h2>
           <p className={`text-sm sm:text-base leading-relaxed ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-            <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>Interred Ltda.</strong> es una empresa colombiana especializada en soluciones de telecomunicaciones, diseño de redes corporativas, cableado estructurado, soporte de sistemas e integración financiera para el sector productivo. Este portal consolida la operación de nuestras sedes principales y sucursales, bajo los más altos estándares de calidad y seguridad.
+            <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>ENTER Ltda.</strong> es una empresa colombiana especializada en soluciones de telecomunicaciones, diseño de redes corporativas, cableado estructurado, soporte de sistemas e integración financiera para el sector productivo. Este portal consolida la operación de nuestras sedes principales y sucursales, bajo los más altos estándares de calidad y seguridad.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
@@ -393,7 +393,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
             Servicios de Infraestructura Tecnológica
           </h2>
           <p className={`text-xs sm:text-sm mt-1 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
-            Capacidades técnicas desplegadas en la red nacional de Interred Ltda.
+            Capacidades técnicas desplegadas en la red nacional de ENTER Ltda.
           </p>
         </div>
 
@@ -436,7 +436,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
           <div>
             <h3 className={`font-extrabold text-lg sm:text-xl font-display ${isDark ? "text-white" : "text-slate-900"}`}>
-              Sedes Conectadas · Red WAN Interred Ltda.
+              Sedes Conectadas · Red WAN ENTER Ltda.
             </h3>
             <p className={`text-xs sm:text-sm mt-0.5 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
               Estado de interconexión punto a punto mediante túneles seguros y fibra óptica dedicada
@@ -497,10 +497,10 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
         isDark ? "bg-white/5 border-white/10 text-slate-400" : "bg-slate-100 border-slate-200 text-slate-600"
       }`}>
         <div className="text-xs font-mono font-semibold uppercase tracking-wider text-orange-500">
-          Interred Ltda. · Gestión de Procesos
+          ENTER Ltda. · Gestión de Procesos
         </div>
         <p className="text-xs max-w-xl mx-auto">
-          Sistema de información corporativo, direccionamiento de redes y CRM de Interred Ltda. Desarrollado con arquitectura moderna en React, Vite, Tailwind CSS y Supabase.
+          Sistema de información corporativo, direccionamiento de redes y CRM de ENTER Ltda. Desarrollado con arquitectura moderna en React, Vite, Tailwind CSS y Supabase.
         </p>
       </div>
     </div>

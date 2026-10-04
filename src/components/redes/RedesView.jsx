@@ -179,10 +179,10 @@ export default function RedesView({ theme = 'light' }) {
                 </span>
               </div>
               <h1 className={`text-2xl sm:text-3xl font-extrabold font-display tracking-tight mt-1 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                Módulo Administrativo & Redes · Interred Ltda.
+                Módulo Administrativo & Redes · ENTER Ltda.
               </h1>
               <p className={`text-xs sm:text-sm mt-1 leading-relaxed ${isDark ? 'text-slate-200' : 'text-slate-700 font-medium'}`}>
-                Documentación técnica de subredes, direccionamiento IP, topología multi-sede y enlaces corporativos de Interred Ltda.
+                Documentación técnica de subredes, direccionamiento IP, topología multi-sede y enlaces corporativos de ENTER Ltda.
               </p>
             </div>
           </div>
@@ -437,7 +437,7 @@ export default function RedesView({ theme = 'light' }) {
             <Shield size={20} />
           </div>
           <p className="text-xs leading-relaxed">
-            <strong className={isDark ? 'text-amber-300' : 'text-amber-900 font-extrabold'}>Política de Seguridad Corporativa Interred Ltda.:</strong> Todas las VLANs están aisladas mediante Listas de Control de Acceso (ACLs) perimetrales en el Switch Core. La VLAN 40 (Visitantes) y VLAN 58 (Invitados) disponen de salida a Internet exclusiva sin comunicación directa hacia el Data Center o Gerencia.
+            <strong className={isDark ? 'text-amber-300' : 'text-amber-900 font-extrabold'}>Política de Seguridad Corporativa ENTER Ltda.:</strong> Todas las VLANs están aisladas mediante Listas de Control de Acceso (ACLs) perimetrales en el Switch Core. La VLAN 40 (Visitantes) y VLAN 58 (Invitados) disponen de salida a Internet exclusiva sin comunicación directa hacia el Data Center o Gerencia.
           </p>
         </div>
       </div>

@@ -65,7 +65,7 @@ export default function ModuloContable({ theme = "light" }) {
                 </span>
               </div>
               <h1 className={`text-2xl sm:text-3xl font-extrabold font-display mt-1 ${isDark ? "text-white" : "text-slate-900"}`}>
-                Módulo Contable & Simulador Financiero · Interred Ltda.
+                Módulo Contable & Simulador Financiero · ENTER Ltda.
               </h1>
               <p className={`text-xs sm:text-sm mt-1 ${isDark ? "text-slate-300" : "text-slate-600 font-medium"}`}>
                 Simulación de créditos de infraestructura tecnológica, tablas de amortización francesa y alemana para Proyectos Empresariales.
@@ -133,7 +133,7 @@ export default function ModuloContable({ theme = "light" }) {
       }`}>
         <ShieldCheck size={22} className="text-emerald-500 shrink-0" />
         <p className="text-xs leading-relaxed">
-          <strong>Validación de Algoritmos Financieros Interred Ltda.:</strong> Las fórmulas matemáticas aplican la conversión exacta entre Tasa Efectiva Anual (TEA), Tasa Nominal Anual (TNA) y Tasa Efectiva Mensual (TEM), garantizando total concordancia con la circular reglamentaria de la Superintendencia Financiera de Colombia.
+          <strong>Validación de Algoritmos Financieros ENTER Ltda.:</strong> Las fórmulas matemáticas aplican la conversión exacta entre Tasa Efectiva Anual (TEA), Tasa Nominal Anual (TNA) y Tasa Efectiva Mensual (TEM), garantizando total concordancia con la circular reglamentaria de la Superintendencia Financiera de Colombia.
         </p>
       </div>
     </div>

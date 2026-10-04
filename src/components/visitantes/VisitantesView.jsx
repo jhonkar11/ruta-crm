@@ -19,7 +19,7 @@ import {
   Filter
 } from "lucide-react";
 
-const VISITANTES_STORAGE_KEY = "interred_visitantes_data_v1";
+const VISITANTES_STORAGE_KEY = "ENTER_visitantes_data_v1";
 
 const visitantesIniciales = [
   {
@@ -218,7 +218,7 @@ export default function VisitantesView({ theme = "light" }) {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Reporte_Visitantes_Interred_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `Reporte_Visitantes_ENTER_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -245,10 +245,10 @@ export default function VisitantesView({ theme = "light" }) {
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold font-display">
-                Control de Visitantes & Accesos · Interred Ltda.
+                Control de Visitantes & Accesos · ENTER Ltda.
               </h1>
               <p className={`text-xs sm:text-sm mt-1 ${isDark ? "text-slate-300" : "text-slate-600"}`}>
-                Registro y trazabilidad de ingresos en las sedes corporativas, asignación de carné y control de activos portátiles de Interred Ltda.
+                Registro y trazabilidad de ingresos en las sedes corporativas, asignación de carné y control de activos portátiles de ENTER Ltda.
               </p>
             </div>
           </div>
@@ -513,7 +513,7 @@ export default function VisitantesView({ theme = "light" }) {
             <div className="flex items-center justify-between border-b border-slate-500/20 pb-3">
               <div className="flex items-center gap-2">
                 <ShieldCheck size={20} className="text-purple-400" />
-                <h3 className="font-bold text-base">Registrar Nuevo Visitante · Interred Ltda.</h3>
+                <h3 className="font-bold text-base">Registrar Nuevo Visitante · ENTER Ltda.</h3>
               </div>
               <button
                 onClick={() => setShowModalRegistro(false)}

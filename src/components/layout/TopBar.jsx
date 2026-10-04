@@ -83,7 +83,7 @@ export default function TopBar({
           <div>
             <div className="font-display font-extrabold text-base tracking-tight flex items-center gap-2">
               <span className={`${isDark ? "text-white" : "text-slate-900"} group-hover:text-orange-500 transition-colors`}>
-                Interred Ltda.
+                ENTER Ltda.
               </span>
               <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shadow-sm ${
                 isDark 
@@ -173,7 +173,7 @@ export default function TopBar({
           {/* BOTÓN CERRAR SESIÓN */}
           <button
             onClick={() => {
-              if (confirm("¿Seguro que deseas cerrar la sesión de Interred Ltda. - Gestión de Procesos?")) {
+              if (confirm("¿Seguro que deseas cerrar la sesión de ENTER Ltda. - Gestión de Procesos?")) {
                 onLogout();
               }
             }}

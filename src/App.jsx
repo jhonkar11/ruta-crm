@@ -345,7 +345,7 @@ export default function App() {
         <div style={{ width: 44, height: 44, borderRadius: 14, background: "linear-gradient(135deg, #10B981, #0EA5E9)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 25px rgba(16, 185, 129, 0.4)", animation: "pulse 2s infinite" }}>
           <span style={{ fontWeight: 800, fontSize: 20 }}>I</span>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "#E2E8F0" }}>Cargando portal Interred Ltda…</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#E2E8F0" }}>Cargando portal ENTER Ltda…</div>
       </div>
     );
   }
@@ -462,7 +462,7 @@ export default function App() {
             <>
               <div style={{ marginBottom: 16 }}>
                 <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0, color: theme === "dark" ? "#ffffff" : "#0F172A", letterSpacing: "-0.02em" }}>Panel de Metas y Filtros</h2>
-                <p style={{ fontSize: 13, color: theme === "dark" ? "#CBD5E1" : "#475569", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos de Interred Ltda.</p>
+                <p style={{ fontSize: 13, color: theme === "dark" ? "#CBD5E1" : "#475569", margin: "4px 0 0 0" }}>{records ? records.filter(r => r && r.estado !== "Archivado").length : 0} registros totales en la base de datos de ENTER Ltda.</p>
               </div>
               <MapaView records={records} onEdit={openEdit} onOpenDocs={setDocsCliente} onOpenHistorial={setHistorialCliente} onOpenAbono={setAbonoCliente} onRegistrarContacto={handleRegistrarContacto} pagosPorCliente={pagosPorCliente} theme={theme} />
             </>

@@ -47,7 +47,7 @@ export default function SimuladorCredito({ onClose, embedded = false, theme = "l
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `Tabla_Amortizacion_Interred_${monto}_COP.csv`);
+    link.setAttribute("download", `Tabla_Amortizacion_ENTER_${monto}_COP.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -72,7 +72,7 @@ export default function SimuladorCredito({ onClose, embedded = false, theme = "l
             </div>
             <div>
               <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-orange-400">
-                Interred Ltda. · Módulo Contable
+                ENTER Ltda. · Módulo Contable
               </span>
               <h2 className={`text-xl font-bold font-display ${isDark ? "text-white" : "text-slate-900"}`}>
                 Simulador de Créditos y Amortización
