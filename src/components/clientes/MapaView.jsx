@@ -57,12 +57,12 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 16 }}>
-        <StatCard title="Interesados" count={interesados} icon={CheckCircle2} color="#16a34a" active={filtroActivo === "Interesado"} onClick={() => setFiltroActivo(filtroActivo === "Interesado" ? "TODOS" : "Interesado")} />
-        <StatCard title="En Trámite" count={enTramite} icon={Clock} color="#0284c7" active={filtroActivo === "En trámite"} onClick={() => setFiltroActivo(filtroActivo === "En trámite" ? "TODOS" : "En trámite")} />
-        <StatCard title="Contactados" count={contactados} icon={AlertCircle} color="#ca8a04" active={filtroActivo === "Contactado"} onClick={() => setFiltroActivo(filtroActivo === "Contactado" ? "TODOS" : "Contactado")} />
-        <StatCard title="No Localizados" count={noLocalizados} icon={XCircle} color="#dc2626" active={filtroActivo === "No localizado"} onClick={() => setFiltroActivo(filtroActivo === "No localizado" ? "TODOS" : "No localizado")} />
-        <StatCard title="Reprogramadas" count={reprogramados} icon={Calendar} color="#8B5CF6" active={filtroActivo === "Reprogramada"} onClick={() => setFiltroActivo(filtroActivo === "Reprogramada" ? "TODOS" : "Reprogramada")} />
-        <StatCard title="Créditos OK" count={creditosOk} icon={ShieldCheck} color="#059669" active={filtroActivo === "Créditos OK"} onClick={() => setFiltroActivo(filtroActivo === "Créditos OK" ? "TODOS" : "Créditos OK")} />
+        <StatCard title="Interesados" count={interesados} icon={CheckCircle2} color="#16a34a" active={filtroActivo === "Interesado"} onClick={() => setFiltroActivo(filtroActivo === "Interesado" ? "TODOS" : "Interesado")} isDark={isDark} />
+        <StatCard title="En Trámite" count={enTramite} icon={Clock} color="#0284c7" active={filtroActivo === "En trámite"} onClick={() => setFiltroActivo(filtroActivo === "En trámite" ? "TODOS" : "En trámite")} isDark={isDark} />
+        <StatCard title="Contactados" count={contactados} icon={AlertCircle} color="#ca8a04" active={filtroActivo === "Contactado"} onClick={() => setFiltroActivo(filtroActivo === "Contactado" ? "TODOS" : "Contactado")} isDark={isDark} />
+        <StatCard title="No Localizados" count={noLocalizados} icon={XCircle} color="#dc2626" active={filtroActivo === "No localizado"} onClick={() => setFiltroActivo(filtroActivo === "No localizado" ? "TODOS" : "No localizado")} isDark={isDark} />
+        <StatCard title="Reprogramadas" count={reprogramados} icon={Calendar} color="#8B5CF6" active={filtroActivo === "Reprogramada"} onClick={() => setFiltroActivo(filtroActivo === "Reprogramada" ? "TODOS" : "Reprogramada")} isDark={isDark} />
+        <StatCard title="Créditos OK" count={creditosOk} icon={ShieldCheck} color="#059669" active={filtroActivo === "Créditos OK"} onClick={() => setFiltroActivo(filtroActivo === "Créditos OK" ? "TODOS" : "Créditos OK")} isDark={isDark} />
       </div>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, padding: "0 2px" }}>
@@ -78,8 +78,8 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {filtrados.length === 0 ? (
-          <div style={{ background: "#fff", padding: 24, borderRadius: 12, textAlign: "center", border: `1px solid ${C.line}` }}>
-            <p style={{ color: C.ink70, fontSize: 13, margin: 0 }}>No hay registros en esta categoría.</p>
+          <div style={{ background: isDark ? "rgba(11,19,43,0.7)" : "#fff", padding: 24, borderRadius: 12, textAlign: "center", border: isDark ? "1px solid rgba(100,116,139,0.25)" : `1px solid ${C.line}` }}>
+            <p style={{ color: isDark ? "#94A3B8" : C.ink70, fontSize: 13, margin: 0 }}>No hay registros en esta categoría.</p>
           </div>
         ) : (
           filtrados.map((r) => (
@@ -87,12 +87,17 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
               key={r.id} 
               onClick={() => setActiveClient(activeClient?.id === r.id ? null : r)}
               style={{
-                background: "#fff", borderRadius: 12, padding: 12, border: `1.5px solid ${activeClient?.id === r.id ? C.coral : C.line}`,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.02)", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center"
+                background: isDark
+                  ? activeClient?.id === r.id ? "rgba(16,185,129,0.08)" : "rgba(11,19,43,0.75)"
+                  : "#fff",
+                borderRadius: 12, padding: 12,
+                border: `1.5px solid ${activeClient?.id === r.id ? (isDark ? "#10B981" : C.coral) : (isDark ? "rgba(100,116,139,0.3)" : C.line)}`,
+                boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.02)",
+                cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center"
               }}
             >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: C.ink, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 7 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: isDark ? "#ffffff" : C.ink, textTransform: "uppercase", display: "flex", alignItems: "center", gap: 7 }}>
                   <SemaforoBadge variant="dot" fechaSeguimiento={r.fecha_seguimiento} estado={r.estado} />
                   {r.nombres} {r.apellidos}
                 </div>
@@ -112,16 +117,16 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
       {activeClient && (
         <div style={{ 
           marginTop: 16, 
-          background: "#ffffff", 
+          background: isDark ? "rgba(11,19,43,0.92)" : "#ffffff", 
           borderRadius: 16, 
-          border: `2px solid ${C.coral}`, 
+          border: isDark ? "2px solid rgba(16,185,129,0.4)" : `2px solid ${C.coral}`, 
           padding: 16, 
-          boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+          boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(16,185,129,0.08)" : "0 8px 24px rgba(0,0,0,0.15)",
           animation: "fadeIn 0.2s ease-in-out"
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
             <div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: C.ink, textTransform: "uppercase" }}>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 16, color: isDark ? "#ffffff" : C.ink, textTransform: "uppercase" }}>
                 {activeClient.nombres} {activeClient.apellidos}
               </div>
               <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#DC2626", fontWeight: 700, marginTop: 2 }}>
@@ -131,7 +136,7 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
             <Stamp estado={activeClient.estado || activeClient.categoria_cliente} size="sm" />
           </div>
 
-          <div style={{ fontSize: 13, color: "rgba(15,23,42,0.8)", marginBottom: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ fontSize: 13, color: isDark ? "#CBD5E1" : "rgba(15,23,42,0.8)", marginBottom: 12, display: "flex", flexDirection: "column", gap: 4 }}>
             <div>📍 <strong>Dirección:</strong> {activeClient.direccion ? `${activeClient.direccion}${activeClient.barrio ? `, ${activeClient.barrio}` : ''}` : "Sin dirección registrada"}</div>
             <div>📞 <strong>Teléfono:</strong> {activeClient.telefono || "No registrado"}</div>
           </div>
@@ -153,7 +158,7 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
             <EstadoCarteraBadge cliente={activeClient} pagos={(pagosPorCliente && pagosPorCliente[activeClient.id]) || []} />
           </div>
 
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 8, borderTop: isDark ? "1px solid rgba(100,116,139,0.25)" : "1px solid #f1f5f9" }}>
             <IconBtn icon={Phone} label="Llamar" href={activeClient.telefono ? `tel:${activeClient.telefono}` : undefined} disabled={!activeClient.telefono}
               onClick={() => activeClient.telefono && onRegistrarContacto && onRegistrarContacto(activeClient, "llamada")} />
             <IconBtn icon={MessageCircle} label="WhatsApp" href={activeClient.whatsapp ? `https://wa.me/57${String(activeClient.whatsapp).replace(/\D/g, "")}` : undefined} disabled={!activeClient.whatsapp}
@@ -169,23 +174,25 @@ export default function MapaView({ records = [], onEdit, onOpenDocs, onOpenHisto
   );
 }
 
-function StatCard({ title, count, icon: Icon, color, active, onClick }) {
+function StatCard({ title, count, icon: Icon, color, active, onClick, isDark = false }) {
   return (
     <div 
       onClick={onClick}
       style={{
-        background: active ? "#fff7ed" : "#fff",
-        border: `2px solid ${active ? C.coral : C.line}`,
+        background: isDark
+          ? active ? "rgba(16,185,129,0.12)" : "rgba(11,19,43,0.7)"
+          : active ? "#fff7ed" : "#fff",
+        border: `2px solid ${active ? (isDark ? "#10B981" : C.coral) : (isDark ? "rgba(100,116,139,0.3)" : C.line)}`,
         borderRadius: 12, padding: "10px 8px", cursor: "pointer",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        boxShadow: isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 1px 3px rgba(0,0,0,0.02)",
         display: "flex", flexDirection: "column", justifyContent: "space-between", minHeight: 64
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: C.ink70, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: isDark ? "#CBD5E1" : C.ink70, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</span>
         <Icon size={14} color={color} />
       </div>
-      <div style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{count}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: isDark ? "#ffffff" : C.ink }}>{count}</div>
     </div>
   );
-}
+}

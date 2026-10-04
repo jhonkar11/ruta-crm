@@ -46,7 +46,7 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
       </div>
 
       {/* Cabecera de la tarjeta: Nombre y Cédula con contraste */}
-      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: "#0F172A", paddingRight: 100 }}>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: isDark ? "#FFFFFF" : "#0F172A", paddingRight: 100 }}>
         {nombreCliente}
       </div>
       <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: "#DC2626", fontWeight: 600, marginTop: 4 }}>
@@ -55,24 +55,24 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
 
       {/* Dirección */}
       {currentClient.direccion && (
-        <div style={{ fontSize: 13, color: "#475569", display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
+        <div style={{ fontSize: 13, color: isDark ? "#CBD5E1" : "#475569", display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
           <span style={{ color: C.coral }}>📍</span>
           <span>{currentClient.direccion} {currentClient.barrio ? `- ${currentClient.barrio}` : ""}</span>
         </div>
       )}
 
       {/* Detalles del negocio y categoría */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 12, fontSize: 13, color: "#475569" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 12, fontSize: 13, color: isDark ? "#94A3B8" : "#475569" }}>
         {currentClient.tipo_negocio && (
           <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#DC2626", fontWeight: 600 }}>
             <Building2 size={14} color="#DC2626" />
             {currentClient.tipo_negocio}
           </span>
         )}
-        {currentClient.tipo_negocio && <span style={{ color: "#CBD5E1" }}>|</span>}
+        {currentClient.tipo_negocio && <span style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#CBD5E1" }}>|</span>}
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Tag size={14} color={C.coral} />
-          <span style={{ fontWeight: 600, color: "#1E293B" }}>{estadoReal}</span>
+          <span style={{ fontWeight: 600, color: isDark ? "#E2E8F0" : "#1E293B" }}>{estadoReal}</span>
         </span>
       </div>
 
@@ -103,11 +103,11 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         <div style={{
           marginTop: 12,
           padding: "8px 12px",
-          background: "#F8FAFC",
+          background: isDark ? "rgba(30,41,59,0.7)" : "#F8FAFC",
           borderLeft: "3px solid #E11D48",
           borderRadius: "0 8px 8px 0",
           fontSize: 12.5,
-          color: "#475569",
+          color: isDark ? "#CBD5E1" : "#475569",
           lineHeight: 1.4
         }}>
           <span style={{ fontWeight: 700, color: "#E11D48", marginRight: 6 }}>Nota:</span>
@@ -116,7 +116,7 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
       )}
 
       {/* Botones de acción inferior */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18, borderTop: `1px solid #F1F5F9`, paddingTop: 14, alignItems: "center" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18, borderTop: isDark ? "1px solid rgba(100,116,139,0.3)" : "1px solid #F1F5F9", paddingTop: 14, alignItems: "center" }}>
         <IconBtn icon={Phone} label="Llamar" href={telClean ? `tel:${telClean}` : undefined} disabled={!telClean}
           onClick={() => telClean && onRegistrarContacto && onRegistrarContacto(currentClient, "llamada")} />
         <IconBtn icon={MessageCircle} label="WhatsApp" href={waHref} disabled={!waClean}
