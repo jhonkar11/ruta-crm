@@ -189,12 +189,12 @@ export function SectionLabel({ children }) {
   );
 }
 
-export function NavTab({ icon: Icon, label, active, onClick, badge }) {
+export function NavTab({ icon: Icon, label, active, onClick, badge, isDark = true }) {
   return (
     <button onClick={onClick} style={{
       flex: 1, background: "none", border: "none", cursor: "pointer", display: "flex",
       flexDirection: "column", alignItems: "center", gap: 3, 
-      color: active ? "#10B981" : "#ffffff", 
+      color: active ? (isDark ? "#10B981" : "#059669") : (isDark ? "#ffffff" : "#334155"), 
       padding: "2px 0",
       position: "relative",
     }}>

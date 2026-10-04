@@ -149,7 +149,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-7 space-y-5">
-              <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-display leading-tight text-white">
+              <h1 className={`text-3xl sm:text-5xl font-extrabold tracking-tight font-display leading-tight ${isDark ? "text-white" : "text-slate-900"}`}>
                 Infraestructura Tecnológica, <br className="hidden sm:block" />
                 <span className="bg-gradient-to-r from-orange-400 via-amber-300 to-emerald-400 bg-clip-text text-transparent">
                   Redes Corporativas & CRM
@@ -159,7 +159,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
               <p className={`text-base sm:text-lg leading-relaxed max-w-2xl ${
                 isDark ? "text-slate-200" : "text-slate-700"
               }`}>
-                Portal corporativo integral para la gestión multi-sede de <strong className="text-white">Interred Ltda.</strong> Monitoreo de direccionamiento de redes, mesa de soporte de sistemas, control de visitantes y simuladores financieros bajo arquitectura modular de alto desempeño.
+                Portal corporativo integral para la gestión multi-sede de <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>Interred Ltda.</strong> Monitoreo de direccionamiento de redes, mesa de soporte de sistemas, control de visitantes y simuladores financieros bajo arquitectura modular de alto desempeño.
               </p>
 
               {/* Botones de acción rápida */}
@@ -181,7 +181,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
                       : "bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-800"
                   }`}
                 >
-                  <Headphones size={18} className="text-amber-400" />
+                  <Headphones size={18} className={isDark ? "text-amber-400" : "text-amber-600"} />
                   <span>Soporte Técnico & IA</span>
                 </button>
 
@@ -193,23 +193,23 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
                       : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm"
                   }`}
                 >
-                  <Users size={18} className="text-cyan-400" />
+                  <Users size={18} className={isDark ? "text-cyan-400" : "text-cyan-600"} />
                   <span>Control de Visitantes</span>
                 </button>
               </div>
 
               {/* Resumen de métricas de confianza */}
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-slate-700/60">
+              <div className={`grid grid-cols-3 gap-4 pt-6 border-t ${isDark ? "border-slate-700/60" : "border-slate-200"}`}>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-orange-400">4 Sedes</div>
+                  <div className={`text-2xl sm:text-3xl font-black ${isDark ? "text-orange-400" : "text-orange-600"}`}>4 Sedes</div>
                   <div className={`text-xs font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`}>Interconectadas en tiempo real</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-emerald-400">99.98%</div>
+                  <div className={`text-2xl sm:text-3xl font-black ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>99.98%</div>
                   <div className={`text-xs font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`}>Disponibilidad de Red</div>
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-black text-cyan-400">24/7</div>
+                  <div className={`text-2xl sm:text-3xl font-black ${isDark ? "text-cyan-400" : "text-cyan-700"}`}>24/7</div>
                   <div className={`text-xs font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`}>Monitoreo y Mesa de Ayuda</div>
                 </div>
               </div>
@@ -345,20 +345,20 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
             Conectividad Confiable, Telecomunicaciones y Transformación Digital
           </h2>
           <p className={`text-sm sm:text-base leading-relaxed ${isDark ? "text-slate-200" : "text-slate-700"}`}>
-            <strong className="text-white">Interred Ltda.</strong> es una empresa colombiana especializada en soluciones de telecomunicaciones, diseño de redes corporativas, cableado estructurado, soporte de sistemas e integración financiera para el sector productivo. En el marco de la formación del SENA (Ruta GA6-220501106-AA1), este portal consolida la operación de nuestras sedes principales y sucursales.
+            <strong className={isDark ? "text-white" : "text-slate-900 font-extrabold"}>Interred Ltda.</strong> es una empresa colombiana especializada en soluciones de telecomunicaciones, diseño de redes corporativas, cableado estructurado, soporte de sistemas e integración financiera para el sector productivo. En el marco de la formación del SENA (Ruta GA6-220501106-AA1), este portal consolida la operación de nuestras sedes principales y sucursales.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
             <div className={`p-5 rounded-2xl border ${isDark ? "bg-slate-900/80 border-slate-700/80" : "bg-slate-50 border-slate-200"}`}>
-              <div className="font-extrabold text-sm text-orange-400 mb-1.5">Misión Corporativa</div>
-              <p className={`text-xs leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+              <div className={`font-extrabold text-sm mb-1.5 ${isDark ? "text-orange-400" : "text-orange-600"}`}>Misión Corporativa</div>
+              <p className={`text-xs leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600 font-medium"}`}>
                 Garantizar la continuidad operativa de nuestros clientes empresariales mediante redes de telecomunicaciones de alta disponibilidad, soporte técnico ágil y control integral de sus activos tecnológicos.
               </p>
             </div>
 
             <div className={`p-5 rounded-2xl border ${isDark ? "bg-slate-900/80 border-slate-700/80" : "bg-slate-50 border-slate-200"}`}>
-              <div className="font-extrabold text-sm text-emerald-400 mb-1.5">Visión Estratégica</div>
-              <p className={`text-xs leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
+              <div className={`font-extrabold text-sm mb-1.5 ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>Visión Estratégica</div>
+              <p className={`text-xs leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600 font-medium"}`}>
                 Consolidarnos como el proveedor de referencia en infraestructura de redes de vanguardia, automatización basada en IA y soluciones de software seguras para el territorio nacional.
               </p>
             </div>
@@ -445,16 +445,18 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
                     {s.ping}
                   </span>
                 </div>
-                <div className={`font-extrabold text-sm mb-1 text-white`}>
+                <div className={`font-extrabold text-sm mb-1 ${isDark ? "text-white" : "text-slate-900"}`}>
                   {s.nombre}
                 </div>
-                <div className="text-xs text-slate-300 mb-2 truncate">
+                <div className={`text-xs mb-2 truncate ${isDark ? "text-slate-300" : "text-slate-600 font-medium"}`}>
                   {s.dir}
                 </div>
               </div>
-              <div className="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono text-amber-300">
+              <div className={`pt-2 border-t flex items-center justify-between text-[11px] font-mono ${
+                isDark ? "border-slate-700/60 text-amber-300" : "border-slate-200 text-amber-800 font-bold"
+              }`}>
                 <span>{s.vlan}</span>
-                <span className="text-emerald-400 font-bold">100% ONLINE</span>
+                <span className={`${isDark ? "text-emerald-400" : "text-emerald-700"} font-extrabold`}>100% ONLINE</span>
               </div>
             </div>
           ))}

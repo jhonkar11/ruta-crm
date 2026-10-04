@@ -31,12 +31,12 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
 
   return (
     <div style={{
-      background: isDark ? "rgba(11, 19, 43, 0.85)" : "#FFFFFF",
-      borderRadius: 12,
+      background: isDark ? "rgba(15, 23, 42, 0.88)" : "#FFFFFF",
+      borderRadius: 14,
       padding: 20,
       marginBottom: 16,
-      border: isDark ? "1px solid rgba(100, 116, 139, 0.4)" : "1px solid #E2E8F0",
-      boxShadow: isDark ? "0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(16,185,129,0.06)" : "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+      border: isDark ? "1px solid rgba(148, 163, 184, 0.25)" : "1px solid #E2E8F0",
+      boxShadow: isDark ? "0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(16,185,129,0.08)" : "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
       position: "relative",
       transition: "transform 0.2s ease"
     }}>
@@ -55,14 +55,14 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
 
       {/* Dirección */}
       {currentClient.direccion && (
-        <div style={{ fontSize: 13, color: isDark ? "#CBD5E1" : "#475569", display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
+        <div style={{ fontSize: 13, color: isDark ? "#CBD5E1" : "#334155", display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
           <span style={{ color: C.coral }}>📍</span>
           <span>{currentClient.direccion} {currentClient.barrio ? `- ${currentClient.barrio}` : ""}</span>
         </div>
       )}
 
       {/* Detalles del negocio y categoría */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 12, fontSize: 13, color: isDark ? "#94A3B8" : "#475569" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, marginTop: 12, fontSize: 13, color: isDark ? "#94A3B8" : "#334155" }}>
         {currentClient.tipo_negocio && (
           <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#DC2626", fontWeight: 600 }}>
             <Building2 size={14} color="#DC2626" />
@@ -72,14 +72,14 @@ export default function ClientCard({ client, r: clientProp, profile, onEdit, onA
         {currentClient.tipo_negocio && <span style={{ color: isDark ? "rgba(255,255,255,0.2)" : "#CBD5E1" }}>|</span>}
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Tag size={14} color={C.coral} />
-          <span style={{ fontWeight: 600, color: isDark ? "#E2E8F0" : "#1E293B" }}>{estadoReal}</span>
+          <span style={{ fontWeight: 600, color: isDark ? "#E2E8F0" : "#0F172A" }}>{estadoReal}</span>
         </span>
       </div>
 
       {/* Etapa del crédito (independiente del estado comercial de arriba) */}
       {currentClient.estado_credito && (
         <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600 }}>Crédito:</span>
+          <span style={{ fontSize: 11, color: isDark ? "#94A3B8" : "#64748B", fontWeight: 600 }}>Crédito:</span>
           <Stamp estado={currentClient.estado_credito} size="sm" rotate={false} />
         </div>
       )}

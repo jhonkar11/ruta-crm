@@ -278,45 +278,66 @@ export default function VisitantesView({ theme = "light" }) {
       {/* METRICAS DE RESUMEN (Estilo SaaS Cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* KPI 1: En instalaciones — Emerald */}
-        <div className="relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden bg-gradient-to-br from-emerald-950/60 via-slate-900/90 to-emerald-900/30 border-emerald-500/40 shadow-lg shadow-emerald-900/20 text-white">
-          <div className="absolute inset-0 bg-emerald-500/5 rounded-2xl pointer-events-none" />
+        <div className={`relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden ${
+          isDark 
+            ? "bg-gradient-to-br from-emerald-950/70 via-slate-900/90 to-emerald-900/40 border-emerald-500/40 text-white shadow-lg shadow-emerald-950/40" 
+            : "bg-white border-emerald-200 text-slate-900 shadow-md shadow-emerald-100/50"
+        }`}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-emerald-400/80">Actualmente en Sedes</span>
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <span className={`text-[11px] font-bold font-mono uppercase tracking-widest ${isDark ? "text-emerald-300" : "text-emerald-700"}`}>
+              Actualmente en Sedes
+            </span>
+            <div className={`p-2 rounded-xl border ${
+              isDark ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-emerald-50 text-emerald-600 border-emerald-200"
+            }`}>
               <UserCheck size={18} />
             </div>
           </div>
-          <div className="text-3xl font-black text-emerald-300 drop-shadow-sm">{enInstalacionesCount}</div>
-          <div className="text-xs text-emerald-400/70 mt-1 font-medium">Visitantes con permanencia activa</div>
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+          <div className={`text-3xl font-black drop-shadow-sm ${isDark ? "text-emerald-300" : "text-emerald-900"}`}>{enInstalacionesCount}</div>
+          <div className={`text-xs mt-1 font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`}>Visitantes con permanencia activa</div>
+          <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent ${isDark ? "via-emerald-500/50" : "via-emerald-400"} to-transparent`} />
         </div>
 
         {/* KPI 2: Salidas registradas — Blue */}
-        <div className="relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden bg-gradient-to-br from-blue-950/60 via-slate-900/90 to-blue-900/30 border-blue-500/40 shadow-lg shadow-blue-900/20 text-white">
-          <div className="absolute inset-0 bg-blue-500/5 rounded-2xl pointer-events-none" />
+        <div className={`relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden ${
+          isDark 
+            ? "bg-gradient-to-br from-blue-950/70 via-slate-900/90 to-blue-900/40 border-blue-500/40 text-white shadow-lg shadow-blue-950/40" 
+            : "bg-white border-blue-200 text-slate-900 shadow-md shadow-blue-100/50"
+        }`}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-blue-400/80">Salidas Completadas</span>
-            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            <span className={`text-[11px] font-bold font-mono uppercase tracking-widest ${isDark ? "text-blue-300" : "text-blue-700"}`}>
+              Salidas Completadas
+            </span>
+            <div className={`p-2 rounded-xl border ${
+              isDark ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-blue-50 text-blue-600 border-blue-200"
+            }`}>
               <LogOut size={18} />
             </div>
           </div>
-          <div className="text-3xl font-black text-blue-300 drop-shadow-sm">{salidasHoyCount}</div>
-          <div className="text-xs text-blue-400/70 mt-1 font-medium">Con carné y equipos devueltos</div>
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+          <div className={`text-3xl font-black drop-shadow-sm ${isDark ? "text-blue-300" : "text-blue-900"}`}>{salidasHoyCount}</div>
+          <div className={`text-xs mt-1 font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`}>Con carné y equipos devueltos</div>
+          <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent ${isDark ? "via-blue-500/50" : "via-blue-400"} to-transparent`} />
         </div>
 
         {/* KPI 3: Total del día — Purple */}
-        <div className="relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden bg-gradient-to-br from-purple-950/60 via-slate-900/90 to-purple-900/30 border-purple-500/40 shadow-lg shadow-purple-900/20 text-white">
-          <div className="absolute inset-0 bg-purple-500/5 rounded-2xl pointer-events-none" />
+        <div className={`relative p-5 rounded-2xl border backdrop-blur-xl transition-all overflow-hidden ${
+          isDark 
+            ? "bg-gradient-to-br from-purple-950/70 via-slate-900/90 to-purple-900/40 border-purple-500/40 text-white shadow-lg shadow-purple-950/40" 
+            : "bg-white border-purple-200 text-slate-900 shadow-md shadow-purple-100/50"
+        }`}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-[10px] font-bold font-mono uppercase tracking-widest text-purple-400/80">Flujo Total Registrado</span>
-            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            <span className={`text-[11px] font-bold font-mono uppercase tracking-widest ${isDark ? "text-purple-300" : "text-purple-700"}`}>
+              Flujo Total Registrado
+            </span>
+            <div className={`p-2 rounded-xl border ${
+              isDark ? "bg-purple-500/20 text-purple-400 border-purple-500/30" : "bg-purple-50 text-purple-600 border-purple-200"
+            }`}>
               <Users size={18} />
             </div>
           </div>
-          <div className="text-3xl font-black text-purple-300 drop-shadow-sm">{totalHoyCount}</div>
-          <div className="text-xs text-purple-400/70 mt-1 font-medium">Ingresos monitoreados por seguridad</div>
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+          <div className={`text-3xl font-black drop-shadow-sm ${isDark ? "text-purple-300" : "text-purple-900"}`}>{totalHoyCount}</div>
+          <div className={`text-xs mt-1 font-medium ${isDark ? "text-slate-300" : "text-slate-600"}`}>Ingresos monitoreados por seguridad</div>
+          <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent ${isDark ? "via-purple-500/50" : "via-purple-400"} to-transparent`} />
         </div>
       </div>
 
@@ -391,8 +412,8 @@ export default function VisitantesView({ theme = "light" }) {
               key={v.id}
               className={`p-5 rounded-2xl border backdrop-blur-xl transition-all shadow-md flex flex-col justify-between ${
                 isDark 
-                  ? "bg-slate-900/60 border-white/10 hover:border-white/20 text-white" 
-                  : "bg-white/90 border-slate-200 hover:border-slate-300 text-slate-900"
+                  ? "bg-slate-900/80 border-slate-700/80 hover:border-slate-600 text-white" 
+                  : "bg-white border-slate-200 hover:border-slate-300 text-slate-900 shadow-md"
               }`}
             >
               <div>
@@ -400,53 +421,61 @@ export default function VisitantesView({ theme = "light" }) {
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-base">{v.nombre}</span>
-                      <span className="text-[11px] px-2 py-0.5 rounded bg-slate-500/10 font-mono text-slate-400">
+                      <span className={`font-bold text-base ${isDark ? "text-white" : "text-slate-900"}`}>{v.nombre}</span>
+                      <span className={`text-[11px] px-2 py-0.5 rounded font-mono ${
+                        isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-700 font-bold"
+                      }`}>
                         {v.tipoDoc} {v.documento}
                       </span>
                     </div>
-                    <div className="text-xs font-semibold text-orange-400 mt-0.5">
+                    <div className={`text-xs font-semibold mt-0.5 ${isDark ? "text-orange-400" : "text-orange-600 font-bold"}`}>
                       {v.empresa}
                     </div>
                   </div>
 
                   <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border inline-flex items-center gap-1 ${
                     v.estado === "En instalaciones"
-                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                      : "bg-slate-500/15 text-slate-400 border-slate-500/30"
+                      ? isDark 
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+                        : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                      : isDark
+                        ? "bg-slate-800 text-slate-300 border-slate-700"
+                        : "bg-slate-100 text-slate-700 border-slate-300"
                   }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${v.estado === "En instalaciones" ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full ${v.estado === "En instalaciones" ? (isDark ? "bg-emerald-400" : "bg-emerald-600") + " animate-pulse" : (isDark ? "bg-slate-400" : "bg-slate-500")}`} />
                     {v.estado}
                   </span>
                 </div>
 
                 {/* Detalles en Grid */}
-                <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-500/10 mb-3">
+                <div className={`grid grid-cols-2 gap-2 text-xs py-2 border-y mb-3 ${isDark ? "border-slate-700/60" : "border-slate-200"}`}>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Sede & Área</span>
-                    <span className="font-medium truncate block">{v.sede.split(" - ")[1] || v.sede} · {v.departamento}</span>
+                    <span className={`block text-[10px] uppercase font-bold ${isDark ? "text-slate-400" : "text-slate-600"}`}>Sede & Área</span>
+                    <span className={`font-medium truncate block ${isDark ? "text-slate-200" : "text-slate-800"}`}>{v.sede.split(" - ")[1] || v.sede} · {v.departamento}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Responsable / Anfitrión</span>
-                    <span className="font-medium truncate block">{v.responsable}</span>
+                    <span className={`block text-[10px] uppercase font-bold ${isDark ? "text-slate-400" : "text-slate-600"}`}>Responsable / Anfitrión</span>
+                    <span className={`font-medium truncate block ${isDark ? "text-slate-200" : "text-slate-800"}`}>{v.responsable}</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Hora Ingreso</span>
-                    <span className="font-mono font-semibold text-emerald-400">{v.horaIngreso} ({v.fechaIngreso})</span>
+                    <span className={`block text-[10px] uppercase font-bold ${isDark ? "text-slate-400" : "text-slate-600"}`}>Hora Ingreso</span>
+                    <span className={`font-mono font-semibold ${isDark ? "text-emerald-400" : "text-emerald-700 font-bold"}`}>{v.horaIngreso} ({v.fechaIngreso})</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px] uppercase font-bold">Carné Asignado</span>
-                    <span className="font-mono font-bold text-purple-400">{v.carnet}</span>
+                    <span className={`block text-[10px] uppercase font-bold ${isDark ? "text-slate-400" : "text-slate-600"}`}>Carné Asignado</span>
+                    <span className={`font-mono font-bold ${isDark ? "text-purple-400" : "text-purple-700"}`}>{v.carnet}</span>
                   </div>
                 </div>
 
                 {/* Motivo y Equipos */}
                 <div className="space-y-1.5 text-xs mb-4">
-                  <div className="text-slate-400">
-                    <strong className={isDark ? "text-slate-300" : "text-slate-700"}>Motivo:</strong> {v.motivo}
+                  <div className={isDark ? "text-slate-300" : "text-slate-700"}>
+                    <strong className={isDark ? "text-white" : "text-slate-900"}>Motivo:</strong> {v.motivo}
                   </div>
                   {v.equipos && (
-                    <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 p-2 rounded-lg">
+                    <div className={`flex items-center gap-1.5 text-xs p-2 rounded-lg border ${
+                      isDark ? "text-amber-300 bg-amber-500/10 border-amber-500/30" : "text-amber-900 bg-amber-50 border-amber-200"
+                    }`}>
                       <Laptop size={14} className="shrink-0" />
                       <span className="truncate"><strong>Activos portátiles:</strong> {v.equipos}</span>
                     </div>
@@ -455,8 +484,8 @@ export default function VisitantesView({ theme = "light" }) {
               </div>
 
               {/* Botón de acción */}
-              <div className="pt-2 border-t border-slate-500/10 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">
+              <div className={`pt-2 border-t flex items-center justify-between ${isDark ? "border-slate-700/60" : "border-slate-200"}`}>
+                <span className={`text-[11px] ${isDark ? "text-slate-400" : "text-slate-600 font-medium"}`}>
                   {v.horaSalida ? `Salida registrada: ${v.horaSalida}` : "Permanencia autorizada"}
                 </span>
 

@@ -82,22 +82,34 @@ export default function TopBar({
           </div>
           <div>
             <div className="font-display font-extrabold text-base tracking-tight flex items-center gap-2">
-              <span className="text-white group-hover:text-orange-400 transition-colors">INTERRED</span>
-              <span className="text-emerald-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
+              <span className={`${isDark ? "text-white" : "text-slate-900"} group-hover:text-orange-500 transition-colors`}>
+                INTERRED
+              </span>
+              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border shadow-sm ${
+                isDark 
+                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-emerald-500/20" 
+                  : "bg-emerald-100 text-emerald-800 border-emerald-300"
+              }`}>
                 LTDA · SENA
               </span>
             </div>
-            <div className="text-[11px] font-mono text-slate-300 truncate max-w-[220px] sm:max-w-xs flex items-center gap-1.5 mt-0.5">
+            <div className={`text-[11px] font-mono truncate max-w-[220px] sm:max-w-xs flex items-center gap-1.5 mt-0.5 ${
+              isDark ? "text-slate-300" : "text-slate-600 font-medium"
+            }`}>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
               <span>{profile?.nombre || "Usuario"}</span>
-              <span className="text-slate-400">·</span>
-              <span className="text-emerald-300 font-semibold">{profile?.rol === "admin" ? "Administrador TI" : "Asesor Comercial"}</span>
+              <span className={isDark ? "text-slate-400" : "text-slate-400"}>·</span>
+              <span className={`${isDark ? "text-emerald-300" : "text-emerald-700"} font-bold`}>
+                {profile?.rol === "admin" ? "Administrador TI" : "Asesor Comercial"}
+              </span>
             </div>
           </div>
         </div>
 
         {/* NAVEGACIÓN PRINCIPAL DE ESCRITORIO (DEPARTAMENTOS) */}
-        <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/90 p-1.5 rounded-2xl border border-slate-700/80 shadow-inner">
+        <div className={`hidden lg:flex items-center gap-1.5 p-1.5 rounded-2xl border shadow-inner ${
+          isDark ? "bg-slate-900/90 border-slate-700/80" : "bg-slate-100 border-slate-300"
+        }`}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const activo = view === item.id || (item.id === "todos" && ["todos", "mapa", "citas", "buscar", "form"].includes(view));
@@ -110,10 +122,10 @@ export default function TopBar({
                     ? "bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-lg shadow-orange-500/30 border border-orange-400/40"
                     : isDark
                       ? "text-slate-200 hover:text-white hover:bg-white/10"
-                      : "text-slate-700 hover:text-slate-950 hover:bg-slate-100"
+                      : "text-slate-700 hover:text-slate-950 hover:bg-white shadow-sm border border-transparent hover:border-slate-200"
                 }`}
               >
-                <Icon size={15} className={activo ? "text-white" : "text-slate-400"} />
+                <Icon size={15} className={activo ? "text-white" : isDark ? "text-slate-400" : "text-slate-500"} />
                 <span>{item.label}</span>
               </button>
             );
@@ -144,9 +156,13 @@ export default function TopBar({
             <button
               onClick={onOpenSimulador}
               title="Abrir simulador rápido"
-              className="hidden sm:flex px-3 py-1.5 rounded-xl border border-orange-500/40 bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 font-mono text-xs font-bold items-center gap-1.5 transition shadow-sm"
+              className={`hidden sm:flex px-3 py-1.5 rounded-xl border font-mono text-xs font-bold items-center gap-1.5 transition shadow-sm ${
+                isDark
+                  ? "border-orange-500/40 bg-orange-500/15 hover:bg-orange-500/25 text-orange-300"
+                  : "border-orange-300 bg-orange-50 hover:bg-orange-100 text-orange-800"
+              }`}
             >
-              <Calculator size={14} className="text-orange-400" />
+              <Calculator size={14} className={isDark ? "text-orange-400" : "text-orange-600"} />
               <span>Simulador</span>
             </button>
           )}
@@ -162,7 +178,7 @@ export default function TopBar({
             className={`p-2 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition ${
               isDark
                 ? "bg-rose-500/15 hover:bg-rose-500/25 border-rose-500/40 text-rose-300 shadow-sm"
-                : "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-600"
+                : "bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700"
             }`}
           >
             <LogOut size={14} />

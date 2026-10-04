@@ -11,16 +11,23 @@ import {
 import { C } from "../../styles/tokens";
 import { NavTab } from "../ui/UIKit";
 
-export default function BottomNav({ view, setView, onNew, citasHoyCount, user, profile }) {
+export default function BottomNav({ view, setView, onNew, citasHoyCount, user, profile, theme = "light" }) {
+  const isDark = theme === "dark";
+
   return (
     <div
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[95%] max-w-xl bg-slate-950/90 border border-white/20 backdrop-blur-2xl rounded-3xl p-1.5 shadow-2xl flex items-center justify-around z-50 transition-all"
+      className={`fixed bottom-4 left-1/2 -translate-x-1/2 w-[95%] max-w-xl backdrop-blur-2xl rounded-3xl p-1.5 shadow-2xl flex items-center justify-around z-50 transition-all ${
+        isDark 
+          ? "bg-slate-950/95 border border-slate-800 text-white shadow-black/80" 
+          : "bg-white/95 border border-slate-200 text-slate-800 shadow-slate-300/60"
+      }`}
     >
       <NavTab
         icon={Home}
         label="Inicio"
         active={view === "inicio"}
         onClick={() => setView("inicio")}
+        isDark={isDark}
       />
 
       <NavTab
@@ -28,6 +35,7 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount, user, p
         label="Redes"
         active={view === "redes"}
         onClick={() => setView("redes")}
+        isDark={isDark}
       />
 
       <NavTab
@@ -35,6 +43,7 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount, user, p
         label="Visitas"
         active={view === "visitantes"}
         onClick={() => setView("visitantes")}
+        isDark={isDark}
       />
 
       {/* BOTÓN NUEVO REGISTRO / ACCIÓN CENTRAL */}
@@ -53,6 +62,7 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount, user, p
         label="Soporte"
         active={view === "soporte"}
         onClick={() => setView("soporte")}
+        isDark={isDark}
       />
 
       <NavTab
@@ -60,6 +70,7 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount, user, p
         label="Finanzas"
         active={view === "contable"}
         onClick={() => setView("contable")}
+        isDark={isDark}
       />
 
       <NavTab
@@ -67,6 +78,7 @@ export default function BottomNav({ view, setView, onNew, citasHoyCount, user, p
         label="CRM"
         active={["todos", "mapa", "buscar"].includes(view)}
         onClick={() => setView("todos")}
+        isDark={isDark}
       />
     </div>
   );

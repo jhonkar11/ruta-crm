@@ -355,7 +355,7 @@ export default function App() {
       minHeight: "100vh",
       width: "100%",
       position: "relative",
-      background: theme === "dark" ? "#060D17" : "#F8FAFC",
+      background: theme === "dark" ? "#0B1120" : "#F1F5F9",
       overflowX: "hidden",
       fontFamily: "'Inter', sans-serif",
       color: theme === "dark" ? "#ffffff" : "#0F172A",
@@ -367,10 +367,10 @@ export default function App() {
           inset: 0,
           zIndex: 0,
           background: `
-            radial-gradient(ellipse at 10% 15%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
-            radial-gradient(ellipse at 90% 10%, rgba(14, 165, 233, 0.14) 0%, transparent 45%),
-            radial-gradient(ellipse at 50% 90%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
-            #060D17
+            radial-gradient(ellipse at 15% 15%, rgba(16, 185, 129, 0.12) 0%, transparent 45%),
+            radial-gradient(ellipse at 85% 10%, rgba(14, 165, 233, 0.12) 0%, transparent 45%),
+            radial-gradient(ellipse at 50% 85%, rgba(245, 158, 11, 0.05) 0%, transparent 50%),
+            #0B1120
           `,
           pointerEvents: "none"
         }} />
@@ -563,7 +563,7 @@ export default function App() {
           )}
         </div>
 
-        <BottomNav view={view} setView={setView} citasHoyCount={citasHoyCount} onNew={openNew} user={user} profile={profile} />
+        <BottomNav view={view} setView={setView} citasHoyCount={citasHoyCount} onNew={openNew} user={user} profile={profile} theme={theme} />
       </div>
 
       {docsCliente && (
