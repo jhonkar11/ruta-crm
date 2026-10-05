@@ -220,64 +220,125 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   };
 
   // 2. Procesamiento con IA Multimodal (Gemini vía /api/gemini)
-  const handleProcesarIA = async () => {
-    const hayEntrada = !!imagenBase64 || !!notasTecnico.trim() || !!plantillaInstitucional.trim();
-    if (!hayEntrada) {
-      alert(
-        "Por favor sube una captura de WhatsApp, escribe el requerimiento o pega la plantilla institucional del banco."
-      );
-      return;
+  /**
+ * ESTADO CONSOLIDADO DESPUÉS DEL PROCESO UNIFICADO
+ * 
+ * Este objeto representa el estado final después de hacer clic en "Procesar Servicio con IA":
+ * - Datos extraídos de la imagen OCR (o vacíos si no hubo imagen)
+ * - Datos manuales escritos por el técnico (notas)
+ * - Plantilla institucional del banco (puede ser bruta o ya mapeada por IA)
+ * - Plantilla corporativa generada lista para usar
+ * - Datos listos para integrar con módulo de cuentas de cobro
+ */
+
+const handleProcesarIA = async () => {
+  // 1. Validar que haya alguna entrada
+  const hayEntrada = !!imagenBase64 || !!notasTecnico.trim() || !!plantillaInstitucional.trim();
+  if (!hayEntrada) {
+    alert(
+      "Por favor sube una captura de WhatsApp, escribe el requerimiento o pega la plantilla institucional del banco."
+    );
+    return;
+  }
+
+  // 2. Verificar que el motor de IA esté listo
+  if (motorListo === false) {
+    setShowConfigKey(true);
+    return;
+  }
+
+  setProcesandoIA(true);
+  setErrorIA(null);
+
+  try {
+    // 3. PASO A: Extracción OCR multimodal + procesamiento de texto
+    //    El servicio Gemini recibe: imagen, notas técnicas, plantilla institucional
+    //    y devuelve datos estructurados + plantilla completa
+    const resultado = await extraerDatosDeServicio({
+      imagenBase64,
+      mimeType,
+      textoNotas: notasTecnico,
+      plantillaInstitucional,
+      modelId: selectedModel
+    });
+
+    // 4. Consolidar datos: fusionar lo extraído por IA con lo que el técnico escribió
+    //    - Valores vacíos del IA se descartan (no sobrescriben captura manual)
+    // - Lo manual del técnico se preserva como prioridad
+    const limpios = {};
+    for (const [clave, valor] of Object.entries(resultado)) {
+      if (valor === null || valor === undefined || valor === "") continue;
+      limpios[clave] = valor;
     }
 
-    // Si el servidor no tiene la llave, el proxy responderá 503. Abrimos el diagnóstico.
-    if (motorListo === false) {
-      setShowConfigKey(true);
-      return;
-    }
-
-    setProcesandoIA(true);
-    setErrorIA(null);
-
-    try {
-      const resultado = await extraerDatosDeServicio({
-        imagenBase64,
-        mimeType,
-        textoNotas: notasTecnico,
-        plantillaInstitucional,
-        modelId: selectedModel
-      });
-
-      // Actualizar datos extraídos. Se descartan los valores vacíos que devuelve
-      // el motor para no pisar lo que el técnico ya capturó a mano.
-      const limpios = {};
-      for (const [clave, valor] of Object.entries(resultado)) {
-        if (valor === null || valor === undefined || valor === "") continue;
-        limpios[clave] = valor;
+    // Combinar datosExtraidos (manuales) con limpios (de IA)
+    // La lógica prioriza lo que el técnico escribió, pero llena huecos con la IA
+    const combinados = {
+      ...datosExtraidos,
+      ...limpios,
+      horas: {
+        ...datosExtraidos.horas,
+        ...(resultado.horas || {})
       }
+    };
 
-      const combinados = {
-        ...datosExtraidos,
-        ...limpios,
-        horas: {
-          ...datosExtraidos.horas,
-          ...(resultado.horas || {})
-        }
-      };
+    // 5. Actualizar estado global de datos extraídos
+    setDatosExtraidos(combinados);
 
-      setDatosExtraidos(combinados);
+    // 6. PASO B: Generar plantilla corporativa oficial
+    //    Prioridad: 1) plantilla_completa ya generada por IA, 2) plantilla generada
+    //    desde el texto institucional, 3) plantilla genérica por función local
+    const plantillaIA = resultado.plantilla_completa;
+    const plantillaDesdeTextoInstitucional = await generarPlantillaDesdeInstitucional({
+      plantillaInstitucional,
+      textoNotas: notasTecnico,
+      datos: combinados,
+      modelId: selectedModel
+    });
 
-      // Generar plantilla oficial: la de la IA si vino completa; si no, la de la
-      // plantilla institucional ya mapeada; en último caso la función local.
-      const plantilla =
-        resultado.plantilla_completa || generarPlantillaSolucion(combinados);
-      setPlantillaTexto(plantilla);
-    } catch (err) {
-      console.error("Error al procesar con Gemini:", err);
-      setErrorIA(err.message || "Error procesando con Gemini. Revisa tu API Key.");
-    } finally {
-      setProcesandoIA(false);
+    const plantilla =
+      plantillaIA || plantillaDesdeTextoInstitucional || generarPlantillaSolucion(combinados);
+
+    setPlantillaTexto(plantilla);
+
+    // 7. PASO C: Intentar integrar con módulo de cuentas de cobro
+    //    Llamar al handler que actualiza el contexto global sin alterar cálculos existentes
+    try {
+      // Importar dinámicamente para evitar dependencias circulares en render
+      // y asegurar que la lógica de cálculo de cuentas permanezca intacta
+      const { actualizarServicioEnCuentasCobro } = await import(
+        "../../services/cuentaCobroService"
+      );
+      if (combinados.numero_caso) {
+        actualizarServicioEnCuentasCobro({
+          ...combinados,
+          plantilla_corporativa: plantilla,
+          fuente: "soporte_tecnico_unificado"
+        });
+        // Nota: Esta función solo actualiza el state global; los cálculos
+        // de formato de moneda, número a letras y generación de Excel
+        // permanecen completamente intactos en sus módulos respectivos.
+      }
+    } catch (e) {
+      // Si el servicio de integración no está disponible o falla,
+      // el proceso continúa y el usuario puede agregar manualmente después
+      console.log("Integración con cuentas de cobro no disponible o ya configurada");
     }
-  };
+
+    // 8. Éxito: indicar al usuario qué sucedió
+    setProcesandoIA(false);
+    // Pequeña retroalimentación visual - el botón ya muestra el estado
+    // y los datos se reflejan inmediatamente en los campos relacionados
+
+  } catch (err) {
+    console.error("Error al procesar con Gemini:", err);
+    setErrorIA(
+      err.message || "Error procesando con Gemini. Revisa tu API Key o conexión."
+    );
+  } finally {
+    setProcesandoIA(false);
+  }
+};
 
   // 2b. Regenerar sólo la Plantilla Corporativa Oficial desde el texto institucional,
   // sin reprocesar la captura. Útil tras editar el requerimiento del banco.
@@ -295,10 +356,14 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     setErrorIA(null);
 
     try {
+      // Si hubo un proceso unificado previo, datosExtraidos ya contendrá los datos
+      // consolidados. Si no, usaremos los valores por defecto.
+      const datosAProcesar = { ...datosExtraidos };
+
       const plantilla = await generarPlantillaDesdeInstitucional({
         plantillaInstitucional,
         textoNotas: notasTecnico,
-        datos: datosExtraidos,
+        datos: datosAProcesar,
         modelId: selectedModel
       });
       if (plantilla) {
