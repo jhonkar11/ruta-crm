@@ -286,45 +286,33 @@ const handleProcesarIA = async () => {
     setDatosExtraidos(combinados);
 
     // 6. PASO B: Generar plantilla corporativa oficial
-    //    Si el usuario ingresó una plantilla institucional en bruto, la plantilla
-    //    resultante DEBE copiar e imitar exactamente su estructura dinámica y autocompletar
-    //    sus campos sin usar la plantilla fija predefinida.
+    //    Comportamiento dinámico tipo espejo: se toma la plantilla institucional
+    //    de entrada exactamente como molde y se autocompleta con contexto.
+    //    Sin plantillas fijas, estáticas ni quemadas.
     const tienePlantillaInstitucional = !!plantillaInstitucional.trim();
     let plantillaFinal = "";
 
-    // 6.1 Evaluar si la IA ya devolvió la plantilla_completa mapeada
-    if (resultado.plantilla_completa && resultado.plantilla_completa.trim()) {
-      if (tienePlantillaInstitucional) {
-        // Verificar que no sea la plantilla predeterminada genérica cuando el usuario ingresó otra estructura
-        const esPlantillaFijaGenerica =
-          resultado.plantilla_completa.startsWith("*PLANTILLA") &&
-          !plantillaInstitucional.startsWith("*PLANTILLA");
-        if (!esPlantillaFijaGenerica) {
-          plantillaFinal = resultado.plantilla_completa;
-        }
-      } else {
+    if (tienePlantillaInstitucional) {
+      if (resultado.plantilla_completa && resultado.plantilla_completa.trim()) {
         plantillaFinal = resultado.plantilla_completa;
+      } else {
+        try {
+          plantillaFinal = await generarPlantillaDesdeInstitucional({
+            plantillaInstitucional,
+            textoNotas: notasTecnico,
+            datos: combinados,
+            modelId: selectedModel
+          });
+        } catch (errP) {
+          console.warn("Fallo mapeo dedicado de plantilla:", errP);
+        }
       }
-    }
 
-    // 6.2 Si no se obtuvo o vino en formato fijo teniendo plantilla institucional,
-    // llamar al generador especializado que clona con exactitud el formato del banco
-    if (!plantillaFinal && tienePlantillaInstitucional) {
-      try {
-        plantillaFinal = await generarPlantillaDesdeInstitucional({
-          plantillaInstitucional,
-          textoNotas: notasTecnico,
-          datos: combinados,
-          modelId: selectedModel
-        });
-      } catch (errP) {
-        console.warn("Fallo generación dedicada de plantilla:", errP);
+      if (!plantillaFinal) {
+        plantillaFinal = generarPlantillaSolucion(combinados, plantillaInstitucional);
       }
-    }
-
-    // 6.3 Fallback inteligente: preserva la estructura si hay plantilla institucional
-    if (!plantillaFinal) {
-      plantillaFinal = generarPlantillaSolucion(combinados, plantillaInstitucional);
+    } else {
+      plantillaFinal = "";
     }
 
     setPlantillaTexto(plantillaFinal);
@@ -371,8 +359,8 @@ const handleProcesarIA = async () => {
   // 2b. Regenerar sólo la Plantilla Corporativa Oficial desde el texto institucional,
   // sin reprocesar la captura. Útil tras editar el requerimiento del banco.
   const handleGenerarPlantilla = async () => {
-    if (!plantillaInstitucional.trim() && !notasTecnico.trim()) {
-      alert("Pega la plantilla institucional del banco o escribe notas para generar la plantilla.");
+    if (!plantillaInstitucional.trim()) {
+      alert("Por favor pega la plantilla institucional en el cuadro superior para usarla como molde espejo.");
       return;
     }
     if (motorListo === false) {
@@ -1627,7 +1615,7 @@ const handleProcesarIA = async () => {
                 value={plantillaTexto}
                 onChange={(e) => setPlantillaTexto(e.target.value)}
                 maxLength={20000}
-                placeholder="La plantilla se generará automáticamente al procesar el caso..."
+                placeholder="Pega la plantilla institucional en el cuadro superior para que la IA la tome como espejo y la autocomplete aquí automáticamente..."
                 style={{
                   width: "100%",
                   flex: 1,

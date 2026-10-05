@@ -11,6 +11,10 @@
 //   SOPORTE_ADMIN_EMAIL       -> opcional, por defecto jhonka001@gmail.com
 import { manejarPeticion } from "./_lib/handler.js";
 
+export const config = {
+  maxDuration: 60
+};
+
 export default async function handler(req, res) {
   const resultado = await manejarPeticion({
     method: req.method,

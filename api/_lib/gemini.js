@@ -30,7 +30,7 @@ const MODELOS_FALLBACK = [
 
 const BASE = "https://generativelanguage.googleapis.com";
 const VERSION_PREFERIDA = "v1beta";
-const VERSIONES = [VERSION_PREFERIDA, "v1"];
+const VERSIONES = [VERSION_PREFERIDA];
 const API_VERSIONES_VALIDAS = new Set(VERSIONES);
 const MODELOS_RETIRODOS = new Set([
   "gemini-2.0-flash",
@@ -41,8 +41,8 @@ const MODELOS_RETIRODOS = new Set([
   "gemini-2.5-pro"
 ]);
 
-const REINTENTOS_503 = 2;
-const ESPERA_BASE_MS = 700;
+const REINTENTOS_503 = 1;
+const ESPERA_BASE_MS = 300;
 const MAX_NOTAS = 5000;
 /**
  * La plantilla institucional del banco suele ser un texto largo, de múltiples
@@ -255,30 +255,16 @@ PLANTILLA CORPORATIVA OFICIAL (campo plantilla_completa):
 Es el entregable principal y debe quedar COMPLETO, EXACTO Y DETALLADO. Respeta estas reglas sin excepción:
 ${
   hayInstitucional
-    ? `- REGLA SUPREMA: CLONACIÓN EXACTA DE LA PLANTILLA INSTITUCIONAL DEL BANCO:
-  * El usuario ingresó una plantilla institucional en <plantilla_institucional>. Tu salida en 'plantilla_completa' DEBE COPIAR E IMITAR EXACTAMENTE su estructura, formato, líneas, saltos de línea, orden, etiquetas y estilo (ya sea que tenga 10, 20 o 30 líneas, formato de texto plano, viñetas, tablas de texto o separadores).
-  * ESTÁ ESTRICTAMENTE PROHIBIDO usar una plantilla fija o predefinida (NO uses el formato '*PLANTILLA ...* SH: ... Tecnico: ...' a menos que ese sea el texto exacto de <plantilla_institucional>).
-  * MAPEO INTELIGENTE: Autocompleta cada uno de los campos correspondientes dentro de esa misma estructura idéntica, mapeando los datos de la captura de WhatsApp (imagen OCR) y las notas/detalle del servicio técnico.
-  * Si la plantilla institucional contiene la descripción de la falla o requerimiento (ej: "Detalle: se solicita actualización de SO..."), consérvala fielmente y completa la solución técnica exacta ejecutada, pruebas operativas y técnico responsable dentro del formato o en sus campos correspondientes.
-  * Preserva todos los valores existentes de la plantilla y enriquécelos con la información más exacta y profesional.`
-    : `- Devuélvela como un único bloque de texto multilínea con saltos de línea reales ("\\n"), en este orden exacto y con estas etiquetas literales:
-  *PLANTILLA {cliente} {numero_caso}*
-  SH: {sh}.
-  Tecnico: {primer y segundo nombre en mayúsculas}
-  Medio: {medio}
-  Nombre del equipo: {equipo}
-  Falla: {falla}
-  Causa: {causa}
-  Solución: {solución}
-  Pruebas: {pruebas}
-  Fecha de 1 atención: {fecha_atencion en DD/MM/AAAA}
-  Hora inicio: {hora de inicio}
-  Hora fin: {hora de fin}
-  Hora de desplazamiento: {hora de desplazamiento}
-  Tecnico: {nombre completo del técnico}`
+    ? `- COMPORTAMIENTO TIPO ESPEJO DINÁMICO (campo 'plantilla_completa'):
+  * El usuario proporcionó una plantilla en <plantilla_institucional>.
+  * DEBES TOMAR ESA PLANTILLA EXACTAMENTE COMO UN MOLDE O ESPEJO.
+  * Respeta al 100% su estructura, saltos de línea, títulos, orden, etiquetas y diseño original (ya sean variables tipo $$Variable, etiquetas libres, corchetes, dos puntos, tablas o viñetas).
+  * Actúa puramente como un mapeador de datos sobre el formato de entrada: autocompleta inteligentemente cada campo o variable dentro de esa misma estructura idéntica usando la información extraída de la captura de WhatsApp (imagen OCR) y las notas/detalle del servicio técnico.
+  * NO inventes campos que no correspondan a la plantilla provista por el usuario.
+  * ESTÁ ESTRICTAMENTE PROHIBIDO usar o generar cualquier plantilla predeterminada, fija o estática quemada.`
+    : `- No se proporcionó plantilla institucional de entrada. Devuelve una cadena vacía ("") en el campo 'plantilla_completa'. ESTÁ PROHIBIDO inventar o usar plantillas fijas o quemadas.`
 }
 - No uses corchetes vacíos, guiones innecesarios ni marcadores pendientes como [pendiente] o "N/A" cuando la información exista o pueda ser resuelta técnicamente.
-- Asegura que el texto final de 'plantilla_completa' esté listo para copiar y enviar directamente por WhatsApp al supervisor o mesa de ayuda de la entidad.
 
 IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin bloques de markdown adicionales (sin \`\`\`json ni \`\`\`), con los campos especificados.
 ${textoNotas ? `\nNOTAS ADICIONALES DEL TÉCNICO:\n<notas_tecnico>\n${envolverTextoInstitucional(textoNotas)}\n</notas_tecnico>` : ""}
@@ -318,39 +304,24 @@ export function construirPromptSoloPlantilla(plantillaInstitucional = "", notas 
   const hayInstitucional = institucional.length > 0;
 
   return `
-Eres un Arquitecto de Soporte Técnico e IT empresarial Senior de ENTER Ltda.
-Tu tarea es generar el texto de la Plantilla Corporativa Oficial para WhatsApp IT.
+Eres un Mapeador Inteligente de Datos IT de ENTER Ltda.
+Tu tarea es tomar la plantilla provista en <plantilla_institucional> exactamente como un MOLDE O ESPEJO y rellenar dinámicamente sus campos.
 
 ${
   hayInstitucional
-    ? `REQUERIMIENTO ESTRICTO: REPLICACIÓN EXACTA DE LA PLANTILLA INSTITUCIONAL DEL BANCO:
-1. CLONACIÓN EXACTA: Toma el texto de <plantilla_institucional> y COPIA E IMITA EXACTAMENTE su estructura, formato, líneas, saltos de línea, orden, etiquetas y estilo (ya sea que tenga 10, 20 o 30 líneas, formato de texto plano, viñetas, tablas de texto o separadores).
-2. PROHIBIDO USAR PLANTILLA PREDETERMINADA: NO transformes el texto a la plantilla fija '*PLANTILLA ...* SH: ...'. Debes clonar la plantilla de entrada tal cual fue provista.
-3. MAPEO INTELIGENTE: Rellena y autocompleta inteligentemente cada campo correspondiente dentro de esa misma estructura idéntica usando la información provista en <datos_ya_capturados> y las notas técnicas en <notas_tecnico>.
-4. RESOLUCIÓN EXACTA: Si la plantilla institucional incluye la falla o requerimiento, complementa o autocompleta con precisión los campos de solución, actividades ejecutadas, pruebas de validación con el usuario y cierre del caso.
-5. FORMATO DE SALIDA: Devuelve ÚNICAMENTE el texto resultante completado, con saltos de línea normales. SIN bloques de markdown (\`\`\` o \`\`\`text), SIN explicaciones y SIN texto introductorio.`
-    : `Salida EXACTA en formato estándar corporativo:
-*PLANTILLA {cliente} {numero_caso}*
-SH: {sh}.
-Tecnico: {primer y segundo nombre en mayúsculas}
-Medio: {medio}
-Nombre del equipo: {equipo}
-Falla: {falla}
-Causa: {causa}
-Solución: {solución}
-Pruebas: {pruebas}
-Fecha de 1 atención: {fecha_atencion en DD/MM/AAAA}
-Hora inicio: {hora de inicio}
-Hora fin: {hora de fin}
-Hora de desplazamiento: {hora de desplazamiento}
-Tecnico: {nombre completo del técnico}`
+    ? `DIRECTRICES TÉCNICAS ESTRICTAS (COMPORTAMIENTO TIPO ESPEJO):
+1. TOMA LA PLANTILLA DE ENTRADA COMO MOLDE / ESPEJO:
+   - El usuario ingresó la plantilla en <plantilla_institucional> en bruto (sin importar banco, entidad, longitud, líneas, etiquetas libres o variables del tipo $$Variable).
+   - Respeta al 100% su estructura, saltos de línea, títulos, orden y diseño original.
+   - NO alteres la forma ni inventes campos que no correspondan a la plantilla provista por el usuario. Actúa puramente como un mapeador de datos sobre el formato de entrada.
+2. AUTOLLENADO INTELIGENTE CON CONTEXTO:
+   - Utilizando la información del servicio en <datos_ya_capturados> y las notas/detalle del técnico en <notas_tecnico>, rellena o mapea dinámicamente cada uno de los campos o variables requeridos dentro de esa misma estructura exacta.
+   - Encuentra y redacta la solución técnica más precisa al caso según el requerimiento.
+3. FORMATO DE SALIDA:
+   - Devuelve ÚNICAMENTE el texto resultante completado, respetando los saltos de línea originales.
+   - SIN bloques de markdown (\`\`\` o \`\`\`text), SIN saludos, SIN introducciones y SIN explicaciones.`
+    : `No se ingresó plantilla institucional de entrada. Devuelve únicamente una cadena vacía ("").`
 }
-
-Reglas generales:
-- Convierte todas las fechas a DD/MM/AAAA.
-- Si se describen varios equipos, casos o actividades, inclúyelos completos y en orden, sin "varios" ni puntos suspensivos.
-- No dejes campos clave vacíos ni uses marcadores como [pendiente] o "N/A" cuando la información esté disponible o pueda ser resuelta técnicamente.
-- Redacta en español técnico claro y profesional, en frases completas.
 
 <datos_ya_capturados>
 ${envolverTextoInstitucional(JSON.stringify(contexto, null, 2))}

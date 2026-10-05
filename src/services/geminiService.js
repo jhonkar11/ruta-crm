@@ -214,84 +214,79 @@ export async function generarPlantillaDesdeInstitucional({
 }
 
 /**
- * Genera la cadena de texto con la estructura de la Plantilla Corporativa Oficial
- * para WhatsApp (función pura, no consume IA).
- * Si se pasa plantillaInstitucional, replica exactamente su estructura línea a línea.
+ * Mapeador dinámico tipo "espejo" sobre la plantilla institucional de entrada.
+ * NO utiliza ninguna plantilla fija o predeterminada quemada.
+ * Si no se proporciona plantillaInstitucional, retorna cadena vacía.
  */
-export function generarPlantillaSolucion(datos, plantillaInstitucional = "") {
-  if (plantillaInstitucional && String(plantillaInstitucional).trim()) {
-    const lineas = String(plantillaInstitucional).trim().split(/\r?\n/);
-    const resultado = lineas.map((linea) => {
-      const l = linea;
-      if (/(?:n[°o]|numero|número)\s*(?:de\s*)?(?:caso|requerimiento|ticket|inc|wo)\s*[:=]\s*$/i.test(l) && datos?.numero_caso) {
-        return l + " " + datos.numero_caso;
-      }
-      if (/(?:cliente(?:\s*final)?)\s*[:=]\s*$/i.test(l) && datos?.cliente) {
-        return l + " " + datos.cliente;
-      }
-      if (/(?:mesa(?:\s*de\s*soporte)?)\s*[:=]\s*$/i.test(l) && datos?.mesa) {
-        return l + " " + datos.mesa;
-      }
-      if (/(?:coordinador(?:a)?)\s*[:=]\s*$/i.test(l) && datos?.coordinador) {
-        return l + " " + datos.coordinador;
-      }
-      if (/(?:equipo(?:\s*\/\s*serial)?|serial)\s*[:=]\s*$/i.test(l) && datos?.equipo) {
-        return l + " " + datos.equipo;
-      }
-      if (/(?:tipo\s*de\s*medio|medio)\s*[:=]\s*$/i.test(l) && datos?.medio) {
-        return l + " " + datos.medio;
-      }
-      if (/(?:sh\s*\/\s*hw|sh)\s*[:=]\s*$/i.test(l) && datos?.sh) {
-        return l + " " + datos.sh;
-      }
-      if (/(?:falla(?:\s*reportada)?)\s*[:=]\s*$/i.test(l) && datos?.falla) {
-        return l + " " + datos.falla;
-      }
-      if (/(?:soluci[oó]n(?:\s*t[eé]cnica)?|actividades)\s*[:=]\s*$/i.test(l) && datos?.solucion) {
-        return l + " " + datos.solucion;
-      }
-      if (/(?:pruebas(?:\s*de\s*validaci[oó]n)?)\s*[:=]\s*$/i.test(l) && datos?.pruebas) {
-        return l + " " + datos.pruebas;
-      }
-      if (/(?:t[eé]cnico(?:\s*responsable)?)\s*[:=]\s*$/i.test(l) && datos?.tecnico) {
-        return l + " " + datos.tecnico;
-      }
-      return l;
-    });
-    return resultado.join("\n").trim();
+export function generarPlantillaSolucion(datos = {}, plantillaInstitucional = "") {
+  if (!plantillaInstitucional || !String(plantillaInstitucional).trim()) {
+    return "";
   }
 
-  const cliente = datos?.cliente || "Entidad";
-  const numCaso = datos?.numero_caso || "";
-  const sh = datos?.sh || "SOFTWARE - HARDWARE";
-  const tecnicoCorto =
-    (datos?.tecnico || "JHON ALEXANDER").split(" ")[0]?.toUpperCase() +
-    (datos?.tecnico?.split(" ")[1] ? " " + datos?.tecnico?.split(" ")[1]?.toUpperCase() : "");
-  const medio = datos?.medio || "SITIO";
-  const equipo = datos?.equipo || "No especificado";
-  const falla = (datos?.falla || "Mantenimiento / Soporte Técnico").toUpperCase();
-  const causa = datos?.causa || "Desgaste preventivo o requerimiento operativo de usuario.";
-  const solucion = datos?.solucion || "Se realiza asistencia técnica en sitio dejando el servicio operativo.";
-  const pruebas =
-    datos?.pruebas || "Usuario valida operatividad y funcionamiento correcto de los aplicativos.";
-  const fechaAtencion = datos?.fecha_atencion || new Date().toLocaleDateString("es-CO");
-  const horaInicio = datos?.horas?.inicio || "11:00 am";
-  const horaFin = datos?.horas?.fin || "4:00 pm";
-  const horaDesplazamiento = datos?.horas?.desplazamiento || "10:00 am";
-  const tecnicoFirma = datos?.tecnico || "Jhon Alexander Vasquez Reveló";
+  const raw = String(plantillaInstitucional);
+  const lineas = raw.split(/\r?\n/);
 
-  return `*PLANTILLA ${cliente} ${numCaso}*
-SH: ${sh}.
-Tecnico: ${tecnicoCorto}
-Medio: ${medio}
-Nombre del equipo: ${equipo}
-Falla: ${falla}
-Causa: ${causa}
-Solución: ${solucion}
-Pruebas: ${pruebas}
-Fecha de 1 atención: ${fechaAtencion}
-Hora inicio: ${horaInicio}
-Hora fin: ${horaFin}
-Hora de desplazamiento: ${horaDesplazamiento}
-Tecnico: ${tecnicoFirma}`.trim();
+  // Mapeador tipo espejo que preserva 100% la estructura original y saltos de línea
+  const resultado = lineas.map((linea) => {
+    let l = linea;
+
+    // 1. Soporte para variables tipo $$Variable (ej: $$Inc, $$Tecnico, $$Falla, $$Solucion, etc.)
+    l = l.replace(/\$\$(?:inc|wo|caso|ticket|requerimiento)\b/gi, datos?.numero_caso || "");
+    l = l.replace(/\$\$(?:cliente|banco|entidad)\b/gi, datos?.cliente || "");
+    l = l.replace(/\$\$(?:mesa)\b/gi, datos?.mesa || "");
+    l = l.replace(/\$\$(?:coordinador)\b/gi, datos?.coordinador || "");
+    l = l.replace(/\$\$(?:equipo|serial|hostname)\b/gi, datos?.equipo || "");
+    l = l.replace(/\$\$(?:medio)\b/gi, datos?.medio || "");
+    l = l.replace(/\$\$(?:sh|tipo_soporte)\b/gi, datos?.sh || "");
+    l = l.replace(/\$\$(?:falla|problema)\b/gi, datos?.falla || "");
+    l = l.replace(/\$\$(?:solucion|actividades)\b/gi, datos?.solucion || "");
+    l = l.replace(/\$\$(?:pruebas)\b/gi, datos?.pruebas || "");
+    l = l.replace(/\$\$(?:tecnico)\b/gi, datos?.tecnico || "");
+    l = l.replace(/\$\$(?:fecha|fecha_atencion)\b/gi, datos?.fecha_atencion || "");
+    l = l.replace(/\$\$(?:hora_inicio)\b/gi, datos?.horas?.inicio || "");
+    l = l.replace(/\$\$(?:hora_fin)\b/gi, datos?.horas?.fin || "");
+    l = l.replace(/\$\$(?:hora_desplazamiento)\b/gi, datos?.horas?.desplazamiento || "");
+
+    // 2. Mapeo sobre etiquetas estándar vacías al final de línea (dos puntos o igual)
+    if (/(?:n[°o]|numero|número)\s*(?:de\s*)?(?:caso|requerimiento|ticket|inc|wo)\s*[:=]\s*$/i.test(l) && datos?.numero_caso) {
+      return l + " " + datos.numero_caso;
+    }
+    if (/(?:cliente(?:\s*final)?|banco|entidad)\s*[:=]\s*$/i.test(l) && datos?.cliente) {
+      return l + " " + datos.cliente;
+    }
+    if (/(?:mesa(?:\s*de\s*soporte)?)\s*[:=]\s*$/i.test(l) && datos?.mesa) {
+      return l + " " + datos.mesa;
+    }
+    if (/(?:coordinador(?:a)?)\s*[:=]\s*$/i.test(l) && datos?.coordinador) {
+      return l + " " + datos.coordinador;
+    }
+    if (/(?:equipo(?:\s*\/\s*serial)?|serial|hostname)\s*[:=]\s*$/i.test(l) && datos?.equipo) {
+      return l + " " + datos.equipo;
+    }
+    if (/(?:tipo\s*de\s*medio|medio)\s*[:=]\s*$/i.test(l) && datos?.medio) {
+      return l + " " + datos.medio;
+    }
+    if (/(?:sh\s*\/\s*hw|sh)\s*[:=]\s*$/i.test(l) && datos?.sh) {
+      return l + " " + datos.sh;
+    }
+    if (/(?:falla(?:\s*reportada)?|problema)\s*[:=]\s*$/i.test(l) && datos?.falla) {
+      return l + " " + datos.falla;
+    }
+    if (/(?:soluci[oó]n(?:\s*t[eé]cnica)?|actividades(?:\s*realizadas)?)\s*[:=]\s*$/i.test(l) && datos?.solucion) {
+      return l + " " + datos.solucion;
+    }
+    if (/(?:pruebas(?:\s*de\s*validaci[oó]n)?)\s*[:=]\s*$/i.test(l) && datos?.pruebas) {
+      return l + " " + datos.pruebas;
+    }
+    if (/(?:t[eé]cnico(?:\s*responsable)?)\s*[:=]\s*$/i.test(l) && datos?.tecnico) {
+      return l + " " + datos.tecnico;
+    }
+    if (/(?:fecha(?:\s*de\s*atenci[oó]n)?)\s*[:=]\s*$/i.test(l) && datos?.fecha_atencion) {
+      return l + " " + datos.fecha_atencion;
+    }
+
+    return l;
+  });
+
+  return resultado.join("\n");
 }

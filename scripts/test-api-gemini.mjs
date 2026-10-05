@@ -269,35 +269,26 @@ afirmar(
 );
 
 /* ================================================================== */
-console.log("\n=== 13. Prompt exclusivo de Plantilla Corporativa ===");
+console.log("\n=== 13. Prompt exclusivo de Plantilla Corporativa (Espejo Dinámico) ===");
 const promptSolo = construirPromptSoloPlantilla("BANCO POPULAR\nN° de Caso: 12345", "", {
   cliente: "Banco Popular"
 });
 afirmar(
-  promptSolo.includes("REQUERIMIENTO ESTRICTO: REPLICACIÓN EXACTA DE LA PLANTILLA INSTITUCIONAL DEL BANCO"),
-  "Con plantilla institucional, el prompt exige clonar e imitar exactamente la estructura del banco"
+  promptSolo.includes("DIRECTRICES TÉCNICAS ESTRICTAS (COMPORTAMIENTO TIPO ESPEJO)") &&
+  promptSolo.includes("TOMA LA PLANTILLA DE ENTRADA COMO MOLDE / ESPEJO"),
+  "Con plantilla institucional, el prompt exige comportamiento dinámico tipo espejo sin inventar campos"
 );
 afirmar(
   promptSolo.includes("<plantilla_institucional>") && promptSolo.includes("12345"),
-  "El prompt incluye el bloque institucional en bruto"
+  "El prompt incluye el bloque institucional en bruto como molde"
 );
-const promptPorDefecto = construirPromptSoloPlantilla("", "", {
+const promptSinPlantilla = construirPromptSoloPlantilla("", "", {
   cliente: "Banco Popular",
   numero_caso: "2303375"
 });
 afirmar(
-  promptPorDefecto.includes("*PLANTILLA {cliente} {numero_caso}*"),
-  "Sin plantilla institucional, el prompt exige el formato corporativo oficial estándar"
-);
-afirmar(
-  ["SH:", "Medio:", "Nombre del equipo:", "Falla:", "Causa:", "Solución:", "Pruebas:", "Fecha de 1 atención:", "Hora inicio:", "Hora fin:", "Hora de desplazamiento:"].every((etiqueta) =>
-    promptPorDefecto.includes(etiqueta)
-  ),
-  "Sin plantilla institucional, enumera las 14 etiquetas del formato oficial de WhatsApp"
-);
-afirmar(
-  construirPromptSoloPlantilla("", "", { numero_caso: "2303375" }).includes("<datos_ya_capturados>"),
-  "El prompt prioriza los datos ya capturados en el formulario"
+  promptSinPlantilla.includes('Devuelve únicamente una cadena vacía ("")') || promptSinPlantilla.trim() === "",
+  "Sin plantilla institucional, NO se fuerza ni genera ninguna plantilla quemada predefinida"
 );
 
 /* ================================================================== */
