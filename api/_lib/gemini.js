@@ -253,7 +253,15 @@ DATOS A EXTRAER Y SU SIGNIFICADO:
 
 PLANTILLA CORPORATIVA OFICIAL (campo plantilla_completa):
 Es el entregable principal y debe quedar COMPLETO, EXACTO Y DETALLADO. Respeta estas reglas sin excepción:
-- Devuélvela como un único bloque de texto multilínea con saltos de línea reales ("\\n"), en este orden exacto y con estas etiquetas literales:
+${
+  hayInstitucional
+    ? `- REGLA SUPREMA: CLONACIÓN EXACTA DE LA PLANTILLA INSTITUCIONAL DEL BANCO:
+  * El usuario ingresó una plantilla institucional en <plantilla_institucional>. Tu salida en 'plantilla_completa' DEBE COPIAR E IMITAR EXACTAMENTE su estructura, formato, líneas, saltos de línea, orden, etiquetas y estilo (ya sea que tenga 10, 20 o 30 líneas, formato de texto plano, viñetas, tablas de texto o separadores).
+  * ESTÁ ESTRICTAMENTE PROHIBIDO usar una plantilla fija o predefinida (NO uses el formato '*PLANTILLA ...* SH: ... Tecnico: ...' a menos que ese sea el texto exacto de <plantilla_institucional>).
+  * MAPEO INTELIGENTE: Autocompleta cada uno de los campos correspondientes dentro de esa misma estructura idéntica, mapeando los datos de la captura de WhatsApp (imagen OCR) y las notas/detalle del servicio técnico.
+  * Si la plantilla institucional contiene la descripción de la falla o requerimiento (ej: "Detalle: se solicita actualización de SO..."), consérvala fielmente y completa la solución técnica exacta ejecutada, pruebas operativas y técnico responsable dentro del formato o en sus campos correspondientes.
+  * Preserva todos los valores existentes de la plantilla y enriquécelos con la información más exacta y profesional.`
+    : `- Devuélvela como un único bloque de texto multilínea con saltos de línea reales ("\\n"), en este orden exacto y con estas etiquetas literales:
   *PLANTILLA {cliente} {numero_caso}*
   SH: {sh}.
   Tecnico: {primer y segundo nombre en mayúsculas}
@@ -267,10 +275,10 @@ Es el entregable principal y debe quedar COMPLETO, EXACTO Y DETALLADO. Respeta e
   Hora inicio: {hora de inicio}
   Hora fin: {hora de fin}
   Hora de desplazamiento: {hora de desplazamiento}
-  Tecnico: {nombre completo del técnico}
-- Si la plantilla institucional aporta actividades, procedimientos o elementos que no caben en una sola etiqueta, agrégalalos como líneas adicionales de detalle dentro de "Solución", separados por "; " y respetando el orden de ejecución.
-- No uses corchetes, guiones de listado ni marcadores pendientes como [pendiente] o "N/A" cuando la información exista en la plantilla institucional.
-- Completa todas las líneas: si un dato no aparece en ninguna fuente, usa un valor coherente por defecto (coordinador "Oswaldo", sh "SOFTWARE - HARDWARE", medio "SITIO", valor base 70000) en lugar de dejar la línea vacía.
+  Tecnico: {nombre completo del técnico}`
+}
+- No uses corchetes vacíos, guiones innecesarios ni marcadores pendientes como [pendiente] o "N/A" cuando la información exista o pueda ser resuelta técnicamente.
+- Asegura que el texto final de 'plantilla_completa' esté listo para copiar y enviar directamente por WhatsApp al supervisor o mesa de ayuda de la entidad.
 
 IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin bloques de markdown adicionales (sin \`\`\`json ni \`\`\`), con los campos especificados.
 ${textoNotas ? `\nNOTAS ADICIONALES DEL TÉCNICO:\n<notas_tecnico>\n${envolverTextoInstitucional(textoNotas)}\n</notas_tecnico>` : ""}
@@ -307,12 +315,21 @@ export function construirPromptSoloPlantilla(plantillaInstitucional = "", notas 
     horas: datosBase.horas || {}
   };
 
+  const hayInstitucional = institucional.length > 0;
+
   return `
-Eres un Arquitecto de Soporte Técnico e IT empresarial. Debes convertir la PLANTILLA INSTITUCIONAL del cliente (requerimiento oficial del banco o entidad) en la PLANTILLA CORPORATIVA OFICIAL de R&S Soluciones que se envía por WhatsApp a la mesa de ayuda.
+Eres un Arquitecto de Soporte Técnico e IT empresarial Senior de ENTER Ltda.
+Tu tarea es generar el texto de la Plantilla Corporativa Oficial para WhatsApp IT.
 
-El texto institucional puede tener múltiples líneas, viñetas, encabezados, tablas copiadas de Excel o Word, abreviaturas y variaciones de formato. Léelo COMPLETO y mapea cada dato con exactitud. No resumas, no omitas secciones y no te limites a las primeras líneas.
-
-Salida EXACTA: un único campo de texto multilínea, con saltos de línea reales, sin JSON, sin markdown, sin commentary, con estas etiquetas literales en este orden:
+${
+  hayInstitucional
+    ? `REQUERIMIENTO ESTRICTO: REPLICACIÓN EXACTA DE LA PLANTILLA INSTITUCIONAL DEL BANCO:
+1. CLONACIÓN EXACTA: Toma el texto de <plantilla_institucional> y COPIA E IMITA EXACTAMENTE su estructura, formato, líneas, saltos de línea, orden, etiquetas y estilo (ya sea que tenga 10, 20 o 30 líneas, formato de texto plano, viñetas, tablas de texto o separadores).
+2. PROHIBIDO USAR PLANTILLA PREDETERMINADA: NO transformes el texto a la plantilla fija '*PLANTILLA ...* SH: ...'. Debes clonar la plantilla de entrada tal cual fue provista.
+3. MAPEO INTELIGENTE: Rellena y autocompleta inteligentemente cada campo correspondiente dentro de esa misma estructura idéntica usando la información provista en <datos_ya_capturados> y las notas técnicas en <notas_tecnico>.
+4. RESOLUCIÓN EXACTA: Si la plantilla institucional incluye la falla o requerimiento, complementa o autocompleta con precisión los campos de solución, actividades ejecutadas, pruebas de validación con el usuario y cierre del caso.
+5. FORMATO DE SALIDA: Devuelve ÚNICAMENTE el texto resultante completado, con saltos de línea normales. SIN bloques de markdown (\`\`\` o \`\`\`text), SIN explicaciones y SIN texto introductorio.`
+    : `Salida EXACTA en formato estándar corporativo:
 *PLANTILLA {cliente} {numero_caso}*
 SH: {sh}.
 Tecnico: {primer y segundo nombre en mayúsculas}
@@ -322,26 +339,25 @@ Falla: {falla}
 Causa: {causa}
 Solución: {solución}
 Pruebas: {pruebas}
-Fecha de 1 atención: {DD/MM/AAAA}
+Fecha de 1 atención: {fecha_atencion en DD/MM/AAAA}
 Hora inicio: {hora de inicio}
 Hora fin: {hora de fin}
 Hora de desplazamiento: {hora de desplazamiento}
-Tecnico: {nombre completo del técnico}
+Tecnico: {nombre completo del técnico}`
+}
 
-Reglas:
-- Todos los datos ya capturados en el formulario tienen prioridad; la plantilla institucional sólo rellena lo que falte o lo contradice.
+Reglas generales:
 - Convierte todas las fechas a DD/MM/AAAA.
-- Si la plantilla institucional describe varios equipos, casos o actividades, inclúyelos completos y en orden, sin "varios" ni puntos suspensivos.
-- No dejes ninguna línea vacía ni uses marcadores como [pendiente] o "N/A" cuando la información esté disponible.
-- Redacta en español técnico claro, en frases completas.
+- Si se describen varios equipos, casos o actividades, inclúyelos completos y en orden, sin "varios" ni puntos suspensivos.
+- No dejes campos clave vacíos ni uses marcadores como [pendiente] o "N/A" cuando la información esté disponible o pueda ser resuelta técnicamente.
+- Redacta en español técnico claro y profesional, en frases completas.
 
 <datos_ya_capturados>
 ${envolverTextoInstitucional(JSON.stringify(contexto, null, 2))}
 </datos_ya_capturados>
 ${notas ? `<notas_tecnico>\n${envolverTextoInstitucional(notas)}\n</notas_tecnico>` : ""}
-<plantilla_institucional>
-${institucional}
-</plantilla_institucional>`.trim();
+${hayInstitucional ? `<plantilla_institucional>\n${institucional}\n</plantilla_institucional>` : ""}
+`.trim();
 }
 
 export function parsearRespuesta(text) {

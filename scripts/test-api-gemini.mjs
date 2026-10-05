@@ -274,22 +274,30 @@ const promptSolo = construirPromptSoloPlantilla("BANCO POPULAR\nN° de Caso: 123
   cliente: "Banco Popular"
 });
 afirmar(
-  promptSolo.includes("*PLANTILLA {cliente} {numero_caso}*"),
-  "El prompt exige el formato corporativo oficial con la etiqueta PLANTILLA literal"
-);
-afirmar(
-  ["SH:", "Medio:", "Nombre del equipo:", "Falla:", "Causa:", "Solución:", "Pruebas:", "Fecha de 1 atención:", "Hora inicio:", "Hora fin:", "Hora de desplazamiento:"].every((etiqueta) =>
-    promptSolo.includes(etiqueta)
-  ),
-  "El prompt enumera las 14 etiquetas del formato oficial de WhatsApp"
-);
-afirmar(
-  construirPromptSoloPlantilla("", "", { numero_caso: "2303375" }).includes("<datos_ya_capturados>"),
-  "El prompt prioriza los datos ya capturados en el formulario"
+  promptSolo.includes("REQUERIMIENTO ESTRICTO: REPLICACIÓN EXACTA DE LA PLANTILLA INSTITUCIONAL DEL BANCO"),
+  "Con plantilla institucional, el prompt exige clonar e imitar exactamente la estructura del banco"
 );
 afirmar(
   promptSolo.includes("<plantilla_institucional>") && promptSolo.includes("12345"),
   "El prompt incluye el bloque institucional en bruto"
+);
+const promptPorDefecto = construirPromptSoloPlantilla("", "", {
+  cliente: "Banco Popular",
+  numero_caso: "2303375"
+});
+afirmar(
+  promptPorDefecto.includes("*PLANTILLA {cliente} {numero_caso}*"),
+  "Sin plantilla institucional, el prompt exige el formato corporativo oficial estándar"
+);
+afirmar(
+  ["SH:", "Medio:", "Nombre del equipo:", "Falla:", "Causa:", "Solución:", "Pruebas:", "Fecha de 1 atención:", "Hora inicio:", "Hora fin:", "Hora de desplazamiento:"].every((etiqueta) =>
+    promptPorDefecto.includes(etiqueta)
+  ),
+  "Sin plantilla institucional, enumera las 14 etiquetas del formato oficial de WhatsApp"
+);
+afirmar(
+  construirPromptSoloPlantilla("", "", { numero_caso: "2303375" }).includes("<datos_ya_capturados>"),
+  "El prompt prioriza los datos ya capturados en el formulario"
 );
 
 /* ================================================================== */

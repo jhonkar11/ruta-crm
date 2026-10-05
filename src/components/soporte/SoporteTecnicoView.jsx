@@ -286,20 +286,48 @@ const handleProcesarIA = async () => {
     setDatosExtraidos(combinados);
 
     // 6. PASO B: Generar plantilla corporativa oficial
-    //    Prioridad: 1) plantilla_completa ya generada por IA, 2) plantilla generada
-    //    desde el texto institucional, 3) plantilla genérica por función local
-    const plantillaIA = resultado.plantilla_completa;
-    const plantillaDesdeTextoInstitucional = await generarPlantillaDesdeInstitucional({
-      plantillaInstitucional,
-      textoNotas: notasTecnico,
-      datos: combinados,
-      modelId: selectedModel
-    });
+    //    Si el usuario ingresó una plantilla institucional en bruto, la plantilla
+    //    resultante DEBE copiar e imitar exactamente su estructura dinámica y autocompletar
+    //    sus campos sin usar la plantilla fija predefinida.
+    const tienePlantillaInstitucional = !!plantillaInstitucional.trim();
+    let plantillaFinal = "";
 
-    const plantilla =
-      plantillaIA || plantillaDesdeTextoInstitucional || generarPlantillaSolucion(combinados);
+    // 6.1 Evaluar si la IA ya devolvió la plantilla_completa mapeada
+    if (resultado.plantilla_completa && resultado.plantilla_completa.trim()) {
+      if (tienePlantillaInstitucional) {
+        // Verificar que no sea la plantilla predeterminada genérica cuando el usuario ingresó otra estructura
+        const esPlantillaFijaGenerica =
+          resultado.plantilla_completa.startsWith("*PLANTILLA") &&
+          !plantillaInstitucional.startsWith("*PLANTILLA");
+        if (!esPlantillaFijaGenerica) {
+          plantillaFinal = resultado.plantilla_completa;
+        }
+      } else {
+        plantillaFinal = resultado.plantilla_completa;
+      }
+    }
 
-    setPlantillaTexto(plantilla);
+    // 6.2 Si no se obtuvo o vino en formato fijo teniendo plantilla institucional,
+    // llamar al generador especializado que clona con exactitud el formato del banco
+    if (!plantillaFinal && tienePlantillaInstitucional) {
+      try {
+        plantillaFinal = await generarPlantillaDesdeInstitucional({
+          plantillaInstitucional,
+          textoNotas: notasTecnico,
+          datos: combinados,
+          modelId: selectedModel
+        });
+      } catch (errP) {
+        console.warn("Fallo generación dedicada de plantilla:", errP);
+      }
+    }
+
+    // 6.3 Fallback inteligente: preserva la estructura si hay plantilla institucional
+    if (!plantillaFinal) {
+      plantillaFinal = generarPlantillaSolucion(combinados, plantillaInstitucional);
+    }
+
+    setPlantillaTexto(plantillaFinal);
 
     // 7. PASO C: Intentar integrar con módulo de cuentas de cobro
     //    Llamar al handler que actualiza el contexto global sin alterar cálculos existentes
@@ -312,7 +340,7 @@ const handleProcesarIA = async () => {
       if (combinados.numero_caso) {
         actualizarServicioEnCuentasCobro({
           ...combinados,
-          plantilla_corporativa: plantilla,
+          plantilla_corporativa: plantillaFinal,
           fuente: "soporte_tecnico_unificado"
         });
         // Nota: Esta función solo actualiza el state global; los cálculos
@@ -369,10 +397,15 @@ const handleProcesarIA = async () => {
       if (plantilla) {
         setPlantillaTexto(plantilla);
       } else {
-        setErrorIA("El motor de IA no devolvió contenido para la plantilla.");
+        const fallback = generarPlantillaSolucion(datosAProcesar, plantillaInstitucional);
+        setPlantillaTexto(fallback);
       }
     } catch (err) {
       console.error("Error al generar la plantilla con Gemini:", err);
+      const fallback = generarPlantillaSolucion(datosExtraidos, plantillaInstitucional);
+      if (fallback) {
+        setPlantillaTexto(fallback);
+      }
       setErrorIA(err.message || "Error generando la plantilla corporativa.");
     } finally {
       setGenerandoPlantilla(false);
@@ -396,7 +429,7 @@ const handleProcesarIA = async () => {
 
       const nuevoServicio = {
         ...datosExtraidos,
-        plantilla_completa: plantillaTexto || generarPlantillaSolucion(datosExtraidos),
+        plantilla_completa: plantillaTexto || generarPlantillaSolucion(datosExtraidos, plantillaInstitucional),
         foto_url: fotoUrlRemota || imagenPreview
       };
 

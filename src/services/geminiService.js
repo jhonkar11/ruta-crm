@@ -216,8 +216,51 @@ export async function generarPlantillaDesdeInstitucional({
 /**
  * Genera la cadena de texto con la estructura de la Plantilla Corporativa Oficial
  * para WhatsApp (función pura, no consume IA).
+ * Si se pasa plantillaInstitucional, replica exactamente su estructura línea a línea.
  */
-export function generarPlantillaSolucion(datos) {
+export function generarPlantillaSolucion(datos, plantillaInstitucional = "") {
+  if (plantillaInstitucional && String(plantillaInstitucional).trim()) {
+    const lineas = String(plantillaInstitucional).trim().split(/\r?\n/);
+    const resultado = lineas.map((linea) => {
+      const l = linea;
+      if (/(?:n[°o]|numero|número)\s*(?:de\s*)?(?:caso|requerimiento|ticket|inc|wo)\s*[:=]\s*$/i.test(l) && datos?.numero_caso) {
+        return l + " " + datos.numero_caso;
+      }
+      if (/(?:cliente(?:\s*final)?)\s*[:=]\s*$/i.test(l) && datos?.cliente) {
+        return l + " " + datos.cliente;
+      }
+      if (/(?:mesa(?:\s*de\s*soporte)?)\s*[:=]\s*$/i.test(l) && datos?.mesa) {
+        return l + " " + datos.mesa;
+      }
+      if (/(?:coordinador(?:a)?)\s*[:=]\s*$/i.test(l) && datos?.coordinador) {
+        return l + " " + datos.coordinador;
+      }
+      if (/(?:equipo(?:\s*\/\s*serial)?|serial)\s*[:=]\s*$/i.test(l) && datos?.equipo) {
+        return l + " " + datos.equipo;
+      }
+      if (/(?:tipo\s*de\s*medio|medio)\s*[:=]\s*$/i.test(l) && datos?.medio) {
+        return l + " " + datos.medio;
+      }
+      if (/(?:sh\s*\/\s*hw|sh)\s*[:=]\s*$/i.test(l) && datos?.sh) {
+        return l + " " + datos.sh;
+      }
+      if (/(?:falla(?:\s*reportada)?)\s*[:=]\s*$/i.test(l) && datos?.falla) {
+        return l + " " + datos.falla;
+      }
+      if (/(?:soluci[oó]n(?:\s*t[eé]cnica)?|actividades)\s*[:=]\s*$/i.test(l) && datos?.solucion) {
+        return l + " " + datos.solucion;
+      }
+      if (/(?:pruebas(?:\s*de\s*validaci[oó]n)?)\s*[:=]\s*$/i.test(l) && datos?.pruebas) {
+        return l + " " + datos.pruebas;
+      }
+      if (/(?:t[eé]cnico(?:\s*responsable)?)\s*[:=]\s*$/i.test(l) && datos?.tecnico) {
+        return l + " " + datos.tecnico;
+      }
+      return l;
+    });
+    return resultado.join("\n").trim();
+  }
+
   const cliente = datos?.cliente || "Entidad";
   const numCaso = datos?.numero_caso || "";
   const sh = datos?.sh || "SOFTWARE - HARDWARE";
