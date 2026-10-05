@@ -85,7 +85,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Topología multi-sede, asignación de VLANs, subredes IPv4/IPv6 y monitoreo de enlaces.",
       icon: Network,
       badge: "Infraestructura",
-      badgeColorLight: "bg-blue-100 text-blue-900 border-blue-300 font-extrabold shadow-sm",
+      badgeColorLight: "bg-blue-200 text-blue-950 border-blue-400 font-black shadow-sm",
       badgeColorDark: "bg-blue-500/20 text-blue-300 border-blue-500/30"
     },
     {
@@ -94,7 +94,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Mesa de servicios, OCR inteligente de órdenes de trabajo, cuentas de cobro y hardware.",
       icon: Headphones,
       badge: "Área Técnica",
-      badgeColorLight: "bg-amber-100 text-amber-950 border-amber-300 font-extrabold shadow-sm",
+      badgeColorLight: "bg-amber-200 text-amber-950 border-amber-400 font-black shadow-sm",
       badgeColorDark: "bg-amber-500/20 text-amber-300 border-amber-500/30"
     },
     {
@@ -103,7 +103,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Simulador de créditos, amortizaciones y proyecciones de financiamiento de hardware.",
       icon: Calculator,
       badge: "Finanzas",
-      badgeColorLight: "bg-emerald-100 text-emerald-950 border-emerald-300 font-extrabold shadow-sm",
+      badgeColorLight: "bg-emerald-200 text-emerald-950 border-emerald-400 font-black shadow-sm",
       badgeColorDark: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
     },
     {
@@ -112,7 +112,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Registro de ingresos, asignación de carné, control de portátiles y bitácora de seguridad.",
       icon: Users,
       badge: "Seguridad Física",
-      badgeColorLight: "bg-purple-100 text-purple-950 border-purple-300 font-extrabold shadow-sm",
+      badgeColorLight: "bg-purple-200 text-purple-950 border-purple-400 font-black shadow-sm",
       badgeColorDark: "bg-purple-500/20 text-purple-300 border-purple-500/30"
     },
     {
@@ -121,7 +121,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
       desc: "Cartera comercial, agenda de citas, expedientes documentales y seguimiento de clientes.",
       icon: Layers,
       badge: "Comercial",
-      badgeColorLight: "bg-rose-100 text-rose-950 border-rose-300 font-extrabold shadow-sm",
+      badgeColorLight: "bg-rose-200 text-rose-950 border-rose-400 font-black shadow-sm",
       badgeColorDark: "bg-rose-500/20 text-rose-300 border-rose-500/30"
     }
   ];
@@ -150,7 +150,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
           <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono font-bold mb-6 border backdrop-blur-md shadow-sm ${
             isDark
               ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-300 shadow-emerald-500/20"
-              : "bg-emerald-100 border-emerald-300 text-emerald-950 font-extrabold shadow-slate-200"
+              : "bg-emerald-200 border-emerald-400 text-emerald-950 font-black shadow-slate-200"
           }`}>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span>ENTER Ltda. · Infraestructura Empresarial</span>
@@ -229,16 +229,16 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
               <div className={`p-6 rounded-2xl border backdrop-blur-xl shadow-2xl relative space-y-4 ${
                 isDark 
                   ? "bg-slate-950/90 border-slate-700/80 shadow-black/80" 
-                  : "bg-white border-slate-200 shadow-slate-300/40"
+                  : "bg-white border-slate-300 shadow-xl shadow-slate-200/50"
               }`}>
                 {/* Cabecera de la tarjeta */}
                 <div className={`flex items-center justify-between border-b pb-3 ${
-                  isDark ? "border-slate-700/60" : "border-slate-200"
+                  isDark ? "border-slate-700/60" : "border-slate-300"
                 }`}>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
                     <span className={`text-xs font-mono font-bold tracking-wider uppercase ${
-                      isDark ? "text-emerald-300" : "text-emerald-700"
+                      isDark ? "text-emerald-300" : "text-emerald-800"
                     }`}>
                       Core Network · Activo
                     </span>
@@ -246,7 +246,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
                   <span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-mono font-bold ${
                     isDark 
                       ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300" 
-                      : "bg-emerald-100 border-emerald-300 text-emerald-800"
+                      : "bg-emerald-200 border-emerald-400 text-emerald-950 font-black"
                   }`}>
                     Infraestructura Crítica
                   </span>
@@ -332,7 +332,7 @@ export default function LandingInstitucional({ setView, profile, theme = "light"
                 className={`group p-6 rounded-2xl border transition-all duration-200 cursor-pointer shadow-md hover:shadow-xl transform hover:-translate-y-1 backdrop-blur-lg ${
                   isDark 
                     ? "bg-[#0B132B]/85 hover:bg-slate-900 border-slate-700/80 hover:border-emerald-500/50 shadow-black/50" 
-                    : "bg-white hover:bg-slate-50/90 border-slate-200 hover:border-slate-300 shadow-slate-200/80"
+                    : "bg-white hover:bg-slate-50 border-slate-300 hover:border-orange-400 shadow-md shadow-slate-200/80"
                 }`}
               >
                 <div className="flex justify-between items-start mb-3.5">

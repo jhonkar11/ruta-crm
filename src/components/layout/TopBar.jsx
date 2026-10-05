@@ -108,7 +108,7 @@ export default function TopBar({
 
         {/* NAVEGACIÓN PRINCIPAL DE ESCRITORIO (DEPARTAMENTOS) */}
         <div className={`hidden lg:flex items-center gap-2 p-1.5 rounded-full border ${
-          isDark ? "bg-slate-900/90 border-slate-700" : "bg-slate-50 border-slate-200 shadow-sm"
+          isDark ? "bg-slate-900/90 border-slate-700" : "bg-slate-100/90 border-slate-300 shadow-sm"
         }`}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -121,13 +121,13 @@ export default function TopBar({
                   activo
                     ? isDark
                       ? "bg-orange-600 text-white shadow-lg"
-                      : "bg-white text-slate-900 shadow-md border border-slate-300"
+                      : "bg-white text-slate-900 shadow-md border-2 border-orange-500 font-extrabold"
                     : isDark
                       ? "text-slate-400 hover:text-white hover:bg-slate-800"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white hover:border-slate-300 border border-transparent"
+                      : "bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 shadow-sm font-bold"
                 }`}
               >
-                <Icon size={16} />
+                <Icon size={16} className={activo ? (isDark ? "text-white" : "text-orange-600") : (isDark ? "text-slate-400" : "text-slate-700")} />
                 <span>{item.label}</span>
               </button>
             );

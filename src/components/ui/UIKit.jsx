@@ -197,21 +197,21 @@ export function NavTab({ icon: Icon, label, active, onClick, badge, isDark = tru
         active
           ? isDark
             ? "bg-slate-800/80 border-slate-700 text-emerald-400 font-bold shadow-md"
-            : "bg-white border-slate-300 text-slate-900 font-bold shadow-sm"
+            : "bg-white border-orange-500 text-slate-900 font-extrabold shadow-md"
           : isDark
             ? "bg-transparent border-transparent text-slate-400 hover:text-white hover:bg-slate-900/40"
-            : "bg-transparent border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 hover:border-slate-300"
+            : "bg-slate-50 border-slate-300 text-slate-800 hover:text-slate-900 hover:bg-white hover:border-slate-400 shadow-sm font-bold"
       }`}
     >
       <span className="relative flex items-center justify-center">
-        <Icon size={18} className="shrink-0" />
+        <Icon size={18} className={`shrink-0 ${active ? (isDark ? "text-emerald-400" : "text-orange-600") : (isDark ? "text-slate-400" : "text-slate-700")}`} />
         {badge > 0 && (
           <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[9px] font-black rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5 shadow-sm">
             {badge > 9 ? "9+" : badge}
           </span>
         )}
       </span>
-      <span className="text-[10px] tracking-tight font-mono leading-none">{label}</span>
+      <span className={`text-[10px] tracking-tight font-mono leading-none ${active ? (isDark ? "text-emerald-300 font-bold" : "text-slate-900 font-extrabold") : (isDark ? "text-slate-400" : "text-slate-700 font-bold")}`}>{label}</span>
     </button>
   );
 }
