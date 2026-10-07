@@ -232,7 +232,8 @@ export function generarPlantillaSolucion(datos = {}, plantillaInstitucional = ""
 
     // 1. Soporte para variables tipo $$Variable (ej: $$Inc, $$Tecnico, $$Falla, $$Solucion, etc.)
     l = l.replace(/\$\$(?:inc|wo|caso|ticket|requerimiento)\b/gi, datos?.numero_caso || "");
-    l = l.replace(/\$\$(?:cliente|banco|entidad)\b/gi, datos?.cliente || "");
+    l = l.replace(/\$\$(?:proveedor|entidad)\b/gi, datos?.proveedor || "");
+    l = l.replace(/\$\$(?:cliente|banco)\b/gi, datos?.cliente || "");
     l = l.replace(/\$\$(?:mesa)\b/gi, datos?.mesa || "");
     l = l.replace(/\$\$(?:coordinador)\b/gi, datos?.coordinador || "");
     l = l.replace(/\$\$(?:equipo|serial|hostname)\b/gi, datos?.equipo || "");
@@ -251,7 +252,10 @@ export function generarPlantillaSolucion(datos = {}, plantillaInstitucional = ""
     if (/(?:n[°o]|numero|número)\s*(?:de\s*)?(?:caso|requerimiento|ticket|inc|wo)\s*[:=]\s*$/i.test(l) && datos?.numero_caso) {
       return l + " " + datos.numero_caso;
     }
-    if (/(?:cliente(?:\s*final)?|banco|entidad)\s*[:=]\s*$/i.test(l) && datos?.cliente) {
+    if (/(?:proveedor(?:\s*\/\s*entidad)?)\s*[:=]\s*$/i.test(l) && datos?.proveedor) {
+      return l + " " + datos.proveedor;
+    }
+    if (/(?:cliente(?:\s*final)?|banco)\s*[:=]\s*$/i.test(l) && datos?.cliente) {
       return l + " " + datos.cliente;
     }
     if (/(?:mesa(?:\s*de\s*soporte)?)\s*[:=]\s*$/i.test(l) && datos?.mesa) {

@@ -60,11 +60,12 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [servicios, setServicios] = useState([]);
   const [loadingServicios, setLoadingServicios] = useState(true);
 
-  // ── Filtro por Mes/Año ────────────────────────────────────────────────────
+  // ── Filtro por Mes/Año y Proveedor/Entidad ────────────────────────────────
   const ahora = new Date();
   const [filtroMes, setFiltroMes] = useState(ahora.getMonth() + 1); // 1–12
   const [filtroAnio, setFiltroAnio] = useState(ahora.getFullYear());
   const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [filtroProveedor, setFiltroProveedor] = useState(""); // "" = todos los proveedores
 
   // ── Modal de Edición ──────────────────────────────────────────────────────
   const [editandoServicio, setEditandoServicio] = useState(null); // null | objeto servicio
@@ -82,7 +83,18 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [depurando, setDepurando] = useState(false);
   const [copiadoRegId, setCopiadoRegId] = useState(null);
 
-  // ── Memoria Histórica y Autocompletado para Clientes, Coordinadores y Mesas ──
+  // ── Memoria Histórica y Autocompletado para Proveedores, Clientes, Coordinadores y Mesas ──
+  const PROVEEDORES_BASE = [
+    "Cencosud",
+    "Grupo Aval",
+    "R&S Soluciones",
+    "IBM Colombia",
+    "Lexmark",
+    "Almacenes Éxito",
+    "Carvajal Tecnología",
+    "Redeban Multicolor"
+  ];
+
   const CLIENTES_BASE = [
     "Banco de Bogotá",
     "Banco Popular",
@@ -115,6 +127,14 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   ];
 
   // Listas consolidadas con memoria histórica dinámica a partir de los servicios guardados
+  const historialProveedores = Array.from(
+    new Set([
+      ...PROVEEDORES_BASE,
+      ...servicios.map((s) => s.proveedor?.trim()).filter(Boolean),
+      ...registrosServicios.map((r) => r.proveedor?.trim()).filter(Boolean)
+    ])
+  ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
   const historialClientes = Array.from(
     new Set([
       ...CLIENTES_BASE,
@@ -164,6 +184,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
     fecha_atencion: "",
     fecha_finalizacion: "",
     mesa: "",
+    proveedor: "",
     cliente: "",
     coordinador: "",
     valor_servicios: 0,
@@ -537,6 +558,7 @@ const handleProcesarIA = async () => {
         fecha_atencion: datosExtraidos.fecha_atencion,
         fecha_finalizacion: datosExtraidos.fecha_finalizacion,
         mesa: datosExtraidos.mesa,
+        proveedor: datosExtraidos.proveedor,
         cliente: datosExtraidos.cliente,
         coordinador: datosExtraidos.coordinador,
         equipo: datosExtraidos.equipo,
@@ -604,21 +626,29 @@ const handleProcesarIA = async () => {
     }
   };
 
-  // 4. Exportar a Excel Oficial (.xlsx)
+  // 4. Exportar a Excel Oficial (.xlsx) Segmentado por Periodo y Proveedor
   const handleDescargarExcel = async () => {
-    const listaAExportar = serviciosFiltrados.length > 0 ? serviciosFiltrados : servicios;
+    if (serviciosFiltrados.length === 0) {
+      alert("No hay servicios para exportar con los filtros seleccionados (Mes: " + 
+        (mostrarTodos ? "Histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`) +
+        (filtroProveedor ? `, Proveedor: ${filtroProveedor}` : "") + ").");
+      return;
+    }
+    const listaAExportar = serviciosFiltrados;
     setExportandoExcel(true);
     try {
       const buffer = await generarExcelCuentaCobro(listaAExportar, {
         nombre: "Jhon Alexander Vasquez Reveló",
-        cedula: "10308105"
+        cedula: "10308105",
+        empresa: filtroProveedor || "R&S Soluciones"
       });
+      const proveedorNombre = filtroProveedor ? filtroProveedor.replace(/[\/\\:*?"<>|]/g, "_") : "R&S Soluciones";
       const periodoTexto = mostrarTodos
         ? "Consolidado_Historico"
         : `${NOMBRES_MESES[filtroMes - 1]}_${filtroAnio}`;
       descargarExcelEnNavegador(
         buffer,
-        `Cuenta de Cobro - R&S Soluciones (${periodoTexto} - ${listaAExportar.length} casos).xlsx`
+        `Cuenta de Cobro - ${proveedorNombre} (${periodoTexto} - ${listaAExportar.length} casos).xlsx`
       );
     } catch (err) {
       alert("Error al exportar el archivo Excel: " + err.message);
@@ -670,7 +700,7 @@ const handleProcesarIA = async () => {
     setErrorIA(null);
     setDatosExtraidos({
       numero_caso: "", fecha_solicitud: "", fecha_atencion: "", fecha_finalizacion: "",
-      mesa: "", cliente: "", coordinador: "", valor_servicios: 0, valor_viaticos: 0,
+      mesa: "", proveedor: "", cliente: "", coordinador: "", valor_servicios: 0, valor_viaticos: 0,
       valor_materiales: 0, sh: "SOFTWARE - HARDWARE", tecnico: "", medio: "SITIO",
       equipo: "", falla: "", causa: "", solucion: "", pruebas: "",
       horas: { inicio: "", fin: "", desplazamiento: "" }
@@ -715,8 +745,14 @@ const handleProcesarIA = async () => {
     ])
   ).sort((a, b) => b - a);
 
-  // Servicios filtrados según el periodo activo (mes y año o todos)
+  // Servicios filtrados según el periodo activo (mes y año o todos) y proveedor seleccionado
   const serviciosFiltrados = servicios.filter((s) => {
+    // 1. Filtrado por Proveedor / Entidad
+    if (filtroProveedor && (s.proveedor || "").trim().toLowerCase() !== filtroProveedor.trim().toLowerCase()) {
+      return false;
+    }
+
+    // 2. Filtrado por Periodo (Mes y Año)
     if (mostrarTodos) return true;
     const info = extraerMesAnio(s);
     if (!info) return false;
@@ -752,7 +788,7 @@ const handleProcesarIA = async () => {
     return info.mes === Number(filtroMesReg) && info.anio === Number(filtroAnioReg);
   });
 
-  // Cálculos de Totales de la Cuenta de Cobro (dinámicos según el periodo seleccionado)
+  // Cálculos de Totales de la Cuenta de Cobro (dinámicos según el periodo y proveedor seleccionado)
   const totalServicios = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_servicios) || 0), 0);
   const totalViaticos = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_viaticos) || 0), 0);
   const totalMateriales = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_materiales) || 0), 0);
@@ -769,6 +805,7 @@ const handleProcesarIA = async () => {
       fecha_atencion: servicio.fecha_atencion || "",
       fecha_finalizacion: servicio.fecha_finalizacion || "",
       mesa: servicio.mesa || "2",
+      proveedor: servicio.proveedor || "",
       cliente: servicio.cliente || "",
       coordinador: servicio.coordinador || "",
       valor_servicios: servicio.valor_servicios ?? 0,
@@ -1630,6 +1667,35 @@ const handleProcesarIA = async () => {
                   />
                 </div>
 
+                {/* Proveedor / Entidad con Memoria Histórica */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11, color: labelColor }}>
+                      Proveedor / Entidad:
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialProveedores.length})
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    list="datalist-proveedores"
+                    value={datosExtraidos.proveedor}
+                    onChange={(e) => setDatosExtraidos({ ...datosExtraidos, proveedor: e.target.value })}
+                    placeholder="ej. Cencosud, Grupo Aval, R&S..."
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12
+                    }}
+                  />
+                </div>
+
                 {/* Cliente Final con Memoria Histórica */}
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -2088,18 +2154,73 @@ const handleProcesarIA = async () => {
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: textTitle }}>
-                    Filtrado y Agrupación por Periodo
+                    Filtrado y Agrupación por Periodo y Proveedor
                   </h3>
                   <p style={{ margin: 0, fontSize: 12, color: textSub }}>
                     {mostrarTodos
-                      ? "Visualizando consolidado histórico de todos los meses"
-                      : `Liquidación activa: ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                      ? `Visualizando consolidado histórico ${filtroProveedor ? `filtrado por "${filtroProveedor}"` : "de todos los proveedores"}`
+                      : `Liquidación activa: ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}${filtroProveedor ? ` · Entidad: ${filtroProveedor}` : " · Todos los proveedores"}`}
                   </p>
                 </div>
               </div>
 
-              {/* Controles de Selección Año, Mes y Modo */}
+              {/* Controles de Selección Año, Mes, Proveedor y Modo */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                {/* Selector de Proveedor / Entidad */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Proveedor / Entidad:</span>
+                  <select
+                    value={filtroProveedor}
+                    onChange={(e) => setFiltroProveedor(e.target.value)}
+                    style={{
+                      background: inputBg,
+                      border: filtroProveedor
+                        ? (isDark ? "1.5px solid #38bdf8" : "1.5px solid #0284c7")
+                        : inputBorder,
+                      color: filtroProveedor
+                        ? (isDark ? "#38bdf8" : "#0284c7")
+                        : inputText,
+                      borderRadius: 8,
+                      padding: "6px 10px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
+                  >
+                    <option value="" style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                      Todos los proveedores (Sin filtro)
+                    </option>
+                    {historialProveedores.map((prov) => (
+                      <option key={prov} value={prov} style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                        {prov}
+                      </option>
+                    ))}
+                  </select>
+                  {filtroProveedor && (
+                    <button
+                      type="button"
+                      onClick={() => setFiltroProveedor("")}
+                      title="Quitar filtro de proveedor"
+                      style={{
+                        background: isDark ? "rgba(239,68,68,0.2)" : "#fee2e2",
+                        border: "none",
+                        color: "#ef4444",
+                        borderRadius: 6,
+                        padding: "4px 8px",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3
+                      }}
+                    >
+                      <X size={12} /> Limpiar
+                    </button>
+                  )}
+                </div>
+
                 {/* Selector de Año */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Año:</span>
@@ -2205,6 +2326,9 @@ const handleProcesarIA = async () => {
                 const numMes = idx + 1;
                 const esActivo = !mostrarTodos && filtroMes === numMes;
                 const conteo = servicios.filter((s) => {
+                  if (filtroProveedor && (s.proveedor || "").trim().toLowerCase() !== filtroProveedor.trim().toLowerCase()) {
+                    return false;
+                  }
                   const info = extraerMesAnio(s);
                   return info && info.mes === numMes && info.anio === filtroAnio;
                 }).length;
@@ -2315,7 +2439,7 @@ const handleProcesarIA = async () => {
                 <span>
                   {exportandoExcel
                     ? "Generando Excel..."
-                    : `Descargar Excel ${mostrarTodos ? "Histórico" : NOMBRES_MESES[filtroMes - 1]} (.xlsx)`}
+                    : `Descargar Excel ${filtroProveedor ? `${filtroProveedor} - ` : ""}${mostrarTodos ? "Histórico" : NOMBRES_MESES[filtroMes - 1]} (.xlsx)`}
                 </span>
               </button>
             </div>
@@ -2341,7 +2465,7 @@ const handleProcesarIA = async () => {
               </div>
               <div>
                 <div style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 600 }}>
-                  SON (TOTAL {mostrarTodos ? "GENERAL" : NOMBRES_MESES[filtroMes - 1].toUpperCase()}):
+                  SON (TOTAL {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "GENERAL" : NOMBRES_MESES[filtroMes - 1].toUpperCase()}):
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: textTitle, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {formatearMonedaCOP(granTotal)}
@@ -2370,12 +2494,12 @@ const handleProcesarIA = async () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
-                  Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {mostrarTodos ? "totales" : `en ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`} a partir de fila 24)
+                  Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {filtroProveedor ? `para "${filtroProveedor}" ` : ""}{mostrarTodos ? "totales" : `en ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`} a partir de fila 24)
                 </h3>
                 <span style={{ fontSize: 11.5, color: textSub }}>
                   {mostrarTodos
-                    ? "Listando todos los registros sin filtrado de fecha"
-                    : `Mostrando exclusivamente los servicios de ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                    ? `Listando todos los registros sin filtrado de fecha${filtroProveedor ? ` para ${filtroProveedor}` : ""}`
+                    : `Mostrando exclusivamente los servicios de ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}${filtroProveedor ? ` para la entidad "${filtroProveedor}"` : ""}`}
                 </span>
               </div>
               <button
@@ -2399,7 +2523,7 @@ const handleProcesarIA = async () => {
               </button>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 960, fontSize: 12.5 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040, fontSize: 12.5 }}>
               <thead>
                 <tr style={{ background: "#135E6B", color: "#ffffff", textAlign: "center" }}>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>N° de Caso</th>
@@ -2407,6 +2531,7 @@ const handleProcesarIA = async () => {
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Fecha Atención</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Fecha finalización</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Mesa</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Proveedor / Entidad</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Cliente</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Coordinador</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Valor servicios</th>
@@ -2419,7 +2544,7 @@ const handleProcesarIA = async () => {
                 {serviciosFiltrados.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={11}
+                      colSpan={12}
                       style={{
                         padding: "32px 16px",
                         textAlign: "center",
@@ -2430,28 +2555,49 @@ const handleProcesarIA = async () => {
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                         <CalendarDays size={32} style={{ opacity: 0.4 }} />
                         <div style={{ fontSize: 14, fontWeight: 600 }}>
-                          No hay servicios registrados en {NOMBRES_MESES[filtroMes - 1]} {filtroAnio}
+                          No hay servicios registrados {filtroProveedor ? `para la entidad "${filtroProveedor}" ` : ""}en {mostrarTodos ? "el consolidado histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
                         </div>
                         <div style={{ fontSize: 12 }}>
-                          Selecciona otro mes con registros o haz clic en "Ver Todos los Meses".
+                          {filtroProveedor 
+                            ? "Prueba cambiando de proveedor o limpiando el filtro de proveedor." 
+                            : "Selecciona otro mes con registros o haz clic en \"Ver Todos los Meses\"."}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setMostrarTodos(true)}
-                          style={{
-                            marginTop: 6,
-                            background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
-                            border: "1px solid #0284c7",
-                            color: isDark ? "#38bdf8" : "#0284c7",
-                            padding: "6px 14px",
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: "pointer"
-                          }}
-                        >
-                          Ver Histórico Completo
-                        </button>
+                        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                          {filtroProveedor && (
+                            <button
+                              type="button"
+                              onClick={() => setFiltroProveedor("")}
+                              style={{
+                                background: isDark ? "rgba(239, 68, 68, 0.2)" : "#fee2e2",
+                                border: "1px solid #ef4444",
+                                color: "#ef4444",
+                                padding: "6px 14px",
+                                borderRadius: 8,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: "pointer"
+                              }}
+                            >
+                              Limpiar Filtro Proveedor
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setMostrarTodos(true)}
+                            style={{
+                              background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+                              border: "1px solid #0284c7",
+                              color: isDark ? "#38bdf8" : "#0284c7",
+                              padding: "6px 14px",
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer"
+                            }}
+                          >
+                            Ver Histórico Completo
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -2474,6 +2620,9 @@ const handleProcesarIA = async () => {
                       <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
                       <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_finalizacion}</td>
                       <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.mesa}</td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600, color: isDark ? "#38bdf8" : "#0284c7" }}>
+                        {s.proveedor || "-"}
+                      </td>
                       <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.cliente}</td>
                       <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.coordinador}</td>
                       <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isDark ? "#6ee7b7" : "#059669", fontWeight: 700 }}>
@@ -2541,8 +2690,8 @@ const handleProcesarIA = async () => {
 
                 {/* Fila de Totales */}
                 <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.4)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 800, textAlign: "right" }}>
-                  <td colSpan={7} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "center" }}>
-                    TOTAL CUENTA DE COBRO {mostrarTodos ? "HISTÓRICO" : `(${NOMBRES_MESES[filtroMes - 1].toUpperCase()} ${filtroAnio})`}
+                  <td colSpan={8} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "center" }}>
+                    TOTAL CUENTA DE COBRO {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "HISTÓRICO" : `(${NOMBRES_MESES[filtroMes - 1].toUpperCase()} ${filtroAnio})`}
                   </td>
                   <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", color: isDark ? "#a7f3d0" : "#059669", fontSize: 13.5 }}>
                     {formatearMonedaCOP(totalServicios)}
@@ -3363,6 +3512,35 @@ const handleProcesarIA = async () => {
                   />
                 </div>
 
+                {/* Proveedor / Entidad */}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11.5, color: labelColor, fontWeight: 600 }}>
+                      Proveedor / Entidad:
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialProveedores.length})
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    list="datalist-proveedores"
+                    value={editFormData.proveedor || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, proveedor: e.target.value })}
+                    placeholder="ej. Cencosud, Grupo Aval, R&S..."
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
                 {/* Cliente */}
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
@@ -3776,6 +3954,12 @@ const handleProcesarIA = async () => {
       />
 
       {/* Datalists globales para memoria histórica y autocompletado interactivo */}
+      <datalist id="datalist-proveedores">
+        {historialProveedores.map((p) => (
+          <option key={p} value={p} />
+        ))}
+      </datalist>
+
       <datalist id="datalist-clientes">
         {historialClientes.map((c) => (
           <option key={c} value={c} />

@@ -235,8 +235,9 @@ DATOS A EXTRAER Y SU SIGNIFICADO:
 3. fecha_atencion: Fecha en que se atendió el servicio (formato DD/MM/AAAA).
 4. fecha_finalizacion: Fecha de entrega/cierre del servicio (formato DD/MM/AAAA).
 5. mesa: Nombre de la mesa de soporte o tipo de servicio (ej: "Mesa IBM", "Mesa 2", "Soporte en Sitio").
-6. cliente: Nombre del cliente o entidad bancaria final (ej: "Banco Popular", "Davivienda", "Banco AV Villas", "Jumbo Popayán").
-7. coordinador: Nombre del coordinador o supervisor de servicio (ej: "Oswaldo", etc.). Si no aparece, coloca "Oswaldo".
+6. proveedor: Nombre del proveedor o entidad corporativa contratante/intermediaria (ej: "Cencosud", "Grupo Aval", "R&S Soluciones", "IBM Colombia"). Si se menciona o se deduce por el contexto (ej: Jumbo corresponde a Cencosud, AV Villas a Grupo Aval), indícalo; si no, déjalo vacío ("").
+7. cliente: Nombre del cliente o entidad bancaria final (ej: "Banco Popular", "Davivienda", "Banco AV Villas", "Jumbo Popayán").
+8. coordinador: Nombre del coordinador o supervisor de servicio (ej: "Oswaldo", etc.). Si no aparece, coloca "Oswaldo".
 8. valor_servicios: Valor numérico en pesos colombianos acordado o estimado (ej: 70000, 150000, 200000). Si no aparece, estima un valor base estándar según complejidad (ej: 70000). Devuelve sólo el número, sin "$", sin puntos ni comas.
 9. valor_viaticos: Valor numérico de viáticos si aplica (normalmente 0). Sólo el número.
 10. valor_materiales: Valor numérico de repuestos o materiales (normalmente 0). Sólo el número.
@@ -285,6 +286,7 @@ export function construirPromptSoloPlantilla(plantillaInstitucional = "", notas 
     fecha_atencion: datosBase.fecha_atencion || "",
     fecha_finalizacion: datosBase.fecha_finalizacion || "",
     mesa: datosBase.mesa || "",
+    proveedor: datosBase.proveedor || "",
     cliente: datosBase.cliente || "",
     coordinador: datosBase.coordinador || "",
     valor_servicios: datosBase.valor_servicios || 0,

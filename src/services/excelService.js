@@ -62,10 +62,10 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   const fontGeneral = { name: "Arial", size: 10, color: { argb: "FF000000" } };
   const fontBold = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
 
-  // Fila 9: Razón social del emisor
+  // Fila 9: Razón social del emisor / Entidad
   worksheet.mergeCells("B9:K9");
   const cellEmpresa = worksheet.getCell("B9");
-  cellEmpresa.value = EMPRESA;
+  cellEmpresa.value = metadata.empresa || EMPRESA;
   cellEmpresa.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF135E6B" } };
   cellEmpresa.alignment = { horizontal: "center", vertical: "middle" };
 
