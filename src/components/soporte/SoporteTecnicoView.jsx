@@ -211,6 +211,10 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [casoDuplicadoEncontrado, setCasoDuplicadoEncontrado] = useState(null);
   const [descartarAlertaDuplicado, setDescartarAlertaDuplicado] = useState(false);
 
+  // Estado de pago por fila: Map<id, "confirmed" | "pending">
+  // Persiste el estado localmente mientras la sesión esté activa.
+  const [paymentStatusMap, setPaymentStatusMap] = useState({});
+
   const fileInputRef = useRef(null);
 
   // Validación estricta de seguridad RBAC
@@ -640,6 +644,9 @@ const handleProcesarIA = async () => {
       setGuardadoExitoso(true);
       setTimeout(() => setGuardadoExitoso(false), 3000);
 
+      // Limpieza total automática de todos los campos e inputs del formulario
+      resetFormulario();
+
       // Cambiar a la pestaña de Cuentas de Cobro para ver el impacto
       setTab("cuentas");
     } catch (err) {
@@ -731,6 +738,31 @@ const handleProcesarIA = async () => {
     navigator.clipboard.writeText(plantillaTexto);
     setCopiadoPlantilla(true);
     setTimeout(() => setCopiadoPlantilla(false), 2000);
+  };
+
+  // Alternar estado de pago de una fila: 'confirmed' ↔ 'pending'
+  const handleTogglePaymentStatus = async (id) => {
+    const servActual = servicios.find((s) => s.id === id);
+    const estadoActual = paymentStatusMap[id] || servActual?.payment_status || "confirmed";
+    const nuevoEstado = estadoActual === "confirmed" ? "pending" : "confirmed";
+
+    // Actualización optimista en mapa local y lista reactiva
+    setPaymentStatusMap((prev) => ({ ...prev, [id]: nuevoEstado }));
+    setServicios((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, payment_status: nuevoEstado } : s))
+    );
+
+    // Persistencia en Supabase / LocalStorage
+    if (servActual) {
+      try {
+        await actualizarServicioSoporte({
+          ...servActual,
+          payment_status: nuevoEstado
+        });
+      } catch (err) {
+        console.warn("Error persistiendo estado de pago:", err);
+      }
+    }
   };
 
   // Dictado por Voz (Web Speech API nativa) - refactorizado: sólo se acumulan
@@ -1059,6 +1091,41 @@ const handleProcesarIA = async () => {
                     ? "✓ Gemini Conectado"
                     : "Configurar Gemini"}
               </span>
+            </button>
+
+            {/* ── Botón Limpiar / Nuevo (F5) ── */}
+            <button
+              type="button"
+              onClick={() => {
+                resetFormulario();
+                setTab("ia");
+              }}
+              title="Limpiar todo el formulario y comenzar un nuevo registro desde cero (F5)"
+              style={{
+                background: isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)",
+                border: isDark ? "1px solid rgba(245,158,11,0.4)" : "1px solid #FCD34D",
+                color: isDark ? "#FCD34D" : "#92400E",
+                padding: "8px 13px",
+                borderRadius: 10,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "all 0.15s"
+              }}
+            >
+              <RefreshCw size={14} />
+              <span>Limpiar / Nuevo</span>
+              <span style={{
+                background: isDark ? "rgba(0,0,0,0.3)" : "rgba(146,64,14,0.12)",
+                borderRadius: 4,
+                padding: "1px 5px",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.04em"
+              }}>F5</span>
             </button>
           </div>
         </div>
@@ -2734,6 +2801,7 @@ const handleProcesarIA = async () => {
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Valor servicios</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Viáticos</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Materiales</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Estado</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Acciones</th>
                 </tr>
               </thead>
@@ -2741,7 +2809,7 @@ const handleProcesarIA = async () => {
                 {serviciosFiltrados.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={12}
+                      colSpan={13}
                       style={{
                         padding: "32px 16px",
                         textAlign: "center",
@@ -2799,90 +2867,152 @@ const handleProcesarIA = async () => {
                     </td>
                   </tr>
                 ) : (
-                  serviciosFiltrados.map((s, idx) => (
-                    <tr
-                      key={s.id || idx}
-                      style={{
-                        background: idx % 2 === 0 
-                          ? (isDark ? "rgba(255,255,255,0.02)" : "#ffffff") 
-                          : (isDark ? "rgba(255,255,255,0.06)" : "#f8fafc"),
-                        color: isDark ? "#cbd5e1" : "#1e293b",
-                        textAlign: "center"
-                      }}
-                    >
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
-                        {s.numero_caso}
-                      </td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_solicitud}</td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_finalizacion}</td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.mesa}</td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600, color: isDark ? "#38bdf8" : "#0284c7" }}>
-                        {s.proveedor || "-"}
-                      </td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.cliente}</td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.coordinador}</td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isDark ? "#6ee7b7" : "#059669", fontWeight: 700 }}>
-                        {formatearMonedaCOP(s.valor_servicios)}
-                      </td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
-                        {Number(s.valor_viaticos) > 0 ? formatearMonedaCOP(s.valor_viaticos) : "$ -"}
-                      </td>
-                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
-                        {Number(s.valor_materiales) > 0 ? formatearMonedaCOP(s.valor_materiales) : "$ -"}
-                      </td>
-                      <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                          {/* Botón de Edición (Lápiz) */}
-                          <button
-                            type="button"
-                            onClick={() => handleAbrirEditarServicio(s)}
-                            title="Editar datos de este servicio"
-                            style={{
-                              background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
-                              border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid rgba(2, 132, 199, 0.3)",
-                              color: isDark ? "#38bdf8" : "#0284c7",
-                              cursor: "pointer",
-                              padding: "5px 7px",
-                              borderRadius: 6,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              transition: "all 0.15s"
-                            }}
-                          >
-                            <Pencil size={13} />
-                            <span>Editar</span>
-                          </button>
+                  serviciosFiltrados.map((s, idx) => {
+                    const status = paymentStatusMap[s.id] || s.payment_status || "confirmed";
+                    const isPending = status === "pending";
 
-                          {/* Botón de Eliminar */}
+                    return (
+                      <tr
+                        key={s.id || idx}
+                        style={{
+                          background: isPending
+                            ? (isDark ? "rgba(234, 88, 12, 0.16)" : "#fff7ed")
+                            : (idx % 2 === 0
+                              ? (isDark ? "rgba(255,255,255,0.02)" : "#ffffff")
+                              : (isDark ? "rgba(255,255,255,0.06)" : "#f8fafc")),
+                          color: isDark ? "#cbd5e1" : "#1e293b",
+                          textAlign: "center",
+                          borderLeft: isPending ? "4px solid #f97316" : "4px solid transparent",
+                          transition: "background 0.2s, border-left 0.2s"
+                        }}
+                      >
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
+                          {s.numero_caso}
+                        </td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_solicitud}</td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_finalizacion}</td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.mesa}</td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600, color: isDark ? "#38bdf8" : "#0284c7" }}>
+                          {s.proveedor || "-"}
+                        </td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.cliente}</td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.coordinador}</td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isPending ? "#ea580c" : (isDark ? "#6ee7b7" : "#059669"), fontWeight: 700 }}>
+                          {formatearMonedaCOP(s.valor_servicios)}
+                        </td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
+                          {Number(s.valor_viaticos) > 0 ? formatearMonedaCOP(s.valor_viaticos) : "$ -"}
+                        </td>
+                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
+                          {Number(s.valor_materiales) > 0 ? formatearMonedaCOP(s.valor_materiales) : "$ -"}
+                        </td>
+
+                        {/* Columna de Estado Financiero Interactivo */}
+                        <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
                           <button
                             type="button"
-                            onClick={() => handleEliminarServicio(s.id)}
-                            title="Eliminar de la cuenta de cobro"
+                            onClick={() => handleTogglePaymentStatus(s.id)}
+                            title={isPending ? "Clic para marcar como Pagado / Confirmado" : "Clic para marcar como Pendiente por Confirmar"}
                             style={{
-                              background: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.08)",
-                              border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(239, 68, 68, 0.25)",
-                              color: "#ef4444",
-                              cursor: "pointer",
-                              padding: "5px 7px",
-                              borderRadius: 6,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
+                              background: isPending
+                                ? (isDark ? "rgba(249, 115, 22, 0.22)" : "#ffedd5")
+                                : (isDark ? "rgba(16, 185, 129, 0.18)" : "#dcfce7"),
+                              border: isPending
+                                ? (isDark ? "1px solid #f97316" : "1px solid #fdba74")
+                                : (isDark ? "1px solid #10b981" : "1px solid #86efac"),
+                              color: isPending
+                                ? (isDark ? "#fb923c" : "#c2410c")
+                                : (isDark ? "#6ee7b7" : "#15803d"),
+                              padding: "4px 8px",
+                              borderRadius: 8,
                               fontSize: 11,
-                              fontWeight: 600,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 5,
+                              boxShadow: isPending ? "0 0 10px rgba(249, 115, 22, 0.35)" : "none",
                               transition: "all 0.15s"
                             }}
                           >
-                            <Trash2 size={13} />
+                            {isPending ? (
+                              <>
+                                <span
+                                  style={{
+                                    display: "inline-block",
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: "50%",
+                                    background: "#f97316",
+                                    boxShadow: "0 0 6px #f97316"
+                                  }}
+                                />
+                                <AlertTriangle size={12} />
+                                <span>Pendiente</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle size={12} />
+                                <span>Confirmado</span>
+                              </>
+                            )}
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+
+                        <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                            {/* Botón de Edición (Lápiz) */}
+                            <button
+                              type="button"
+                              onClick={() => handleAbrirEditarServicio(s)}
+                              title="Editar datos de este servicio"
+                              style={{
+                                background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
+                                border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid rgba(2, 132, 199, 0.3)",
+                                color: isDark ? "#38bdf8" : "#0284c7",
+                                cursor: "pointer",
+                                padding: "5px 7px",
+                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                transition: "all 0.15s"
+                              }}
+                            >
+                              <Pencil size={13} />
+                              <span>Editar</span>
+                            </button>
+
+                            {/* Botón de Eliminar */}
+                            <button
+                              type="button"
+                              onClick={() => handleEliminarServicio(s.id)}
+                              title="Eliminar de la cuenta de cobro"
+                              style={{
+                                background: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.08)",
+                                border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(239, 68, 68, 0.25)",
+                                color: "#ef4444",
+                                cursor: "pointer",
+                                padding: "5px 7px",
+                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                transition: "all 0.15s"
+                              }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
 
                 {/* Fila de Totales */}
@@ -2899,6 +3029,7 @@ const handleProcesarIA = async () => {
                   <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }}>
                     {totalMateriales > 0 ? formatearMonedaCOP(totalMateriales) : "$ -"}
                   </td>
+                  <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
                 </tr>
               </tbody>

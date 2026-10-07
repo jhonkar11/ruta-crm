@@ -199,6 +199,7 @@ export async function guardarServicioSoporte(servicio) {
     horas: servicio.horas || {},
     plantilla_completa: servicio.plantilla_completa || "",
     foto_url: servicio.foto_url || "",
+    payment_status: servicio.payment_status || "confirmed",
     creado_en: servicio.creado_en || new Date().toISOString(),
     actualizado_en: new Date().toISOString()
   };
@@ -233,6 +234,7 @@ export async function actualizarServicioSoporte(servicio) {
     valor_servicios: Number(servicio.valor_servicios) || 0,
     valor_viaticos: Number(servicio.valor_viaticos) || 0,
     valor_materiales: Number(servicio.valor_materiales) || 0,
+    payment_status: servicio.payment_status || "confirmed",
     actualizado_en: new Date().toISOString()
   };
 
