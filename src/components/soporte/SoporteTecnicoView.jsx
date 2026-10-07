@@ -18,7 +18,10 @@ import {
   RefreshCw,
   Eye,
   FileText,
-  UserCheck
+  UserCheck,
+  Pencil,
+  X,
+  CalendarDays
 } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { isSoporteAuthorized, SOPORTE_ADMIN_EMAIL } from "../../utils/rbac";
@@ -34,6 +37,7 @@ import {
   getServiciosSoporte,
   guardarServicioSoporte,
   eliminarServicioSoporte,
+  actualizarServicioSoporte,
   subirImagenTemporalSoporte,
   purgarImagenesTemporales
 } from "../../services/soporteService";
@@ -48,6 +52,17 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [tab, setTab] = useState("ia"); // "ia" | "cuentas" | "almacenamiento"
   const [servicios, setServicios] = useState([]);
   const [loadingServicios, setLoadingServicios] = useState(true);
+
+  // ── Filtro por Mes/Año ────────────────────────────────────────────────────
+  const ahora = new Date();
+  const [filtroMes, setFiltroMes] = useState(ahora.getMonth() + 1); // 1–12
+  const [filtroAnio, setFiltroAnio] = useState(ahora.getFullYear());
+  const [mostrarTodos, setMostrarTodos] = useState(false);
+
+  // ── Modal de Edición ──────────────────────────────────────────────────────
+  const [editandoServicio, setEditandoServicio] = useState(null); // null | objeto servicio
+  const [editFormData, setEditFormData] = useState({});
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   // Tope de la plantilla institucional. Debe coincidir con
   // MAX_PLANTILLA_INSTITUCIONAL en api/_lib/gemini.js (el servidor recorta igual).
@@ -435,15 +450,19 @@ const handleProcesarIA = async () => {
 
   // 4. Exportar a Excel Oficial (.xlsx)
   const handleDescargarExcel = async () => {
+    const listaAExportar = serviciosFiltrados.length > 0 ? serviciosFiltrados : servicios;
     setExportandoExcel(true);
     try {
-      const buffer = await generarExcelCuentaCobro(servicios, {
+      const buffer = await generarExcelCuentaCobro(listaAExportar, {
         nombre: "Jhon Alexander Vasquez Reveló",
         cedula: "10308105"
       });
+      const periodoTexto = mostrarTodos
+        ? "Consolidado_Historico"
+        : `${NOMBRES_MESES[filtroMes - 1]}_${filtroAnio}`;
       descargarExcelEnNavegador(
         buffer,
-        `Cuenta de Cobro - R&S Soluciones (${servicios.length} casos).xlsx`
+        `Cuenta de Cobro - R&S Soluciones (${periodoTexto} - ${listaAExportar.length} casos).xlsx`
       );
     } catch (err) {
       alert("Error al exportar el archivo Excel: " + err.message);
@@ -502,12 +521,109 @@ const handleProcesarIA = async () => {
     });
   };
 
-  // Cálculos de Totales de la Cuenta de Cobro
-  const totalServicios = servicios.reduce((acc, s) => acc + (Number(s.valor_servicios) || 0), 0);
-  const totalViaticos = servicios.reduce((acc, s) => acc + (Number(s.valor_viaticos) || 0), 0);
-  const totalMateriales = servicios.reduce((acc, s) => acc + (Number(s.valor_materiales) || 0), 0);
+  // Nombres de meses en español para filtrado
+  const NOMBRES_MESES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+  ];
+
+  // Helper para extraer mes y año de cualquier formato de fecha del servicio
+  const extraerMesAnio = (s) => {
+    const fechas = [s.fecha_atencion, s.fecha_solicitud, s.fecha_finalizacion];
+    for (const f of fechas) {
+      if (!f || typeof f !== "string") continue;
+      const fTrim = f.trim();
+      const mDMY = fTrim.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (mDMY) {
+        return { mes: parseInt(mDMY[2], 10), anio: parseInt(mDMY[3], 10) };
+      }
+      const mYMD = fTrim.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+      if (mYMD) {
+        return { mes: parseInt(mYMD[2], 10), anio: parseInt(mYMD[1], 10) };
+      }
+    }
+    if (s.creado_en) {
+      const d = new Date(s.creado_en);
+      if (!isNaN(d.getTime())) {
+        return { mes: d.getMonth() + 1, anio: d.getFullYear() };
+      }
+    }
+    return null;
+  };
+
+  // Identificar los años presentes en los servicios (más el año actual)
+  const aniosDisponibles = Array.from(
+    new Set([
+      ahora.getFullYear(),
+      ...servicios.map((s) => extraerMesAnio(s)?.anio).filter(Boolean)
+    ])
+  ).sort((a, b) => b - a);
+
+  // Servicios filtrados según el periodo activo (mes y año o todos)
+  const serviciosFiltrados = servicios.filter((s) => {
+    if (mostrarTodos) return true;
+    const info = extraerMesAnio(s);
+    if (!info) return false;
+    return info.mes === Number(filtroMes) && info.anio === Number(filtroAnio);
+  });
+
+  // Cálculos de Totales de la Cuenta de Cobro (dinámicos según el periodo seleccionado)
+  const totalServicios = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_servicios) || 0), 0);
+  const totalViaticos = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_viaticos) || 0), 0);
+  const totalMateriales = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_materiales) || 0), 0);
   const granTotal = totalServicios + totalViaticos + totalMateriales;
   const textoEnLetras = numeroALetras(granTotal);
+
+  // Handler para iniciar la edición de un registro
+  const handleAbrirEditarServicio = (servicio) => {
+    setEditandoServicio(servicio);
+    setEditFormData({
+      id: servicio.id,
+      numero_caso: servicio.numero_caso || "",
+      fecha_solicitud: servicio.fecha_solicitud || "",
+      fecha_atencion: servicio.fecha_atencion || "",
+      fecha_finalizacion: servicio.fecha_finalizacion || "",
+      mesa: servicio.mesa || "2",
+      cliente: servicio.cliente || "",
+      coordinador: servicio.coordinador || "",
+      valor_servicios: servicio.valor_servicios ?? 0,
+      valor_viaticos: servicio.valor_viaticos ?? 0,
+      valor_materiales: servicio.valor_materiales ?? 0,
+      sh: servicio.sh || "SOFTWARE - HARDWARE",
+      tecnico: servicio.tecnico || "Jhon Alexander Vasquez Reveló",
+      medio: servicio.medio || "SITIO",
+      equipo: servicio.equipo || "",
+      falla: servicio.falla || "",
+      causa: servicio.causa || "",
+      solucion: servicio.solucion || "",
+      pruebas: servicio.pruebas || "",
+      horas: servicio.horas || {},
+      plantilla_completa: servicio.plantilla_completa || "",
+      foto_url: servicio.foto_url || "",
+      creado_en: servicio.creado_en
+    });
+  };
+
+  // Handler para guardar los cambios de edición en Supabase y refrescar el estado
+  const handleGuardarEdicion = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!editFormData.numero_caso?.trim()) {
+      alert("El N° de Caso es obligatorio.");
+      return;
+    }
+    setGuardandoEdicion(true);
+    try {
+      const actualizado = await actualizarServicioSoporte(editFormData);
+      setServicios((prev) =>
+        prev.map((s) => (s.id === actualizado.id ? { ...s, ...actualizado } : s))
+      );
+      setEditandoServicio(null);
+    } catch (err) {
+      alert("Error al actualizar servicio: " + err.message);
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
 
   // VISTA DENEGADA POR RBAC
   if (!isAuthorized) {
@@ -705,7 +821,7 @@ const handleProcesarIA = async () => {
               cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s"
             }}
           >
-            <FileSpreadsheet size={16} /> 2. Cuenta de Cobro ({servicios.length} casos — {formatearMonedaCOP(granTotal)})
+            <FileSpreadsheet size={16} /> 2. Cuenta de Cobro ({serviciosFiltrados.length} casos — {formatearMonedaCOP(granTotal)})
           </button>
 
           <button
@@ -1712,6 +1828,222 @@ const handleProcesarIA = async () => {
       {/* PESTAÑA 2: CUENTAS DE COBRO & EXCEL OFICIAL */}
       {tab === "cuentas" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* ── BARRA DE AGRUPACIÓN Y FILTRADO POR MES Y AÑO ── */}
+          <div
+            style={{
+              background: cardBg,
+              border: cardBorder,
+              borderRadius: 18,
+              padding: "16px 20px",
+              boxShadow: cardShadow,
+              display: "flex",
+              flexDirection: "column",
+              gap: 14
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 12
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    background: isDark ? "rgba(56, 189, 248, 0.2)" : "rgba(2, 132, 199, 0.12)",
+                    color: isDark ? "#38bdf8" : "#0284c7",
+                    padding: 8,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <CalendarDays size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: textTitle }}>
+                    Filtrado y Agrupación por Periodo
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: textSub }}>
+                    {mostrarTodos
+                      ? "Visualizando consolidado histórico de todos los meses"
+                      : `Liquidación activa: ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Controles de Selección Año, Mes y Modo */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                {/* Selector de Año */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Año:</span>
+                  <select
+                    value={filtroAnio}
+                    onChange={(e) => {
+                      setFiltroAnio(Number(e.target.value));
+                      setMostrarTodos(false);
+                    }}
+                    style={{
+                      background: inputBg,
+                      border: inputBorder,
+                      color: inputText,
+                      borderRadius: 8,
+                      padding: "6px 10px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
+                  >
+                    {aniosDisponibles.map((a) => (
+                      <option key={a} value={a} style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Selector Desplegable de Mes */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Mes:</span>
+                  <select
+                    value={mostrarTodos ? "todos" : filtroMes}
+                    onChange={(e) => {
+                      if (e.target.value === "todos") {
+                        setMostrarTodos(true);
+                      } else {
+                        setFiltroMes(Number(e.target.value));
+                        setMostrarTodos(false);
+                      }
+                    }}
+                    style={{
+                      background: inputBg,
+                      border: inputBorder,
+                      color: inputText,
+                      borderRadius: 8,
+                      padding: "6px 10px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
+                  >
+                    <option value="todos" style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                      Todos los periodos (Histórico)
+                    </option>
+                    {NOMBRES_MESES.map((nom, idx) => (
+                      <option key={idx + 1} value={idx + 1} style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                        {nom} {filtroAnio}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Botón Ver Todo */}
+                <button
+                  type="button"
+                  onClick={() => setMostrarTodos(!mostrarTodos)}
+                  style={{
+                    background: mostrarTodos
+                      ? (isDark ? "rgba(16, 185, 129, 0.25)" : "rgba(16, 185, 129, 0.15)")
+                      : (isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9"),
+                    border: mostrarTodos
+                      ? "1px solid #10b981"
+                      : (isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #cbd5e1"),
+                    color: mostrarTodos ? (isDark ? "#6ee7b7" : "#065f46") : textSub,
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s"
+                  }}
+                >
+                  {mostrarTodos ? "✓ Histórico Completo" : "Ver Todos los Meses"}
+                </button>
+              </div>
+            </div>
+
+            {/* Pestañas horizontales de los 12 Meses */}
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                overflowX: "auto",
+                paddingBottom: 4,
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                paddingTop: 10
+              }}
+            >
+              {NOMBRES_MESES.map((nomMes, idx) => {
+                const numMes = idx + 1;
+                const esActivo = !mostrarTodos && filtroMes === numMes;
+                const conteo = servicios.filter((s) => {
+                  const info = extraerMesAnio(s);
+                  return info && info.mes === numMes && info.anio === filtroAnio;
+                }).length;
+
+                return (
+                  <button
+                    key={numMes}
+                    type="button"
+                    onClick={() => {
+                      setFiltroMes(numMes);
+                      setMostrarTodos(false);
+                    }}
+                    style={{
+                      flexShrink: 0,
+                      background: esActivo
+                        ? "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)"
+                        : conteo > 0
+                          ? (isDark ? "rgba(56, 189, 248, 0.12)" : "rgba(2, 132, 199, 0.08)")
+                          : (isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.03)"),
+                      border: esActivo
+                        ? "1.5px solid #0284c7"
+                        : conteo > 0
+                          ? (isDark ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid #bae6fd")
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                      color: esActivo
+                        ? "#ffffff"
+                        : conteo > 0
+                          ? (isDark ? "#38bdf8" : "#0284c7")
+                          : textSub,
+                      borderRadius: 8,
+                      padding: "6px 12px",
+                      fontSize: 12,
+                      fontWeight: esActivo ? 700 : 500,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.15s"
+                    }}
+                  >
+                    <span>{nomMes}</span>
+                    {conteo > 0 && (
+                      <span
+                        style={{
+                          background: esActivo ? "rgba(255, 255, 255, 0.25)" : (isDark ? "rgba(56, 189, 248, 0.25)" : "#e0f2fe"),
+                          color: esActivo ? "#fff" : (isDark ? "#7dd3fc" : "#0369a1"),
+                          borderRadius: 10,
+                          padding: "1px 6px",
+                          fontSize: 10.5,
+                          fontWeight: 700
+                        }}
+                      >
+                        {conteo}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Tarjeta de Resumen Oficial (C.C., Nombre y Suma en Letras) */}
           <div
             style={{
@@ -1725,7 +2057,7 @@ const handleProcesarIA = async () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Formato de Cuenta de Cobro Oficial
+                  Formato de Cuenta de Cobro Oficial · {mostrarTodos ? "Consolidado Histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: textTitle, marginTop: 2 }}>
                   DEBE A: Jhon Alexander Vasquez Reveló
@@ -1738,7 +2070,7 @@ const handleProcesarIA = async () => {
               {/* Botón Descargar Excel */}
               <button
                 type="button"
-                disabled={exportandoExcel || servicios.length === 0}
+                disabled={exportandoExcel || serviciosFiltrados.length === 0}
                 onClick={handleDescargarExcel}
                 style={{
                   background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -1748,7 +2080,8 @@ const handleProcesarIA = async () => {
                   padding: "12px 20px",
                   fontSize: 14,
                   fontWeight: 700,
-                  cursor: exportandoExcel ? "wait" : "pointer",
+                  cursor: exportandoExcel || serviciosFiltrados.length === 0 ? "not-allowed" : "pointer",
+                  opacity: serviciosFiltrados.length === 0 ? 0.6 : 1,
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -1757,7 +2090,11 @@ const handleProcesarIA = async () => {
                 }}
               >
                 <Download size={18} />
-                <span>{exportandoExcel ? "Generando Excel..." : "Descargar Excel Oficial (.xlsx)"}</span>
+                <span>
+                  {exportandoExcel
+                    ? "Generando Excel..."
+                    : `Descargar Excel ${mostrarTodos ? "Histórico" : NOMBRES_MESES[filtroMes - 1]} (.xlsx)`}
+                </span>
               </button>
             </div>
 
@@ -1781,7 +2118,9 @@ const handleProcesarIA = async () => {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 600 }}>SON (TOTAL):</div>
+                <div style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 600 }}>
+                  SON (TOTAL {mostrarTodos ? "GENERAL" : NOMBRES_MESES[filtroMes - 1].toUpperCase()}):
+                </div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: textTitle, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {formatearMonedaCOP(granTotal)}
                 </div>
@@ -1807,9 +2146,16 @@ const handleProcesarIA = async () => {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
-                Detalle de Servicios Inyectados ({servicios.length} registros a partir de fila 24)
-              </h3>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
+                  Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {mostrarTodos ? "totales" : `en ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`} a partir de fila 24)
+                </h3>
+                <span style={{ fontSize: 11.5, color: textSub }}>
+                  {mostrarTodos
+                    ? "Listando todos los registros sin filtrado de fecha"
+                    : `Mostrando exclusivamente los servicios de ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setTab("ia")}
@@ -1831,7 +2177,7 @@ const handleProcesarIA = async () => {
               </button>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 900, fontSize: 12.5 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 960, fontSize: 12.5 }}>
               <thead>
                 <tr style={{ background: "#135E6B", color: "#ffffff", textAlign: "center" }}>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>N° de Caso</th>
@@ -1848,58 +2194,133 @@ const handleProcesarIA = async () => {
                 </tr>
               </thead>
               <tbody>
-                {servicios.map((s, idx) => (
-                  <tr
-                    key={s.id || idx}
-                    style={{
-                      background: idx % 2 === 0 
-                        ? (isDark ? "rgba(255,255,255,0.02)" : "#ffffff") 
-                        : (isDark ? "rgba(255,255,255,0.06)" : "#f8fafc"),
-                      color: isDark ? "#cbd5e1" : "#1e293b",
-                      textAlign: "center"
-                    }}
-                  >
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
-                      {s.numero_caso}
-                    </td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_solicitud}</td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_finalizacion}</td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.mesa}</td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.cliente}</td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.coordinador}</td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isDark ? "#6ee7b7" : "#059669", fontWeight: 700 }}>
-                      {formatearMonedaCOP(s.valor_servicios)}
-                    </td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
-                      {Number(s.valor_viaticos) > 0 ? formatearMonedaCOP(s.valor_viaticos) : "$ -"}
-                    </td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
-                      {Number(s.valor_materiales) > 0 ? formatearMonedaCOP(s.valor_materiales) : "$ -"}
-                    </td>
-                    <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
-                      <button
-                        type="button"
-                        onClick={() => handleEliminarServicio(s.id)}
-                        title="Eliminar de la cuenta de cobro"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          padding: 4
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                {serviciosFiltrados.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={11}
+                      style={{
+                        padding: "32px 16px",
+                        textAlign: "center",
+                        color: textSub,
+                        border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0"
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                        <CalendarDays size={32} style={{ opacity: 0.4 }} />
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>
+                          No hay servicios registrados en {NOMBRES_MESES[filtroMes - 1]} {filtroAnio}
+                        </div>
+                        <div style={{ fontSize: 12 }}>
+                          Selecciona otro mes con registros o haz clic en "Ver Todos los Meses".
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setMostrarTodos(true)}
+                          style={{
+                            marginTop: 6,
+                            background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+                            border: "1px solid #0284c7",
+                            color: isDark ? "#38bdf8" : "#0284c7",
+                            padding: "6px 14px",
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            cursor: "pointer"
+                          }}
+                        >
+                          Ver Histórico Completo
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  serviciosFiltrados.map((s, idx) => (
+                    <tr
+                      key={s.id || idx}
+                      style={{
+                        background: idx % 2 === 0 
+                          ? (isDark ? "rgba(255,255,255,0.02)" : "#ffffff") 
+                          : (isDark ? "rgba(255,255,255,0.06)" : "#f8fafc"),
+                        color: isDark ? "#cbd5e1" : "#1e293b",
+                        textAlign: "center"
+                      }}
+                    >
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
+                        {s.numero_caso}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_solicitud}</td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_finalizacion}</td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.mesa}</td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.cliente}</td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.coordinador}</td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isDark ? "#6ee7b7" : "#059669", fontWeight: 700 }}>
+                        {formatearMonedaCOP(s.valor_servicios)}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
+                        {Number(s.valor_viaticos) > 0 ? formatearMonedaCOP(s.valor_viaticos) : "$ -"}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
+                        {Number(s.valor_materiales) > 0 ? formatearMonedaCOP(s.valor_materiales) : "$ -"}
+                      </td>
+                      <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          {/* Botón de Edición (Lápiz) */}
+                          <button
+                            type="button"
+                            onClick={() => handleAbrirEditarServicio(s)}
+                            title="Editar datos de este servicio"
+                            style={{
+                              background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
+                              border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid rgba(2, 132, 199, 0.3)",
+                              color: isDark ? "#38bdf8" : "#0284c7",
+                              cursor: "pointer",
+                              padding: "5px 7px",
+                              borderRadius: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              transition: "all 0.15s"
+                            }}
+                          >
+                            <Pencil size={13} />
+                            <span>Editar</span>
+                          </button>
+
+                          {/* Botón de Eliminar */}
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarServicio(s.id)}
+                            title="Eliminar de la cuenta de cobro"
+                            style={{
+                              background: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.08)",
+                              border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(239, 68, 68, 0.25)",
+                              color: "#ef4444",
+                              cursor: "pointer",
+                              padding: "5px 7px",
+                              borderRadius: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              transition: "all 0.15s"
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
 
                 {/* Fila de Totales */}
                 <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.4)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 800, textAlign: "right" }}>
                   <td colSpan={7} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "center" }}>
-                    TOTAL CUENTA DE COBRO
+                    TOTAL CUENTA DE COBRO {mostrarTodos ? "HISTÓRICO" : `(${NOMBRES_MESES[filtroMes - 1].toUpperCase()} ${filtroAnio})`}
                   </td>
                   <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", color: isDark ? "#a7f3d0" : "#059669", fontSize: 13.5 }}>
                     {formatearMonedaCOP(totalServicios)}
@@ -1988,6 +2409,430 @@ const handleProcesarIA = async () => {
             >
               <RefreshCw size={14} /> Purgar ahora
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de edición de registro de soporte / servicio inyectado */}
+      {editandoServicio && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(6px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+        >
+          <div
+            style={{
+              background: isDark ? "#0f172a" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e2e8f0",
+              borderRadius: 18,
+              width: "100%",
+              maxWidth: 720,
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              overflow: "hidden"
+            }}
+          >
+            {/* Header del Modal */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: isDark ? "rgba(30, 41, 59, 0.7)" : "#f8fafc"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    background: isDark ? "rgba(56, 189, 248, 0.2)" : "rgba(2, 132, 199, 0.12)",
+                    color: isDark ? "#38bdf8" : "#0284c7",
+                    padding: 7,
+                    borderRadius: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <Pencil size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
+                    Editar Servicio Inyectado
+                  </h3>
+                  <span style={{ fontSize: 12, color: textSub }}>
+                    Caso: <strong>{editFormData.numero_caso || "Sin número"}</strong>
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEditandoServicio(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: textSub,
+                  cursor: "pointer",
+                  padding: 6,
+                  borderRadius: 6,
+                  display: "flex",
+                  alignItems: "center"
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Formulario con Scroll */}
+            <form
+              onSubmit={handleGuardarEdicion}
+              style={{
+                padding: "20px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                  gap: 12
+                }}
+              >
+                {/* N° Caso */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    N° de Caso / Código de Servicio:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.numero_caso || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, numero_caso: e.target.value })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 13,
+                      fontWeight: 600
+                    }}
+                  />
+                </div>
+
+                {/* Fechas */}
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Fecha Solicitud:
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.fecha_solicitud || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, fecha_solicitud: e.target.value })}
+                    placeholder="DD/MM/AAAA"
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Fecha Atención:
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.fecha_atencion || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, fecha_atencion: e.target.value })}
+                    placeholder="DD/MM/AAAA"
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Fecha Finalización:
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.fecha_finalizacion || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, fecha_finalizacion: e.target.value })}
+                    placeholder="DD/MM/AAAA"
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                {/* Mesa */}
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Mesa / Tipo Soporte:
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.mesa || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, mesa: e.target.value })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                {/* Cliente */}
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Cliente Final:
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.cliente || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, cliente: e.target.value })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                {/* Coordinador */}
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Coordinador(a):
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.coordinador || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, coordinador: e.target.value })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                {/* Valores Monetarios */}
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Valor Servicios ($ COP):
+                  </label>
+                  <input
+                    type="number"
+                    value={editFormData.valor_servicios ?? 0}
+                    onChange={(e) => setEditFormData({ ...editFormData, valor_servicios: Number(e.target.value) })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: isDark ? "#4ade80" : "#059669",
+                      fontSize: 13,
+                      fontWeight: 700
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Viáticos ($ COP):
+                  </label>
+                  <input
+                    type="number"
+                    value={editFormData.valor_viaticos ?? 0}
+                    onChange={(e) => setEditFormData({ ...editFormData, valor_viaticos: Number(e.target.value) })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Materiales ($ COP):
+                  </label>
+                  <input
+                    type="number"
+                    value={editFormData.valor_materiales ?? 0}
+                    onChange={(e) => setEditFormData({ ...editFormData, valor_materiales: Number(e.target.value) })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                {/* Equipo y Falla */}
+                <div>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Equipo / Serial:
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.equipo || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, equipo: e.target.value })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
+                    Falla Reportada:
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.falla || ""}
+                    onChange={(e) => setEditFormData({ ...editFormData, falla: e.target.value })}
+                    style={{
+                      width: "100%",
+                      boxSizing: "border-box",
+                      background: inputBg,
+                      border: inputBorder,
+                      borderRadius: 8,
+                      padding: "8px 10px",
+                      color: inputText,
+                      fontSize: 12.5
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Botones de Acción */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 10,
+                  marginTop: 10,
+                  paddingTop: 12,
+                  borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0"
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setEditandoServicio(null)}
+                  style={{
+                    background: "none",
+                    border: isDark ? "1px solid rgba(255, 255, 255, 0.2)" : "1px solid #cbd5e1",
+                    color: textSub,
+                    borderRadius: 8,
+                    padding: "9px 16px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={guardandoEdicion}
+                  style={{
+                    background: "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                    border: "none",
+                    color: "#ffffff",
+                    borderRadius: 8,
+                    padding: "9px 20px",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: guardandoEdicion ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    boxShadow: "0 4px 12px rgba(2, 132, 199, 0.3)"
+                  }}
+                >
+                  <CheckCircle size={15} />
+                  {guardandoEdicion ? "Guardando..." : "Guardar Cambios"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -215,6 +215,37 @@ export async function guardarServicioSoporte(servicio) {
 }
 
 /**
+ * Actualiza un servicio de soporte técnico existente en Supabase y localmente.
+ */
+export async function actualizarServicioSoporte(servicio) {
+  const itemActualizado = {
+    ...servicio,
+    valor_servicios: Number(servicio.valor_servicios) || 0,
+    valor_viaticos: Number(servicio.valor_viaticos) || 0,
+    valor_materiales: Number(servicio.valor_materiales) || 0,
+    actualizado_en: new Date().toISOString()
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from(TABLA_SERVICIOS)
+      .upsert(itemActualizado, { onConflict: "id" })
+      .select()
+      .single();
+
+    if (!error && data) {
+      guardarServicioLocal(data);
+      return data;
+    }
+  } catch (err) {
+    console.warn("Actualización remota falló, actualizando caché local:", err.message);
+  }
+
+  guardarServicioLocal(itemActualizado);
+  return itemActualizado;
+}
+
+/**
  * Elimina un servicio de soporte técnico.
  */
 export async function eliminarServicioSoporte(id) {
