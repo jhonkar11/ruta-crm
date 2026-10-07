@@ -253,17 +253,34 @@ DATOS A EXTRAER Y SU SIGNIFICADO:
 20. plantilla_completa: Texto formateado exactamente como la plantilla oficial corporativa para WhatsApp.
 
 PLANTILLA CORPORATIVA OFICIAL (campo plantilla_completa):
-Es el entregable principal y debe quedar COMPLETO, EXACTO Y DETALLADO. Respeta estas reglas sin excepción:
+Es el entregable principal y debe quedar COMPLETO, EXACTO Y DETALLADO para WhatsApp/Mesas de ayuda IT.
 ${
   hayInstitucional
-    ? `- COMPORTAMIENTO TIPO ESPEJO DINÁMICO (campo 'plantilla_completa'):
-  * El usuario proporcionó una plantilla en <plantilla_institucional>.
-  * DEBES TOMAR ESA PLANTILLA EXACTAMENTE COMO UN MOLDE O ESPEJO.
-  * Respeta al 100% su estructura, saltos de línea, títulos, orden, etiquetas y diseño original (ya sean variables tipo $$Variable, etiquetas libres, corchetes, dos puntos, tablas o viñetas).
-  * Actúa puramente como un mapeador de datos sobre el formato de entrada: autocompleta inteligentemente cada campo o variable dentro de esa misma estructura idéntica usando la información extraída de la captura de WhatsApp (imagen OCR) y las notas/detalle del servicio técnico.
-  * NO inventes campos que no correspondan a la plantilla provista por el usuario.
-  * ESTÁ ESTRICTAMENTE PROHIBIDO usar o generar cualquier plantilla predeterminada, fija o estática quemada.`
-    : `- No se proporcionó plantilla institucional de entrada. Devuelve una cadena vacía ("") en el campo 'plantilla_completa'. ESTÁ PROHIBIDO inventar o usar plantillas fijas o quemadas.`
+    ? `- CASO MOLDE INSTITUCIONAL ESTRICTO (campo 'plantilla_completa'):
+  * El usuario proporcionó una estructura o plantilla en blanco en <plantilla_institucional>.
+  * DEBES USAR ESA PLANTILLA EXACTAMENTE COMO UN MOLDE O ESQUEMA ESTRICTO.
+  * Vacía todos los datos extraídos (de la captura OCR o del detalle del servicio) en ella, limpiándola de imperfecciones o campos huérfanos.
+  * Respeta al 100% sus títulos, orden, saltos de línea y etiquetas originales (variables $$Variable, dos puntos, viñetas, etc.), completando cada valor de forma impecable.`
+    : `- CASO FORMATO ESTÁNDAR CORPORATIVO ENTER LTDA (campo 'plantilla_completa'):
+  * No se adjuntó plantilla institucional en blanco.
+  * Debes organizar, formatear y estructurar directamente los datos extraídos (ya sea de la captura de pantalla OCR o del Detalle del Servicio técnico) en la Plantilla Corporativa Oficial para WhatsApp, con el siguiente formato limpio y profesional:
+*REPORTE DE SOPORTE TÉCNICO EN SITIO*
+N° Caso: [numero_caso]
+Fecha: [fecha_atencion o fecha_solicitud]
+Proveedor: [proveedor o entidad]
+Cliente: [cliente]
+Mesa: [mesa] | Coordinador: [coordinador]
+Equipo / Serial: [equipo]
+Medio: [medio] | Tipo: [sh]
+Falla Reportada: [falla]
+Diagnóstico / Causa: [causa]
+Solución Técnica: [solucion]
+Pruebas Realizadas: [pruebas]
+Horario: [horas.inicio - horas.fin]
+Estado: CERRADO Y ENTREGADO A CONFORMIDAD
+Técnico: [tecnico]
+
+Asegúrate de llenar cada corchete con los datos reales obtenidos sin dejar corchetes vacíos.`
 }
 - No uses corchetes vacíos, guiones innecesarios ni marcadores pendientes como [pendiente] o "N/A" cuando la información exista o pueda ser resuelta técnicamente.
 

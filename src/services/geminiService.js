@@ -214,13 +214,51 @@ export async function generarPlantillaDesdeInstitucional({
 }
 
 /**
- * Mapeador dinámico tipo "espejo" sobre la plantilla institucional de entrada.
- * NO utiliza ninguna plantilla fija o predeterminada quemada.
- * Si no se proporciona plantillaInstitucional, retorna cadena vacía.
+ * Mapeador dinámico y generador de Plantilla Corporativa Oficial.
+ * - Si se proporciona plantillaInstitucional (Caso B): actúa como molde/esquema estricto tipo "espejo".
+ * - Si no se proporciona plantillaInstitucional (Caso A y Caso C): estructura y formatea directamente
+ *   los datos del servicio en la Plantilla Corporativa Oficial estándar para WhatsApp.
  */
 export function generarPlantillaSolucion(datos = {}, plantillaInstitucional = "") {
   if (!plantillaInstitucional || !String(plantillaInstitucional).trim()) {
-    return "";
+    // Generador estructurado corporativo estándar (ENTER Ltda.)
+    const caso = datos?.numero_caso || "";
+    const fecha = datos?.fecha_atencion || datos?.fecha_solicitud || "";
+    const prov = datos?.proveedor || "";
+    const cli = datos?.cliente || "";
+    const mesa = datos?.mesa || "";
+    const coord = datos?.coordinador || "";
+    const equip = datos?.equipo || "";
+    const med = datos?.medio || "SITIO";
+    const tipoSh = datos?.sh || "SOFTWARE - HARDWARE";
+    const fall = datos?.falla || "";
+    const caus = datos?.causa || "";
+    const sol = datos?.solucion || "";
+    const prueb = datos?.pruebas || "";
+    const hInicio = datos?.horas?.inicio || "";
+    const hFin = datos?.horas?.fin || "";
+    const tec = datos?.tecnico || "Jhon Alexander Vasquez Reveló";
+
+    const partes = [
+      "*REPORTE DE SOPORTE TÉCNICO EN SITIO*",
+      `N° Caso: ${caso}`,
+      `Fecha: ${fecha}`
+    ];
+
+    if (prov) partes.push(`Proveedor: ${prov}`);
+    if (cli) partes.push(`Cliente: ${cli}`);
+    if (mesa || coord) partes.push(`Mesa: ${mesa || "-"} | Coordinador: ${coord || "-"}`);
+    if (equip) partes.push(`Equipo / Serial: ${equip}`);
+    partes.push(`Medio: ${med} | Tipo: ${tipoSh}`);
+    if (fall) partes.push(`Falla Reportada: ${fall}`);
+    if (caus) partes.push(`Diagnóstico / Causa: ${caus}`);
+    if (sol) partes.push(`Solución Técnica: ${sol}`);
+    if (prueb) partes.push(`Pruebas Realizadas: ${prueb}`);
+    if (hInicio || hFin) partes.push(`Horario: ${hInicio || ""} - ${hFin || ""}`);
+    partes.push("Estado: CERRADO Y ENTREGADO A CONFORMIDAD");
+    partes.push(`Técnico: ${tec}`);
+
+    return partes.join("\n");
   }
 
   const raw = String(plantillaInstitucional);

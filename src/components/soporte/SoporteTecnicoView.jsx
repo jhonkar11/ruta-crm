@@ -473,34 +473,42 @@ const handleProcesarIA = async () => {
     // 5. Actualizar estado global de datos extraídos
     setDatosExtraidos(combinados);
 
-    // 6. PASO B: Generar plantilla corporativa oficial
-    //    Comportamiento dinámico tipo espejo: se toma la plantilla institucional
-    //    de entrada exactamente como molde y se autocompleta con contexto.
-    //    Sin plantillas fijas, estáticas ni quemadas.
+    // 6. PASO B: Generar Plantilla Corporativa Oficial según Jerarquía Inteligente
+    //    Caso A (Solo Imagen): El OCR procesa y estructura la Plantilla Corporativa Oficial.
+    //    Caso B (Detalle + Plantilla en Blanco Institucional): Usa la plantilla en blanco como
+    //           molde/esquema estricto, vacía los datos del detalle en ella, la limpia y arroja
+    //           la Plantilla Corporativa Oficial bajo ese formato específico.
+    //    Caso C (Solo Detalle del Servicio): Estructura, organiza y formatea ese texto directamente
+    //           en la Plantilla Corporativa Oficial.
     const tienePlantillaInstitucional = !!plantillaInstitucional.trim();
+    const tieneImagen = !!imagenBase64;
+    const tieneDetalle = !!notasTecnico.trim();
+
     let plantillaFinal = "";
 
-    if (tienePlantillaInstitucional) {
-      if (resultado.plantilla_completa && resultado.plantilla_completa.trim()) {
-        plantillaFinal = resultado.plantilla_completa;
-      } else {
-        try {
-          plantillaFinal = await generarPlantillaDesdeInstitucional({
-            plantillaInstitucional,
-            textoNotas: notasTecnico,
-            datos: combinados,
-            modelId: selectedModel
-          });
-        } catch (errP) {
-          console.warn("Fallo mapeo dedicado de plantilla:", errP);
-        }
+    // Si Gemini ya devolvió plantilla_completa generada
+    if (resultado.plantilla_completa && resultado.plantilla_completa.trim()) {
+      plantillaFinal = resultado.plantilla_completa;
+    } else if (tienePlantillaInstitucional) {
+      // Caso B: Molde institucional prioritario
+      try {
+        plantillaFinal = await generarPlantillaDesdeInstitucional({
+          plantillaInstitucional,
+          textoNotas: notasTecnico,
+          datos: combinados,
+          modelId: selectedModel
+        });
+      } catch (errP) {
+        console.warn("Fallo mapeo dedicado de plantilla:", errP);
       }
 
-      if (!plantillaFinal) {
+      if (!plantillaFinal || !plantillaFinal.trim()) {
         plantillaFinal = generarPlantillaSolucion(combinados, plantillaInstitucional);
       }
     } else {
-      plantillaFinal = "";
+      // Caso A (Solo Imagen) o Caso C (Solo Detalle del Servicio):
+      // Estructurar, organizar y formatear directamente en la Plantilla Corporativa Oficial
+      plantillaFinal = generarPlantillaSolucion(combinados, "");
     }
 
     setPlantillaTexto(plantillaFinal);
@@ -1653,7 +1661,7 @@ const handleProcesarIA = async () => {
               }}
             >
               <span style={{ fontSize: 11, color: textSub }}>
-                Se procesa con el botón <strong>Procesar Servicio con IA</strong> de abajo.
+                Se procesa con el botón <strong>Procesar Servicio con IA</strong>.
               </span>
               <span
                 style={{
@@ -1675,6 +1683,40 @@ const handleProcesarIA = async () => {
                 palabras
               </span>
             </div>
+
+            {/* CTA Procesar directo si el usuario pega plantilla institucional */}
+            {plantillaInstitucional.trim() && (
+              <div style={{ marginTop: 14 }}>
+                <button
+                  type="button"
+                  disabled={procesandoIA}
+                  onClick={handleProcesarIA}
+                  style={{
+                    width: "100%",
+                    background: procesandoIA
+                      ? (isDark ? "rgba(100,116,139,0.5)" : "#E2E8F0")
+                      : "linear-gradient(135deg, #A855F7 0%, #7E22CE 100%)",
+                    border: "none",
+                    color: procesandoIA ? (isDark ? "#94A3B8" : "#64748B") : "#fff",
+                    borderRadius: 12,
+                    padding: "13px 18px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: procesandoIA ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    boxShadow: procesandoIA ? "none" : "0 6px 20px rgba(168,85,247,0.35)",
+                    transition: "all 0.2s",
+                    letterSpacing: "0.01em"
+                  }}
+                >
+                  <Sparkles size={17} />
+                  {procesandoIA ? "Procesando y vaciando en molde..." : "Procesar y Mapear en Plantilla Oficial"}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Alerta de Error IA (alto contraste) ── */}
