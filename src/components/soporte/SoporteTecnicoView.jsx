@@ -24,7 +24,8 @@ import {
   CalendarDays,
   Search,
   Layers,
-  Check
+  Check,
+  Zap
 } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { isSoporteAuthorized, SOPORTE_ADMIN_EMAIL } from "../../utils/rbac";
@@ -206,6 +207,10 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [guardadoExitoso, setGuardadoExitoso] = useState(false);
   const [exportandoExcel, setExportandoExcel] = useState(false);
 
+  // Detección en tiempo real de caso duplicado y autocompletado inteligente
+  const [casoDuplicadoEncontrado, setCasoDuplicadoEncontrado] = useState(null);
+  const [descartarAlertaDuplicado, setDescartarAlertaDuplicado] = useState(false);
+
   const fileInputRef = useRef(null);
 
   // Validación estricta de seguridad RBAC
@@ -272,6 +277,61 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   useEffect(() => {
     cargarRegistrosServicios();
   }, []);
+
+  // Detector en tiempo real de caso duplicado (base de datos y sesión actual)
+  useEffect(() => {
+    const term = (datosExtraidos.numero_caso || "").trim().toLowerCase();
+    if (!term || term.length < 3) {
+      setCasoDuplicadoEncontrado(null);
+      return;
+    }
+
+    // Buscar coincidencias exactas o normalizadas en registros de servicios o en servicios de cuentas de cobro
+    const match =
+      registrosServicios.find((r) => {
+        const caso = (r.numero_caso || "").trim().toLowerCase();
+        return caso === term || (caso.length >= 4 && (caso.includes(term) || term.includes(caso)));
+      }) ||
+      servicios.find((s) => {
+        const caso = (s.numero_caso || "").trim().toLowerCase();
+        return caso === term || (caso.length >= 4 && (caso.includes(term) || term.includes(caso)));
+      });
+
+    setCasoDuplicadoEncontrado(match || null);
+  }, [datosExtraidos.numero_caso, registrosServicios, servicios]);
+
+  const handleAutocompletarCaso = (casoPrevio) => {
+    if (!casoPrevio) return;
+    setDatosExtraidos((prev) => ({
+      ...prev,
+      numero_caso: casoPrevio.numero_caso || prev.numero_caso,
+      fecha_solicitud: casoPrevio.fecha_solicitud || prev.fecha_solicitud,
+      fecha_atencion: casoPrevio.fecha_atencion || prev.fecha_atencion,
+      fecha_finalizacion: casoPrevio.fecha_finalizacion || prev.fecha_finalizacion,
+      mesa: casoPrevio.mesa || prev.mesa,
+      proveedor: casoPrevio.proveedor || prev.proveedor,
+      cliente: casoPrevio.cliente || prev.cliente,
+      coordinador: casoPrevio.coordinador || prev.coordinador,
+      valor_servicios: typeof casoPrevio.valor_servicios === "number" ? casoPrevio.valor_servicios : (prev.valor_servicios || 0),
+      valor_viaticos: typeof casoPrevio.valor_viaticos === "number" ? casoPrevio.valor_viaticos : (prev.valor_viaticos || 0),
+      valor_materiales: typeof casoPrevio.valor_materiales === "number" ? casoPrevio.valor_materiales : (prev.valor_materiales || 0),
+      sh: casoPrevio.sh || prev.sh,
+      tecnico: casoPrevio.tecnico || prev.tecnico,
+      medio: casoPrevio.medio || prev.medio,
+      equipo: casoPrevio.equipo || prev.equipo,
+      falla: casoPrevio.falla || prev.falla,
+      causa: casoPrevio.causa || prev.causa,
+      solucion: casoPrevio.solucion || prev.solucion,
+      pruebas: casoPrevio.pruebas || prev.pruebas,
+      horas: casoPrevio.horas || prev.horas
+    }));
+
+    if (casoPrevio.plantilla_completa && !plantillaTexto) {
+      setPlantillaTexto(casoPrevio.plantilla_completa);
+    }
+
+    setDescartarAlertaDuplicado(true);
+  };
 
   // 1. Manejo, previsualización inmediata y compresión de imágenes
   const handleImageSelect = async (file) => {
@@ -697,7 +757,8 @@ const handleProcesarIA = async () => {
     setNotasTecnico("");
     setPlantillaInstitucional("");
     setPlantillaTexto("");
-    setErrorIA(null);
+    setCasoDuplicadoEncontrado(null);
+    setDescartarAlertaDuplicado(false);
     setDatosExtraidos({
       numero_caso: "", fecha_solicitud: "", fecha_atencion: "", fecha_finalizacion: "",
       mesa: "", proveedor: "", cliente: "", coordinador: "", valor_servicios: 0, valor_viaticos: 0,
@@ -1643,28 +1704,164 @@ const handleProcesarIA = async () => {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {/* N° Caso */}
+                {/* N° Caso con Detección en Tiempo Real */}
                 <div style={{ gridColumn: "span 2" }}>
-                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
-                    N° de Caso / Código de servicio:
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11, color: labelColor, display: "block" }}>
+                      N° de Caso / Código de servicio:
+                    </label>
+                    {casoDuplicadoEncontrado && (
+                      <span
+                        style={{
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: "#F59E0B",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4
+                        }}
+                      >
+                        <AlertTriangle size={12} /> Caso ya registrado
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="text"
                     value={datosExtraidos.numero_caso}
-                    onChange={(e) => setDatosExtraidos({ ...datosExtraidos, numero_caso: e.target.value })}
+                    onChange={(e) => {
+                      setDatosExtraidos({ ...datosExtraidos, numero_caso: e.target.value });
+                      setDescartarAlertaDuplicado(false);
+                    }}
                     placeholder="ej. RE26014844 / RF637620 o 2303375"
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
                       background: inputBg,
-                      border: inputBorder,
+                      border: casoDuplicadoEncontrado && !descartarAlertaDuplicado
+                        ? "1.5px solid #F59E0B"
+                        : inputBorder,
                       borderRadius: 8,
                       padding: "8px 10px",
                       color: inputText,
                       fontSize: 12.5,
-                      fontWeight: 600
+                      fontWeight: 600,
+                      outline: "none"
                     }}
                   />
+
+                  {/* Banner / Alerta Limpia y Amigable de Caso Duplicado */}
+                  {casoDuplicadoEncontrado && !descartarAlertaDuplicado && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        padding: "10px 12px",
+                        borderRadius: 10,
+                        background: isDark
+                          ? "rgba(245, 158, 11, 0.12)"
+                          : "#FFFBEB",
+                        border: isDark
+                          ? "1px solid rgba(245, 158, 11, 0.35)"
+                          : "1px solid #FDE68A",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                        animation: "fadeIn 0.2s ease-in-out"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <AlertTriangle
+                            size={16}
+                            style={{ color: "#D97706", flexShrink: 0, marginTop: 2 }}
+                          />
+                          <div>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: isDark ? "#FCD34D" : "#B45309"
+                              }}
+                            >
+                              Este caso ya existe en el sistema
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: isDark ? "#E2E8F0" : "#78350F",
+                                marginTop: 2,
+                                lineHeight: 1.4
+                              }}
+                            >
+                              Registrado previamente como <strong>"{casoDuplicadoEncontrado.numero_caso}"</strong>
+                              {casoDuplicadoEncontrado.cliente ? ` para ${casoDuplicadoEncontrado.cliente}` : ""}
+                              {casoDuplicadoEncontrado.fecha_solicitud || casoDuplicadoEncontrado.fecha_atencion
+                                ? ` (${casoDuplicadoEncontrado.fecha_solicitud || casoDuplicadoEncontrado.fecha_atencion})`
+                                : ""}.
+                              <br />
+                              ¿Desea autocompletar el formulario con los datos de este caso anterior?
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setDescartarAlertaDuplicado(true)}
+                          title="Cerrar aviso"
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            color: isDark ? "#94A3B8" : "#92400E",
+                            cursor: "pointer",
+                            padding: 2,
+                            borderRadius: 4,
+                            lineHeight: 1
+                          }}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                        <button
+                          type="button"
+                          onClick={() => handleAutocompletarCaso(casoDuplicadoEncontrado)}
+                          style={{
+                            background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
+                            color: "#FFFFFF",
+                            border: "none",
+                            borderRadius: 7,
+                            padding: "6px 12px",
+                            fontSize: 11.5,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            boxShadow: "0 2px 6px rgba(217, 119, 6, 0.3)"
+                          }}
+                        >
+                          <Zap size={13} /> Sí, autocompletar formulario
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setDescartarAlertaDuplicado(true)}
+                          style={{
+                            background: isDark ? "rgba(255,255,255,0.08)" : "#FFFFFF",
+                            color: isDark ? "#CBD5E1" : "#6B7280",
+                            border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #D1D5DB",
+                            borderRadius: 7,
+                            padding: "6px 10px",
+                            fontSize: 11.5,
+                            fontWeight: 600,
+                            cursor: "pointer"
+                          }}
+                        >
+                          No, continuar vacío
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Proveedor / Entidad con Memoria Histórica */}
