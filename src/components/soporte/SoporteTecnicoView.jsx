@@ -64,6 +64,60 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [editFormData, setEditFormData] = useState({});
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
+  // ── Memoria Histórica y Autocompletado para Clientes, Coordinadores y Mesas ──
+  const CLIENTES_BASE = [
+    "Banco de Bogotá",
+    "Banco Popular",
+    "Jumbo Popayán",
+    "Banco AV Villas",
+    "Banco de Occidente",
+    "Almaviva",
+    "Davivienda",
+    "Bancolombia",
+    "Éxito Popayán",
+    "R&S Soluciones"
+  ];
+
+  const COORDINADORES_BASE = [
+    "Valentina Tovar",
+    "Oswaldo",
+    "Camilo Hurtado",
+    "Jhon Alexander Vasquez Reveló"
+  ];
+
+  const MESAS_BASE = [
+    "Mesa IBM / Lexmark",
+    "Mesa IBM",
+    "2",
+    "Mesa 1",
+    "Mesa 2",
+    "Mesa Cajas / POS",
+    "Soporte Periféricos",
+    "Mesa Bancaria"
+  ];
+
+  // Listas consolidadas con memoria histórica dinámica a partir de los servicios guardados
+  const historialClientes = Array.from(
+    new Set([
+      ...CLIENTES_BASE,
+      ...servicios.map((s) => s.cliente?.trim()).filter(Boolean)
+    ])
+  ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+  const historialCoordinadores = Array.from(
+    new Set([
+      ...COORDINADORES_BASE,
+      ...servicios.map((s) => s.coordinador?.trim()).filter(Boolean)
+    ])
+  ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
+  const historialMesas = Array.from(
+    new Set([
+      ...MESAS_BASE,
+      ...servicios.map((s) => s.mesa?.trim()).filter(Boolean)
+    ])
+  ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+
   // Tope de la plantilla institucional. Debe coincidir con
   // MAX_PLANTILLA_INSTITUCIONAL en api/_lib/gemini.js (el servidor recorta igual).
   const MAX_PLANTILLA_INSTITUCIONAL = 24000;
@@ -1426,16 +1480,22 @@ const handleProcesarIA = async () => {
                   />
                 </div>
 
-                {/* Cliente Final */}
+                {/* Cliente Final con Memoria Histórica */}
                 <div>
-                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
-                    Cliente final:
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11, color: labelColor }}>
+                      Cliente final:
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialClientes.length})
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    list="datalist-clientes"
                     value={datosExtraidos.cliente}
                     onChange={(e) => setDatosExtraidos({ ...datosExtraidos, cliente: e.target.value })}
-                    placeholder="ej. Banco Popular, Jumbo Popayán"
+                    placeholder="ej. Banco de Bogotá, Banco Popular..."
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -1449,16 +1509,22 @@ const handleProcesarIA = async () => {
                   />
                 </div>
 
-                {/* Mesa */}
+                {/* Mesa con Memoria Histórica */}
                 <div>
-                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
-                    Mesa / Tipo de soporte:
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11, color: labelColor }}>
+                      Mesa / Tipo de soporte:
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialMesas.length})
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    list="datalist-mesas"
                     value={datosExtraidos.mesa}
                     onChange={(e) => setDatosExtraidos({ ...datosExtraidos, mesa: e.target.value })}
-                    placeholder="ej. 2, Mesa IBM"
+                    placeholder="ej. Mesa IBM / Lexmark, 2..."
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -1517,16 +1583,22 @@ const handleProcesarIA = async () => {
                   />
                 </div>
 
-                {/* Coordinador */}
+                {/* Coordinador con Memoria Histórica */}
                 <div>
-                  <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
-                    Coordinador(a):
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11, color: labelColor }}>
+                      Coordinador(a):
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialCoordinadores.length})
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    list="datalist-coordinadores"
                     value={datosExtraidos.coordinador}
                     onChange={(e) => setDatosExtraidos({ ...datosExtraidos, coordinador: e.target.value })}
-                    placeholder="ej. Oswaldo"
+                    placeholder="ej. Valentina Tovar, Oswaldo..."
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -2609,13 +2681,20 @@ const handleProcesarIA = async () => {
 
                 {/* Mesa */}
                 <div>
-                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                    Mesa / Tipo Soporte:
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11.5, color: labelColor, fontWeight: 600 }}>
+                      Mesa / Tipo Soporte:
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialMesas.length})
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    list="datalist-mesas"
                     value={editFormData.mesa || ""}
                     onChange={(e) => setEditFormData({ ...editFormData, mesa: e.target.value })}
+                    placeholder="ej. Mesa IBM / Lexmark, 2..."
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -2631,13 +2710,20 @@ const handleProcesarIA = async () => {
 
                 {/* Cliente */}
                 <div>
-                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                    Cliente Final:
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11.5, color: labelColor, fontWeight: 600 }}>
+                      Cliente Final:
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialClientes.length})
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    list="datalist-clientes"
                     value={editFormData.cliente || ""}
                     onChange={(e) => setEditFormData({ ...editFormData, cliente: e.target.value })}
+                    placeholder="ej. Banco de Bogotá, Banco Popular..."
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -2653,13 +2739,20 @@ const handleProcesarIA = async () => {
 
                 {/* Coordinador */}
                 <div>
-                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                    Coordinador(a):
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <label style={{ fontSize: 11.5, color: labelColor, fontWeight: 600 }}>
+                      Coordinador(a):
+                    </label>
+                    <span style={{ fontSize: 10, color: isDark ? "#38bdf8" : "#0284c7", fontWeight: 600 }}>
+                      ▾ Sugerencias ({historialCoordinadores.length})
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    list="datalist-coordinadores"
                     value={editFormData.coordinador || ""}
                     onChange={(e) => setEditFormData({ ...editFormData, coordinador: e.target.value })}
+                    placeholder="ej. Valentina Tovar, Oswaldo..."
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -2844,6 +2937,25 @@ const handleProcesarIA = async () => {
         onEstadoVerificado={(r) => setMotorListo(!!r?.configurado)}
         theme={theme}
       />
+
+      {/* Datalists globales para memoria histórica y autocompletado interactivo */}
+      <datalist id="datalist-clientes">
+        {historialClientes.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
+
+      <datalist id="datalist-coordinadores">
+        {historialCoordinadores.map((coord) => (
+          <option key={coord} value={coord} />
+        ))}
+      </datalist>
+
+      <datalist id="datalist-mesas">
+        {historialMesas.map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
     </div>
   );
 }
