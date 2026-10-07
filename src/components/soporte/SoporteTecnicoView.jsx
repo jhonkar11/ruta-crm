@@ -21,7 +21,10 @@ import {
   UserCheck,
   Pencil,
   X,
-  CalendarDays
+  CalendarDays,
+  Search,
+  Layers,
+  Check
 } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { isSoporteAuthorized, SOPORTE_ADMIN_EMAIL } from "../../utils/rbac";
@@ -38,6 +41,10 @@ import {
   guardarServicioSoporte,
   eliminarServicioSoporte,
   actualizarServicioSoporte,
+  getRegistrosServicios,
+  guardarRegistroServicio,
+  eliminarRegistroServicio,
+  depurarRegistrosServiciosPorMes,
   subirImagenTemporalSoporte,
   purgarImagenesTemporales
 } from "../../services/soporteService";
@@ -63,6 +70,17 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [editandoServicio, setEditandoServicio] = useState(null); // null | objeto servicio
   const [editFormData, setEditFormData] = useState({});
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+
+  // ── Módulo Independiente: Registro de Servicios & Historial de Plantillas ──
+  const [registrosServicios, setRegistrosServicios] = useState([]);
+  const [loadingRegistros, setLoadingRegistros] = useState(true);
+  const [busquedaCaso, setBusquedaCaso] = useState("");
+  const [filtroMesReg, setFiltroMesReg] = useState(ahora.getMonth() + 1);
+  const [filtroAnioReg, setFiltroAnioReg] = useState(ahora.getFullYear());
+  const [mostrarTodosReg, setMostrarTodosReg] = useState(false);
+  const [modalVerPlantilla, setModalVerPlantilla] = useState(null); // objeto registro a visualizar
+  const [depurando, setDepurando] = useState(false);
+  const [copiadoRegId, setCopiadoRegId] = useState(null);
 
   // ── Memoria Histórica y Autocompletado para Clientes, Coordinadores y Mesas ──
   const CLIENTES_BASE = [
@@ -217,6 +235,22 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
       setLoadingServicios(false);
     }
   };
+
+  const cargarRegistrosServicios = async () => {
+    setLoadingRegistros(true);
+    try {
+      const data = await getRegistrosServicios();
+      setRegistrosServicios(data || []);
+    } catch (e) {
+      console.error("Error al cargar registros de servicios:", e);
+    } finally {
+      setLoadingRegistros(false);
+    }
+  };
+
+  useEffect(() => {
+    cargarRegistrosServicios();
+  }, []);
 
   // 1. Manejo, previsualización inmediata y compresión de imágenes
   const handleImageSelect = async (file) => {
@@ -469,7 +503,7 @@ const handleProcesarIA = async () => {
     }
   };
 
-  // 3. Confirmar y Agregar Servicio a Cuenta de Cobro
+  // 3. Confirmar y Agregar Servicio (Separación Dual: Cuentas de Cobro vs. Registro de Servicios)
   const handleAgregarACuentaCobro = async () => {
     if (!datosExtraidos.numero_caso) {
       alert("Debes ingresar el N° de Caso o Código de Servicio.");
@@ -484,14 +518,43 @@ const handleProcesarIA = async () => {
         fotoUrlRemota = await subirImagenTemporalSoporte(resBlob);
       }
 
+      const plantillaFinal = plantillaTexto || generarPlantillaSolucion(datosExtraidos, plantillaInstitucional);
+
+      // A. Guardar en Cuenta de Cobro (datos financieros y liquidación)
       const nuevoServicio = {
         ...datosExtraidos,
-        plantilla_completa: plantillaTexto || generarPlantillaSolucion(datosExtraidos, plantillaInstitucional),
+        plantilla_completa: plantillaFinal,
         foto_url: fotoUrlRemota || imagenPreview
       };
 
       const guardado = await guardarServicioSoporte(nuevoServicio);
       setServicios((prev) => [...prev, guardado]);
+
+      // B. Guardar de forma independiente en Registro de Servicios e Historial de Plantillas IT
+      const nuevoRegistro = {
+        numero_caso: datosExtraidos.numero_caso,
+        fecha_solicitud: datosExtraidos.fecha_solicitud,
+        fecha_atencion: datosExtraidos.fecha_atencion,
+        fecha_finalizacion: datosExtraidos.fecha_finalizacion,
+        mesa: datosExtraidos.mesa,
+        cliente: datosExtraidos.cliente,
+        coordinador: datosExtraidos.coordinador,
+        equipo: datosExtraidos.equipo,
+        falla: datosExtraidos.falla,
+        causa: datosExtraidos.causa,
+        solucion: datosExtraidos.solucion,
+        pruebas: datosExtraidos.pruebas,
+        horas: datosExtraidos.horas,
+        sh: datosExtraidos.sh,
+        tecnico: datosExtraidos.tecnico,
+        medio: datosExtraidos.medio,
+        plantilla_completa: plantillaFinal,
+        foto_url: fotoUrlRemota || imagenPreview
+      };
+
+      const guardadoReg = await guardarRegistroServicio(nuevoRegistro);
+      setRegistrosServicios((prev) => [guardadoReg, ...prev.filter((r) => r.id !== guardadoReg.id)]);
+
       setGuardadoExitoso(true);
       setTimeout(() => setGuardadoExitoso(false), 3000);
 
@@ -499,6 +562,45 @@ const handleProcesarIA = async () => {
       setTab("cuentas");
     } catch (err) {
       alert("No se pudo agregar a la cuenta de cobro: " + err.message);
+    }
+  };
+
+  // 3b. Handlers para el Módulo Independiente de Registro de Servicios
+  const handleEliminarRegistroServicio = async (id) => {
+    if (confirm("¿Estás seguro de eliminar este registro del historial de plantillas? La cuenta de cobro financiera permanecerá intacta.")) {
+      await eliminarRegistroServicio(id);
+      setRegistrosServicios((prev) => prev.filter((r) => r.id !== id));
+    }
+  };
+
+  const handleCopiarPlantillaRegistro = (plantilla) => {
+    if (!plantilla) return;
+    navigator.clipboard.writeText(plantilla);
+  };
+
+  const handleDepurarMesRegistros = async () => {
+    if (mostrarTodosReg) {
+      alert("Por favor selecciona un mes específico para ejecutar la depuración mensual.");
+      return;
+    }
+    const nombreMes = NOMBRES_MESES[filtroMesReg - 1];
+    const confirmacion = confirm(
+      `⚠️ ¿CONFIRMAS LA DEPURACIÓN MENSUAL DE PLANTILLAS?\n\n` +
+      `Periodo a depurar: ${nombreMes} ${filtroAnioReg}\n\n` +
+      `✓ Se eliminarán ÚNICAMENTE los registros y plantillas de este mes en el REGISTRO DE SERVICIOS.\n` +
+      `✓ Tus cuentas de cobro y registros financieros NO se alterarán ni se borrarán.`
+    );
+    if (!confirmacion) return;
+
+    setDepurando(true);
+    try {
+      const { depurados, restantes } = await depurarRegistrosServiciosPorMes(filtroMesReg, filtroAnioReg);
+      setRegistrosServicios(restantes);
+      alert(`Depuración exitosa: Se eliminaron ${depurados} registro(s) de plantillas de ${nombreMes} ${filtroAnioReg}. Las cuentas de cobro siguen intactas.`);
+    } catch (e) {
+      alert("Error al depurar registros: " + e.message);
+    } finally {
+      setDepurando(false);
     }
   };
 
@@ -619,6 +721,35 @@ const handleProcesarIA = async () => {
     const info = extraerMesAnio(s);
     if (!info) return false;
     return info.mes === Number(filtroMes) && info.anio === Number(filtroAnio);
+  });
+
+  // Años disponibles para el Registro de Servicios
+  const aniosDisponiblesReg = Array.from(
+    new Set([
+      ahora.getFullYear(),
+      ...registrosServicios.map((r) => extraerMesAnio(r)?.anio).filter(Boolean)
+    ])
+  ).sort((a, b) => b - a);
+
+  // Registros de Servicios e Historial de Plantillas filtrados (búsqueda por N° Caso + Mes y Año)
+  const registrosServiciosFiltrados = registrosServicios.filter((r) => {
+    // A. Búsqueda rápida por N° de Caso, Cliente o Falla
+    if (busquedaCaso.trim()) {
+      const q = busquedaCaso.trim().toLowerCase();
+      const coincideCaso = r.numero_caso?.toLowerCase().includes(q);
+      const coincideCliente = r.cliente?.toLowerCase().includes(q);
+      const coincideEquipo = r.equipo?.toLowerCase().includes(q);
+      const coincideFalla = r.falla?.toLowerCase().includes(q);
+      if (!coincideCaso && !coincideCliente && !coincideEquipo && !coincideFalla) {
+        return false;
+      }
+    }
+
+    // B. Filtrado por Mes y Año
+    if (mostrarTodosReg) return true;
+    const info = extraerMesAnio(r);
+    if (!info) return false;
+    return info.mes === Number(filtroMesReg) && info.anio === Number(filtroAnioReg);
   });
 
   // Cálculos de Totales de la Cuenta de Cobro (dinámicos según el periodo seleccionado)
@@ -879,6 +1010,25 @@ const handleProcesarIA = async () => {
           </button>
 
           <button
+            onClick={() => setTab("registro")}
+            style={{
+              background: tab === "registro"
+                ? (isDark ? "rgba(245,158,11,0.25)" : "rgba(245,158,11,0.12)")
+                : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.04)"),
+              border: tab === "registro"
+                ? (isDark ? "1.5px solid #f59e0b" : "1.5px solid #D97706")
+                : (isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #CBD5E1"),
+              color: tab === "registro"
+                ? (isDark ? "#ffffff" : "#B45309")
+                : (isDark ? "rgba(255,255,255,0.7)" : "#475569"),
+              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s"
+            }}
+          >
+            <Layers size={16} /> 3. Registro de Servicios ({registrosServiciosFiltrados.length} plantillas IT)
+          </button>
+
+          <button
             onClick={() => setTab("almacenamiento")}
             style={{
               background: tab === "almacenamiento"
@@ -894,7 +1044,7 @@ const handleProcesarIA = async () => {
               cursor: "pointer", display: "flex", alignItems: "center", gap: 8, transition: "all 0.2s"
             }}
           >
-            <Clock size={16} /> 3. TTL Almacenamiento (7 Días)
+            <Clock size={16} /> 4. TTL Almacenamiento (7 Días)
           </button>
         </div>
       </div>
@@ -2411,7 +2561,512 @@ const handleProcesarIA = async () => {
         </div>
       )}
 
-      {/* PESTAÑA 3: ALMACENAMIENTO TEMPORAL Y TTL */}
+      {/* PESTAÑA 3: MÓDULO INDEPENDIENTE DE REGISTRO DE SERVICIOS E HISTORIAL DE PLANTILLAS */}
+      {tab === "registro" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Tarjeta de Encabezado y Barra de Búsqueda / Depuración */}
+          <div
+            style={{
+              background: cardBg,
+              border: cardBorder,
+              borderRadius: 18,
+              padding: "20px 24px",
+              boxShadow: cardShadow,
+              display: "flex",
+              flexDirection: "column",
+              gap: 16
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    background: isDark ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 158, 11, 0.12)",
+                    color: isDark ? "#fef08a" : "#d97706",
+                    padding: 10,
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <Layers size={22} />
+                </div>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: textTitle }}>
+                    Registro de Servicios e Historial de Plantillas IT
+                  </h2>
+                  <p style={{ margin: "2px 0 0 0", fontSize: 12.5, color: textSub }}>
+                    Repositorio documental independiente de reportes técnicos oficiales (no afecta cuentas de cobro)
+                  </p>
+                </div>
+              </div>
+
+              {/* Botón Depurar por Mes */}
+              <button
+                type="button"
+                disabled={depurando || registrosServiciosFiltrados.length === 0}
+                onClick={handleDepurarMesRegistros}
+                title={`Eliminar exclusivamente las plantillas de ${mostrarTodosReg ? "todos los meses" : NOMBRES_MESES[filtroMesReg - 1]} en el Registro de Servicios`}
+                style={{
+                  background: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)",
+                  border: isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fca5a5",
+                  color: isDark ? "#fca5a5" : "#b91c1c",
+                  padding: "8px 14px",
+                  borderRadius: 10,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: depurando || registrosServiciosFiltrados.length === 0 ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  opacity: registrosServiciosFiltrados.length === 0 ? 0.6 : 1,
+                  transition: "all 0.2s"
+                }}
+              >
+                <Trash2 size={15} />
+                <span>
+                  {depurando
+                    ? "Depurando mes..."
+                    : `Depurar ${mostrarTodosReg ? "Histórico" : NOMBRES_MESES[filtroMesReg - 1]}`}
+                </span>
+              </button>
+            </div>
+
+            {/* Barra de Filtros: Buscador por N° Caso + Selector Mes/Año */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: 12,
+                background: isDark ? "rgba(0,0,0,0.25)" : "#f8fafc",
+                padding: 14,
+                borderRadius: 12,
+                border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"
+              }}
+            >
+              {/* Buscador reactivo por N° Caso o Texto */}
+              <div style={{ position: "relative", minWidth: 240 }}>
+                <Search
+                  size={16}
+                  style={{
+                    position: "absolute",
+                    left: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: textSub,
+                    pointerEvents: "none"
+                  }}
+                />
+                <input
+                  type="text"
+                  value={busquedaCaso}
+                  onChange={(e) => setBusquedaCaso(e.target.value)}
+                  placeholder="Buscar por N° de Caso, cliente o falla..."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    background: inputBg,
+                    border: inputBorder,
+                    borderRadius: 8,
+                    padding: "8px 10px 8px 36px",
+                    color: inputText,
+                    fontSize: 12.5,
+                    outline: "none"
+                  }}
+                />
+                {busquedaCaso && (
+                  <button
+                    type="button"
+                    onClick={() => setBusquedaCaso("")}
+                    style={{
+                      position: "absolute",
+                      right: 10,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      color: textSub,
+                      cursor: "pointer",
+                      fontSize: 12
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Selector de Año y Mes */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Año:</span>
+                  <select
+                    value={filtroAnioReg}
+                    onChange={(e) => {
+                      setFiltroAnioReg(Number(e.target.value));
+                      setMostrarTodosReg(false);
+                    }}
+                    style={{
+                      background: inputBg,
+                      border: inputBorder,
+                      color: inputText,
+                      borderRadius: 8,
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
+                  >
+                    {aniosDisponiblesReg.map((a) => (
+                      <option key={a} value={a} style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                        {a}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Mes:</span>
+                  <select
+                    value={mostrarTodosReg ? "todos" : filtroMesReg}
+                    onChange={(e) => {
+                      if (e.target.value === "todos") {
+                        setMostrarTodosReg(true);
+                      } else {
+                        setFiltroMesReg(Number(e.target.value));
+                        setMostrarTodosReg(false);
+                      }
+                    }}
+                    style={{
+                      background: inputBg,
+                      border: inputBorder,
+                      color: inputText,
+                      borderRadius: 8,
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      outline: "none"
+                    }}
+                  >
+                    <option value="todos" style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                      Todos los meses
+                    </option>
+                    {NOMBRES_MESES.map((nom, idx) => (
+                      <option key={idx + 1} value={idx + 1} style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                        {nom} {filtroAnioReg}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMostrarTodosReg(!mostrarTodosReg)}
+                  style={{
+                    background: mostrarTodosReg
+                      ? (isDark ? "rgba(245, 158, 11, 0.25)" : "rgba(245, 158, 11, 0.15)")
+                      : (isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9"),
+                    border: mostrarTodosReg
+                      ? "1px solid #f59e0b"
+                      : (isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #cbd5e1"),
+                    color: mostrarTodosReg ? (isDark ? "#fef08a" : "#b45309") : textSub,
+                    borderRadius: 8,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer"
+                  }}
+                >
+                  {mostrarTodosReg ? "✓ Ver Todos" : "Ver Todos"}
+                </button>
+              </div>
+            </div>
+
+            {/* Pestañas de meses para el Registro de Servicios */}
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                overflowX: "auto",
+                paddingBottom: 4,
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #f1f5f9",
+                paddingTop: 10
+              }}
+            >
+              {NOMBRES_MESES.map((nomMes, idx) => {
+                const numMes = idx + 1;
+                const esActivo = !mostrarTodosReg && filtroMesReg === numMes;
+                const conteo = registrosServicios.filter((r) => {
+                  const info = extraerMesAnio(r);
+                  return info && info.mes === numMes && info.anio === filtroAnioReg;
+                }).length;
+
+                return (
+                  <button
+                    key={numMes}
+                    type="button"
+                    onClick={() => {
+                      setFiltroMesReg(numMes);
+                      setMostrarTodosReg(false);
+                    }}
+                    style={{
+                      flexShrink: 0,
+                      background: esActivo
+                        ? "linear-gradient(135deg, #d97706 0%, #b45309 100%)"
+                        : conteo > 0
+                          ? (isDark ? "rgba(245, 158, 11, 0.15)" : "rgba(245, 158, 11, 0.1)")
+                          : (isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.03)"),
+                      border: esActivo
+                        ? "1.5px solid #d97706"
+                        : conteo > 0
+                          ? (isDark ? "1px solid rgba(245, 158, 11, 0.35)" : "1px solid #fde68a")
+                          : (isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid #e2e8f0"),
+                      color: esActivo
+                        ? "#ffffff"
+                        : conteo > 0
+                          ? (isDark ? "#fef08a" : "#b45309")
+                          : textSub,
+                      borderRadius: 8,
+                      padding: "5px 11px",
+                      fontSize: 11.5,
+                      fontWeight: esActivo ? 700 : 500,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      transition: "all 0.15s"
+                    }}
+                  >
+                    <span>{nomMes}</span>
+                    {conteo > 0 && (
+                      <span
+                        style={{
+                          background: esActivo ? "rgba(255, 255, 255, 0.25)" : (isDark ? "rgba(245, 158, 11, 0.3)" : "#fef3c7"),
+                          color: esActivo ? "#fff" : (isDark ? "#fde68a" : "#92400e"),
+                          borderRadius: 10,
+                          padding: "1px 6px",
+                          fontSize: 10,
+                          fontWeight: 700
+                        }}
+                      >
+                        {conteo}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tabla de Registros de Servicios e Historial de Plantillas */}
+          <div
+            style={{
+              background: cardBg,
+              border: cardBorder,
+              borderRadius: 18,
+              padding: 20,
+              overflowX: "auto",
+              boxShadow: cardShadow
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
+                  Plantillas Corporativas Guardadas ({registrosServiciosFiltrados.length} registros)
+                </h3>
+                <span style={{ fontSize: 11.5, color: textSub }}>
+                  {busquedaCaso
+                    ? `Filtrado por término "${busquedaCaso}"`
+                    : mostrarTodosReg
+                      ? "Listado completo de plantillas históricas"
+                      : `Plantillas del periodo ${NOMBRES_MESES[filtroMesReg - 1]} ${filtroAnioReg}`}
+                </span>
+              </div>
+            </div>
+
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 960, fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ background: "#0F766E", color: "#ffffff", textAlign: "center" }}>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>N° de Caso</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Fecha</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Cliente</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Mesa</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Coordinador</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Equipo / Serial</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Falla Reportada</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Acciones de Plantilla</th>
+                </tr>
+              </thead>
+              <tbody>
+                {registrosServiciosFiltrados.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      style={{
+                        padding: "36px 16px",
+                        textAlign: "center",
+                        color: textSub,
+                        border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0"
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                        <Layers size={32} style={{ opacity: 0.4 }} />
+                        <div style={{ fontSize: 14, fontWeight: 600 }}>
+                          No se encontraron plantillas corporativas con los filtros actuales
+                        </div>
+                        <div style={{ fontSize: 12 }}>
+                          {busquedaCaso
+                            ? `No hay coincidencias para "${busquedaCaso}". Intenta con otro N° de caso o limpia el buscador.`
+                            : `No hay registros en ${NOMBRES_MESES[filtroMesReg - 1]} ${filtroAnioReg}.`}
+                        </div>
+                        {(busquedaCaso || !mostrarTodosReg) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBusquedaCaso("");
+                              setMostrarTodosReg(true);
+                            }}
+                            style={{
+                              marginTop: 6,
+                              background: isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7",
+                              border: "1px solid #d97706",
+                              color: isDark ? "#fef08a" : "#b45309",
+                              padding: "6px 14px",
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer"
+                            }}
+                          >
+                            Ver Todo el Histórico
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  registrosServiciosFiltrados.map((r, idx) => (
+                    <tr
+                      key={r.id || idx}
+                      style={{
+                        background: idx % 2 === 0
+                          ? (isDark ? "rgba(255,255,255,0.02)" : "#ffffff")
+                          : (isDark ? "rgba(255,255,255,0.06)" : "#f8fafc"),
+                        color: isDark ? "#cbd5e1" : "#1e293b",
+                        textAlign: "center"
+                      }}
+                    >
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 700, fontFamily: "'IBM Plex Mono', monospace", color: isDark ? "#38bdf8" : "#0284c7" }}>
+                        {r.numero_caso}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
+                        {r.fecha_atencion || r.fecha_solicitud || "-"}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
+                        {r.cliente || "-"}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
+                        {r.mesa || "-"}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
+                        {r.coordinador || "-"}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontSize: 12 }}>
+                        {r.equipo || "-"}
+                      </td>
+                      <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "left", fontSize: 12, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.falla}>
+                        {r.falla || "-"}
+                      </td>
+                      <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                          {/* Botón Ver Plantilla */}
+                          <button
+                            type="button"
+                            onClick={() => setModalVerPlantilla(r)}
+                            title="Ver plantilla corporativa completa"
+                            style={{
+                              background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
+                              border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid rgba(2, 132, 199, 0.3)",
+                              color: isDark ? "#38bdf8" : "#0284c7",
+                              cursor: "pointer",
+                              padding: "5px 8px",
+                              borderRadius: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              fontSize: 11,
+                              fontWeight: 600
+                            }}
+                          >
+                            <Eye size={13} />
+                            <span>Ver</span>
+                          </button>
+
+                          {/* Botón Copiar Plantilla */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleCopiarPlantillaRegistro(r.plantilla_completa);
+                              setCopiadoRegId(r.id);
+                              setTimeout(() => setCopiadoRegId(null), 2000);
+                            }}
+                            title="Copiar plantilla para WhatsApp"
+                            style={{
+                              background: copiadoRegId === r.id
+                                ? "#10b981"
+                                : (isDark ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)"),
+                              border: copiadoRegId === r.id
+                                ? "1px solid #10b981"
+                                : (isDark ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(16, 185, 129, 0.3)"),
+                              color: copiadoRegId === r.id ? "#fff" : (isDark ? "#6ee7b7" : "#059669"),
+                              cursor: "pointer",
+                              padding: "5px 8px",
+                              borderRadius: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              transition: "all 0.2s"
+                            }}
+                          >
+                            {copiadoRegId === r.id ? <Check size={13} /> : <Copy size={13} />}
+                            <span>{copiadoRegId === r.id ? "¡Copiada!" : "Copiar"}</span>
+                          </button>
+
+                          {/* Botón Eliminar de Registro */}
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarRegistroServicio(r.id)}
+                            title="Eliminar del historial de plantillas"
+                            style={{
+                              background: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.08)",
+                              border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(239, 68, 68, 0.25)",
+                              color: "#ef4444",
+                              cursor: "pointer",
+                              padding: "5px 7px",
+                              borderRadius: 6,
+                              display: "flex",
+                              alignItems: "center",
+                              fontSize: 11
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* PESTAÑA 4: ALMACENAMIENTO TEMPORAL Y TTL */}
       {tab === "almacenamiento" && (
         <div
           style={{
@@ -2926,6 +3581,188 @@ const handleProcesarIA = async () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Visualizar y Copiar la Plantilla Corporativa Completa */}
+      {modalVerPlantilla && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(6px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+        >
+          <div
+            style={{
+              background: isDark ? "#0f172a" : "#ffffff",
+              border: isDark ? "1px solid rgba(255, 255, 255, 0.15)" : "1px solid #e2e8f0",
+              borderRadius: 18,
+              width: "100%",
+              maxWidth: 680,
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+              overflow: "hidden"
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                background: isDark ? "rgba(30, 41, 59, 0.7)" : "#f8fafc"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    background: isDark ? "rgba(245, 158, 11, 0.2)" : "rgba(245, 158, 11, 0.12)",
+                    color: isDark ? "#fef08a" : "#d97706",
+                    padding: 7,
+                    borderRadius: 8
+                  }}
+                >
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
+                    Plantilla Oficial: Caso {modalVerPlantilla.numero_caso}
+                  </h3>
+                  <span style={{ fontSize: 12, color: textSub }}>
+                    {modalVerPlantilla.cliente} · {modalVerPlantilla.fecha_atencion || modalVerPlantilla.fecha_solicitud || "Sin fecha"}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setModalVerPlantilla(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: textSub,
+                  cursor: "pointer",
+                  padding: 6,
+                  borderRadius: 6
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Contenido de la plantilla */}
+            <div style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: textSub, fontWeight: 600 }}>
+                  Texto oficial generado para WhatsApp / Mesa de ayuda:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCopiarPlantillaRegistro(modalVerPlantilla.plantilla_completa);
+                    setCopiadoRegId(modalVerPlantilla.id);
+                    setTimeout(() => setCopiadoRegId(null), 2000);
+                  }}
+                  style={{
+                    background: copiadoRegId === modalVerPlantilla.id ? "#10b981" : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                    border: "none",
+                    color: "#fff",
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}
+                >
+                  {copiadoRegId === modalVerPlantilla.id ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{copiadoRegId === modalVerPlantilla.id ? "¡Copiada al portapapeles!" : "Copiar Plantilla"}</span>
+                </button>
+              </div>
+
+              <textarea
+                readOnly
+                value={modalVerPlantilla.plantilla_completa || "No hay texto de plantilla registrado para este caso."}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  minHeight: 260,
+                  background: isDark ? "rgba(0,0,0,0.4)" : "#f8fafc",
+                  border: inputBorder,
+                  borderRadius: 10,
+                  padding: 14,
+                  color: inputText,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 12.5,
+                  lineHeight: 1.6,
+                  resize: "vertical",
+                  outline: "none"
+                }}
+              />
+
+              {/* Metadatos adicionales */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 8,
+                  fontSize: 11.5,
+                  color: textSub,
+                  background: isDark ? "rgba(255,255,255,0.03)" : "#f1f5f9",
+                  padding: 10,
+                  borderRadius: 8
+                }}
+              >
+                <div><strong>Mesa:</strong> {modalVerPlantilla.mesa || "-"}</div>
+                <div><strong>Coordinador:</strong> {modalVerPlantilla.coordinador || "-"}</div>
+                <div><strong>Equipo:</strong> {modalVerPlantilla.equipo || "-"}</div>
+                <div><strong>Falla:</strong> {modalVerPlantilla.falla || "-"}</div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: "12px 20px",
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                display: "flex",
+                justifyContent: "flex-end"
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setModalVerPlantilla(null)}
+                style={{
+                  background: isDark ? "rgba(255, 255, 255, 0.1)" : "#e2e8f0",
+                  border: "none",
+                  color: textTitle,
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
