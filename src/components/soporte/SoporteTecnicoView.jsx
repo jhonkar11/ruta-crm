@@ -37,6 +37,7 @@ import {
   MODELO_GEMINI_POR_DEFECTO,
   MODELOS_GEMINI
 } from "../../services/geminiService";
+import { ejecutarMapeoEstructuralLocal } from "../../services/localTemplateMapper";
 import {
   getServiciosSoporte,
   guardarServicioSoporte,
@@ -67,6 +68,9 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [filtroAnio, setFiltroAnio] = useState(ahora.getFullYear());
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [filtroProveedor, setFiltroProveedor] = useState(""); // "" = todos los proveedores
+  const [busquedaCasoCuenta, setBusquedaCasoCuenta] = useState(""); // Búsqueda en tiempo real por N° de Caso en tabla
+  const [procesandoLocal, setProcesandoLocal] = useState(false);
+  const [notificacionRespaldo, setNotificacionRespaldo] = useState(null);
 
   // ── Modal de Edición ──────────────────────────────────────────────────────
   const [editandoServicio, setEditandoServicio] = useState(null); // null | objeto servicio
@@ -431,12 +435,19 @@ const handleProcesarIA = async () => {
 
   // 2. Verificar que el motor de IA esté listo
   if (motorListo === false) {
+    if (notasTecnico.trim() || plantillaInstitucional.trim()) {
+      ejecutarRespaldoLocal(
+        "ℹ️ Motor de IA no configurado. Se activó automáticamente el Motor de Mapeo Estructural Local para continuar sin interrupción."
+      );
+      return;
+    }
     setShowConfigKey(true);
     return;
   }
 
   setProcesandoIA(true);
   setErrorIA(null);
+  setNotificacionRespaldo(null);
 
   try {
     // 3. PASO A: Extracción OCR multimodal + procesamiento de texto
@@ -481,9 +492,6 @@ const handleProcesarIA = async () => {
     //    Caso C (Solo Detalle del Servicio): Estructura, organiza y formatea ese texto directamente
     //           en la Plantilla Corporativa Oficial.
     const tienePlantillaInstitucional = !!plantillaInstitucional.trim();
-    const tieneImagen = !!imagenBase64;
-    const tieneDetalle = !!notasTecnico.trim();
-
     let plantillaFinal = "";
 
     // Si Gemini ya devolvió plantilla_completa generada
@@ -503,7 +511,13 @@ const handleProcesarIA = async () => {
       }
 
       if (!plantillaFinal || !plantillaFinal.trim()) {
-        plantillaFinal = generarPlantillaSolucion(combinados, plantillaInstitucional);
+        const local = ejecutarMapeoEstructuralLocal({
+          plantillaInstitucional,
+          textoNotas: notasTecnico,
+          datosActuales: combinados,
+          nombreTecnico: profile?.nombre || user?.email || "Jhon Alexander Vasquez Reveló"
+        });
+        plantillaFinal = local.plantillaCorporativa;
       }
     } else {
       // Caso A (Solo Imagen) o Caso C (Solo Detalle del Servicio):
@@ -514,10 +528,7 @@ const handleProcesarIA = async () => {
     setPlantillaTexto(plantillaFinal);
 
     // 7. PASO C: Intentar integrar con módulo de cuentas de cobro
-    //    Llamar al handler que actualiza el contexto global sin alterar cálculos existentes
     try {
-      // Importar dinámicamente para evitar dependencias circulares en render
-      // y asegurar que la lógica de cálculo de cuentas permanezca intacta
       const { actualizarServicioEnCuentasCobro } = await import(
         "../../services/cuentaCobroService"
       );
@@ -527,74 +538,161 @@ const handleProcesarIA = async () => {
           plantilla_corporativa: plantillaFinal,
           fuente: "soporte_tecnico_unificado"
         });
-        // Nota: Esta función solo actualiza el state global; los cálculos
-        // de formato de moneda, número a letras y generación de Excel
-        // permanecen completamente intactos en sus módulos respectivos.
       }
     } catch (e) {
-      // Si el servicio de integración no está disponible o falla,
-      // el proceso continúa y el usuario puede agregar manualmente después
       console.log("Integración con cuentas de cobro no disponible o ya configurada");
     }
 
-    // 8. Éxito: indicar al usuario qué sucedió
+    // 8. Éxito: retroalimentación
     setProcesandoIA(false);
-    // Pequeña retroalimentación visual - el botón ya muestra el estado
-    // y los datos se reflejan inmediatamente en los campos relacionados
 
   } catch (err) {
     console.error("Error al procesar con Gemini:", err);
-    setErrorIA(
-      err.message || "Error procesando con Gemini. Revisa tu API Key o conexión."
+    console.warn("Activando Motor de Respaldo Local por Mapeo de Plantilla (Anti-Caídas de IA)...");
+
+    // MOTOR DE RESPALDO LOCAL AUTOMÁTICO (ANTI-CAÍDAS DE IA)
+    ejecutarRespaldoLocal(
+      `⚠️ Motor de Respaldo Local activado: Gemini no pudo responder (${err.message || "error de cuota o conexión"}). Se emparejaron estructuralmente los datos y la plantilla.`
     );
   } finally {
     setProcesandoIA(false);
   }
 };
 
-  // 2b. Regenerar sólo la Plantilla Corporativa Oficial desde el texto institucional,
-  // sin reprocesar la captura. Útil tras editar el requerimiento del banco.
-  const handleGenerarPlantilla = async () => {
-    if (!plantillaInstitucional.trim()) {
-      alert("Por favor pega la plantilla institucional en el cuadro superior para usarla como molde espejo.");
-      return;
-    }
-    if (motorListo === false) {
-      setShowConfigKey(true);
-      return;
-    }
-
-    setGenerandoPlantilla(true);
+// Motor de Contingencia Local por Mapeo Estructural (Anti-Caídas de IA)
+const ejecutarRespaldoLocal = (mensajeInformativo = "") => {
+  try {
+    setProcesandoLocal(true);
     setErrorIA(null);
 
-    try {
-      // Si hubo un proceso unificado previo, datosExtraidos ya contendrá los datos
-      // consolidados. Si no, usaremos los valores por defecto.
-      const datosAProcesar = { ...datosExtraidos };
+    const resultadoLocal = ejecutarMapeoEstructuralLocal({
+      plantillaInstitucional,
+      textoNotas: notasTecnico,
+      datosActuales: datosExtraidos,
+      nombreTecnico: profile?.nombre || user?.email || "Jhon Alexander Vasquez Reveló"
+    });
 
-      const plantilla = await generarPlantillaDesdeInstitucional({
+    // Actualizar datos de servicio requerido
+    const combinados = {
+      ...datosExtraidos,
+      ...resultadoLocal.datos,
+      horas: {
+        ...datosExtraidos.horas,
+        ...(resultadoLocal.datos.horas || {})
+      }
+    };
+    setDatosExtraidos(combinados);
+
+    // Actualizar la plantilla corporativa oficial
+    setPlantillaTexto(resultadoLocal.plantillaCorporativa);
+
+    // Intentar integrar con cuentas de cobro
+    (async () => {
+      try {
+        const { actualizarServicioEnCuentasCobro } = await import(
+          "../../services/cuentaCobroService"
+        );
+        if (combinados.numero_caso) {
+          actualizarServicioEnCuentasCobro({
+            ...combinados,
+            plantilla_corporativa: resultadoLocal.plantillaCorporativa,
+            fuente: "soporte_tecnico_unificado"
+          });
+        }
+      } catch (e) {
+        // opcional
+      }
+    })();
+
+    setNotificacionRespaldo({
+      tipo: mensajeInformativo && mensajeInformativo.startsWith("⚠️") ? "fallback" : "manual",
+      mensaje: mensajeInformativo || "Mapeo estructural local completado con éxito."
+    });
+  } catch (localErr) {
+    console.error("Error en motor local de respaldo:", localErr);
+    setErrorIA(`Error en el motor local: ${localErr.message}`);
+  } finally {
+    setProcesandoLocal(false);
+  }
+};
+
+// Forzar mapeo estructurado local de forma manual y síncrona
+const handleProcesarLocal = () => {
+  const hayEntrada = !!notasTecnico.trim() || !!plantillaInstitucional.trim();
+  if (!hayEntrada) {
+    alert(
+      "Por favor escribe el requerimiento en 'Detalle del Servicio' o pega la 'Plantilla Institucional en Blanco' para mapear localmente."
+    );
+    return;
+  }
+  ejecutarRespaldoLocal("⚡ Procesamiento local completado con éxito (Sin dependencia de IA).");
+};
+
+// 2b. Regenerar sólo la Plantilla Corporativa Oficial desde el texto institucional,
+// sin reprocesar la captura. Útil tras editar el requerimiento del banco.
+const handleGenerarPlantilla = async () => {
+  if (!plantillaInstitucional.trim()) {
+    alert("Por favor pega la plantilla institucional en el cuadro superior para usarla como molde espejo.");
+    return;
+  }
+  if (motorListo === false) {
+    // Si no hay IA, usar motor local directamente
+    const local = ejecutarMapeoEstructuralLocal({
+      plantillaInstitucional,
+      textoNotas: notasTecnico,
+      datosActuales: datosExtraidos,
+      nombreTecnico: profile?.nombre || user?.email || "Jhon Alexander Vasquez Reveló"
+    });
+    setPlantillaTexto(local.plantillaCorporativa);
+    setNotificacionRespaldo({
+      tipo: "manual",
+      mensaje: "⚡ Plantilla regenerada mediante el Motor de Mapeo Local (Sin IA)."
+    });
+    return;
+  }
+
+  setGenerandoPlantilla(true);
+  setErrorIA(null);
+
+  try {
+    const datosAProcesar = { ...datosExtraidos };
+
+    const plantilla = await generarPlantillaDesdeInstitucional({
+      plantillaInstitucional,
+      textoNotas: notasTecnico,
+      datos: datosAProcesar,
+      modelId: selectedModel
+    });
+    if (plantilla) {
+      setPlantillaTexto(plantilla);
+    } else {
+      const fallback = ejecutarMapeoEstructuralLocal({
         plantillaInstitucional,
         textoNotas: notasTecnico,
-        datos: datosAProcesar,
-        modelId: selectedModel
+        datosActuales: datosAProcesar,
+        nombreTecnico: profile?.nombre || user?.email || "Jhon Alexander Vasquez Reveló"
       });
-      if (plantilla) {
-        setPlantillaTexto(plantilla);
-      } else {
-        const fallback = generarPlantillaSolucion(datosAProcesar, plantillaInstitucional);
-        setPlantillaTexto(fallback);
-      }
-    } catch (err) {
-      console.error("Error al generar la plantilla con Gemini:", err);
-      const fallback = generarPlantillaSolucion(datosExtraidos, plantillaInstitucional);
-      if (fallback) {
-        setPlantillaTexto(fallback);
-      }
-      setErrorIA(err.message || "Error generando la plantilla corporativa.");
-    } finally {
-      setGenerandoPlantilla(false);
+      setPlantillaTexto(fallback.plantillaCorporativa);
     }
-  };
+  } catch (err) {
+    console.error("Error al generar la plantilla con Gemini:", err);
+    const fallback = ejecutarMapeoEstructuralLocal({
+      plantillaInstitucional,
+      textoNotas: notasTecnico,
+      datosActuales: datosExtraidos,
+      nombreTecnico: profile?.nombre || user?.email || "Jhon Alexander Vasquez Reveló"
+    });
+    if (fallback.plantillaCorporativa) {
+      setPlantillaTexto(fallback.plantillaCorporativa);
+    }
+    setNotificacionRespaldo({
+      tipo: "fallback",
+      mensaje: `⚠️ Fallo en Gemini al regenerar plantilla. Se aplicó el Motor de Mapeo Local (${err.message || "contingencia"}).`
+    });
+  } finally {
+    setGenerandoPlantilla(false);
+  }
+};
 
   // 3. Confirmar y Agregar Servicio (Separación Dual: Cuentas de Cobro vs. Registro de Servicios)
   const handleAgregarACuentaCobro = async () => {
@@ -846,8 +944,20 @@ const handleProcesarIA = async () => {
     ])
   ).sort((a, b) => b - a);
 
-  // Servicios filtrados según el periodo activo (mes y año o todos) y proveedor seleccionado
+  // Servicios filtrados según el periodo activo (mes y año o todos), proveedor y búsqueda en tiempo real por N° de Caso
   const serviciosFiltrados = servicios.filter((s) => {
+    // 0. Búsqueda rápida en tiempo real por N° de Caso (actualiza tabla y subtotales instantáneamente)
+    if (busquedaCasoCuenta && busquedaCasoCuenta.trim()) {
+      const q = busquedaCasoCuenta.trim().toLowerCase();
+      const numCaso = String(s.numero_caso || "").toLowerCase();
+      const qClean = q.replace(/[^a-z0-9]/g, "");
+      const numClean = numCaso.replace(/[^a-z0-9]/g, "");
+      const coincide = numCaso.includes(q) || (qClean.length > 0 && numClean.includes(qClean));
+      if (!coincide) {
+        return false;
+      }
+    }
+
     // 1. Filtrado por Proveedor / Entidad
     if (filtroProveedor && (s.proveedor || "").trim().toLowerCase() !== filtroProveedor.trim().toLowerCase()) {
       return false;
@@ -1486,35 +1596,67 @@ const handleProcesarIA = async () => {
                 </div>
               )}
 
-              {/* CTA Procesar Servicio con IA */}
-              <button
-                type="button"
-                disabled={procesandoIA}
-                onClick={handleProcesarIA}
-                style={{
-                  width: "100%",
-                  background: procesandoIA
-                    ? (isDark ? "rgba(100,116,139,0.5)" : "#E2E8F0")
-                    : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
-                  border: "none",
-                  color: procesandoIA ? (isDark ? "#94A3B8" : "#64748B") : "#fff",
-                  borderRadius: 12,
-                  padding: "13px 18px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: procesandoIA ? "wait" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  boxShadow: procesandoIA ? "none" : "0 6px 20px rgba(2,132,199,0.35)",
-                  transition: "all 0.2s",
-                  letterSpacing: "0.01em"
-                }}
-              >
-                <Sparkles size={17} />
-                {procesandoIA ? "Analizando con Gemini AI..." : "Procesar Servicio con IA"}
-              </button>
+              {/* CTAs de Procesamiento: IA + Respaldo Local (Sin IA) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+                {/* Botón Principal: Procesar con IA */}
+                <button
+                  type="button"
+                  disabled={procesandoIA || procesandoLocal}
+                  onClick={handleProcesarIA}
+                  style={{
+                    width: "100%",
+                    background: procesandoIA
+                      ? (isDark ? "rgba(100,116,139,0.5)" : "#E2E8F0")
+                      : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                    border: "none",
+                    color: procesandoIA ? (isDark ? "#94A3B8" : "#64748B") : "#fff",
+                    borderRadius: 12,
+                    padding: "13px 16px",
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: procesandoIA || procesandoLocal ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    boxShadow: procesandoIA ? "none" : "0 6px 20px rgba(2,132,199,0.35)",
+                    transition: "all 0.2s",
+                    letterSpacing: "0.01em"
+                  }}
+                >
+                  <Sparkles size={17} />
+                  <span>{procesandoIA ? "Analizando con Gemini AI..." : "Procesar Servicio con IA"}</span>
+                </button>
+
+                {/* Botón Secundario Visible: Procesar Local (Sin IA) */}
+                <button
+                  type="button"
+                  disabled={procesandoIA || procesandoLocal}
+                  onClick={handleProcesarLocal}
+                  title="Forzar mapeo estructurado local de forma inmediata sin depender de la API de Google"
+                  style={{
+                    width: "100%",
+                    background: isDark ? "rgba(245, 158, 11, 0.16)" : "#fffbeb",
+                    border: isDark ? "1.5px solid rgba(245, 158, 11, 0.55)" : "1.5px solid #fcd34d",
+                    color: isDark ? "#fbbf24" : "#b45309",
+                    borderRadius: 12,
+                    padding: "13px 16px",
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: procesandoIA || procesandoLocal ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    boxShadow: "0 4px 14px rgba(245, 158, 11, 0.15)",
+                    transition: "all 0.2s",
+                    letterSpacing: "0.01em"
+                  }}
+                >
+                  <Zap size={17} />
+                  <span>{procesandoLocal ? "Mapeando en local..." : "Procesar Local (Sin IA)"}</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1686,10 +1828,10 @@ const handleProcesarIA = async () => {
 
             {/* CTA Procesar directo si el usuario pega plantilla institucional */}
             {plantillaInstitucional.trim() && (
-              <div style={{ marginTop: 14 }}>
+              <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
                 <button
                   type="button"
-                  disabled={procesandoIA}
+                  disabled={procesandoIA || procesandoLocal}
                   onClick={handleProcesarIA}
                   style={{
                     width: "100%",
@@ -1699,10 +1841,10 @@ const handleProcesarIA = async () => {
                     border: "none",
                     color: procesandoIA ? (isDark ? "#94A3B8" : "#64748B") : "#fff",
                     borderRadius: 12,
-                    padding: "13px 18px",
-                    fontSize: 14,
+                    padding: "13px 16px",
+                    fontSize: 13.5,
                     fontWeight: 700,
-                    cursor: procesandoIA ? "wait" : "pointer",
+                    cursor: procesandoIA || procesandoLocal ? "wait" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -1713,11 +1855,105 @@ const handleProcesarIA = async () => {
                   }}
                 >
                   <Sparkles size={17} />
-                  {procesandoIA ? "Procesando y vaciando en molde..." : "Procesar y Mapear en Plantilla Oficial"}
+                  <span>{procesandoIA ? "Procesando y vaciando en molde..." : "Mapear con IA"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={procesandoIA || procesandoLocal}
+                  onClick={handleProcesarLocal}
+                  title="Vaciado y emparejamiento estructural instantáneo en molde de plantilla de forma local"
+                  style={{
+                    width: "100%",
+                    background: isDark ? "rgba(245, 158, 11, 0.16)" : "#fffbeb",
+                    border: isDark ? "1.5px solid rgba(245, 158, 11, 0.55)" : "1.5px solid #fcd34d",
+                    color: isDark ? "#fbbf24" : "#b45309",
+                    borderRadius: 12,
+                    padding: "13px 16px",
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: procesandoIA || procesandoLocal ? "wait" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    boxShadow: "0 4px 14px rgba(245, 158, 11, 0.15)",
+                    transition: "all 0.2s",
+                    letterSpacing: "0.01em"
+                  }}
+                >
+                  <Zap size={17} />
+                  <span>{procesandoLocal ? "Mapeando en local..." : "Procesar Local (Sin IA)"}</span>
                 </button>
               </div>
             )}
           </div>
+
+          {/* ── Banner de Notificación del Motor de Respaldo Local (Anti-Caídas de IA) ── */}
+          {notificacionRespaldo && (
+            <div
+              style={{
+                background: notificacionRespaldo.tipo === "fallback"
+                  ? (isDark ? "rgba(245, 158, 11, 0.16)" : "#FEF3C7")
+                  : (isDark ? "rgba(16, 185, 129, 0.16)" : "#ECFDF5"),
+                border: isDark
+                  ? (notificacionRespaldo.tipo === "fallback" ? "1.5px solid #F59E0B" : "1.5px solid #10B981")
+                  : "none",
+                borderLeft: notificacionRespaldo.tipo === "fallback" ? "4px solid #D97706" : "4px solid #059669",
+                borderRadius: isDark ? 12 : "0 12px 12px 0",
+                padding: "14px 18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+                <Zap
+                  size={20}
+                  color={notificacionRespaldo.tipo === "fallback" ? (isDark ? "#FCD34D" : "#D97706") : (isDark ? "#6EE7B7" : "#059669")}
+                  style={{ flexShrink: 0 }}
+                />
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: notificacionRespaldo.tipo === "fallback" ? (isDark ? "#FCD34D" : "#92400E") : (isDark ? "#6EE7B7" : "#065F46"),
+                      marginBottom: 2
+                    }}
+                  >
+                    {notificacionRespaldo.tipo === "fallback" ? "Motor de Respaldo Local Activado" : "Mapeo Estructural Local Exitoso"}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      color: notificacionRespaldo.tipo === "fallback" ? (isDark ? "#FDE68A" : "#B45309") : (isDark ? "#A7F3D0" : "#047857"),
+                      lineHeight: 1.4
+                    }}
+                  >
+                    {notificacionRespaldo.mensaje}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotificacionRespaldo(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "inherit",
+                  cursor: "pointer",
+                  padding: 4,
+                  display: "flex",
+                  alignItems: "center"
+                }}
+                title="Cerrar notificación"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          )}
 
           {/* ── Alerta de Error IA (alto contraste) ── */}
           {errorIA && (
@@ -2472,6 +2708,69 @@ const handleProcesarIA = async () => {
 
               {/* Controles de Selección Año, Mes, Proveedor y Modo */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                {/* Buscador Rápido por Número de Caso en Tiempo Real */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>N° Caso:</span>
+                  <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                    <Search
+                      size={14}
+                      style={{
+                        position: "absolute",
+                        left: 9,
+                        color: busquedaCasoCuenta ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#94a3b8" : "#64748b"),
+                        pointerEvents: "none"
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={busquedaCasoCuenta}
+                      onChange={(e) => setBusquedaCasoCuenta(e.target.value)}
+                      placeholder="Buscar por caso..."
+                      style={{
+                        background: inputBg,
+                        border: busquedaCasoCuenta
+                          ? (isDark ? "1.5px solid #38bdf8" : "1.5px solid #0284c7")
+                          : inputBorder,
+                        color: inputText,
+                        borderRadius: 8,
+                        padding: "6px 26px 6px 28px",
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        outline: "none",
+                        width: 175,
+                        boxShadow: busquedaCasoCuenta
+                          ? (isDark ? "0 0 0 2px rgba(56, 189, 248, 0.2)" : "0 0 0 2px rgba(2, 132, 199, 0.15)")
+                          : "none",
+                        transition: "all 0.15s"
+                      }}
+                    />
+                    {busquedaCasoCuenta && (
+                      <button
+                        type="button"
+                        onClick={() => setBusquedaCasoCuenta("")}
+                        title="Limpiar búsqueda por caso"
+                        style={{
+                          position: "absolute",
+                          right: 5,
+                          background: isDark ? "rgba(239,68,68,0.2)" : "#fee2e2",
+                          border: "none",
+                          color: "#ef4444",
+                          borderRadius: "50%",
+                          width: 17,
+                          height: 17,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 0
+                        }}
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {/* Selector de Proveedor / Entidad */}
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Proveedor / Entidad:</span>
@@ -2797,36 +3096,100 @@ const handleProcesarIA = async () => {
               boxShadow: cardShadow
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
-                  Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {filtroProveedor ? `para "${filtroProveedor}" ` : ""}{mostrarTodos ? "totales" : `en ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`} a partir de fila 24)
+                  Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {busquedaCasoCuenta ? `coincidentes con "${busquedaCasoCuenta}" ` : ""}{filtroProveedor ? `para "${filtroProveedor}" ` : ""}{mostrarTodos ? "totales" : `en ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`} a partir de fila 24)
                 </h3>
                 <span style={{ fontSize: 11.5, color: textSub }}>
-                  {mostrarTodos
-                    ? `Listando todos los registros sin filtrado de fecha${filtroProveedor ? ` para ${filtroProveedor}` : ""}`
-                    : `Mostrando exclusivamente los servicios de ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}${filtroProveedor ? ` para la entidad "${filtroProveedor}"` : ""}`}
+                  {busquedaCasoCuenta
+                    ? `Filtrando en tiempo real por N° de Caso "${busquedaCasoCuenta}". La tabla y los subtotales se actualizan instantáneamente.`
+                    : (mostrarTodos
+                        ? `Listando todos los registros sin filtrado de fecha${filtroProveedor ? ` para ${filtroProveedor}` : ""}`
+                        : `Mostrando exclusivamente los servicios de ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}${filtroProveedor ? ` para la entidad "${filtroProveedor}"` : ""}`)}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setTab("ia")}
-                style={{
-                  background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
-                  border: isDark ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid rgba(2, 132, 199, 0.3)",
-                  color: isDark ? "#38bdf8" : "#0284c7",
-                  padding: "6px 12px",
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6
-                }}
-              >
-                <Plus size={14} /> Agregar otro servicio
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                {/* Buscador Rápido por Número de Caso integrado en la tabla */}
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <Search
+                    size={14}
+                    style={{
+                      position: "absolute",
+                      left: 10,
+                      color: busquedaCasoCuenta ? (isDark ? "#38bdf8" : "#0284c7") : (isDark ? "#94a3b8" : "#64748b"),
+                      pointerEvents: "none"
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={busquedaCasoCuenta}
+                    onChange={(e) => setBusquedaCasoCuenta(e.target.value)}
+                    placeholder="Filtrar por N° de Caso..."
+                    style={{
+                      background: inputBg,
+                      border: busquedaCasoCuenta
+                        ? (isDark ? "1.5px solid #38bdf8" : "1.5px solid #0284c7")
+                        : inputBorder,
+                      color: inputText,
+                      borderRadius: 8,
+                      padding: "6px 28px 6px 30px",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      outline: "none",
+                      width: 195,
+                      boxShadow: busquedaCasoCuenta
+                        ? (isDark ? "0 0 0 2px rgba(56, 189, 248, 0.2)" : "0 0 0 2px rgba(2, 132, 199, 0.15)")
+                        : "none",
+                      transition: "all 0.15s"
+                    }}
+                  />
+                  {busquedaCasoCuenta && (
+                    <button
+                      type="button"
+                      onClick={() => setBusquedaCasoCuenta("")}
+                      title="Limpiar filtro de caso"
+                      style={{
+                        position: "absolute",
+                        right: 6,
+                        background: isDark ? "rgba(239,68,68,0.2)" : "#fee2e2",
+                        border: "none",
+                        color: "#ef4444",
+                        borderRadius: "50%",
+                        width: 18,
+                        height: 18,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0
+                      }}
+                    >
+                      <X size={11} />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setTab("ia")}
+                  style={{
+                    background: isDark ? "rgba(56, 189, 248, 0.15)" : "rgba(2, 132, 199, 0.1)",
+                    border: isDark ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid rgba(2, 132, 199, 0.3)",
+                    color: isDark ? "#38bdf8" : "#0284c7",
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}
+                >
+                  <Plus size={14} /> Agregar otro servicio
+                </button>
+              </div>
             </div>
 
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040, fontSize: 12.5 }}>
@@ -2860,51 +3223,82 @@ const handleProcesarIA = async () => {
                       }}
                     >
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-                        <CalendarDays size={32} style={{ opacity: 0.4 }} />
-                        <div style={{ fontSize: 14, fontWeight: 600 }}>
-                          No hay servicios registrados {filtroProveedor ? `para la entidad "${filtroProveedor}" ` : ""}en {mostrarTodos ? "el consolidado histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
-                        </div>
-                        <div style={{ fontSize: 12 }}>
-                          {filtroProveedor 
-                            ? "Prueba cambiando de proveedor o limpiando el filtro de proveedor." 
-                            : "Selecciona otro mes con registros o haz clic en \"Ver Todos los Meses\"."}
-                        </div>
-                        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                          {filtroProveedor && (
+                        {busquedaCasoCuenta ? (
+                          <>
+                            <Search size={32} style={{ opacity: 0.4 }} />
+                            <div style={{ fontSize: 14, fontWeight: 700, color: textTitle }}>
+                              No se encontraron servicios que coincidan con el caso "{busquedaCasoCuenta}"
+                            </div>
+                            <div style={{ fontSize: 12 }}>
+                              Verifica el fragmento o número digitado, o limpia la búsqueda para listar todos los registros.
+                            </div>
                             <button
                               type="button"
-                              onClick={() => setFiltroProveedor("")}
+                              onClick={() => setBusquedaCasoCuenta("")}
                               style={{
-                                background: isDark ? "rgba(239, 68, 68, 0.2)" : "#fee2e2",
-                                border: "1px solid #ef4444",
-                                color: "#ef4444",
+                                background: isDark ? "rgba(56, 189, 248, 0.2)" : "#e0f2fe",
+                                border: isDark ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid #bae6fd",
+                                color: isDark ? "#38bdf8" : "#0284c7",
                                 padding: "6px 14px",
                                 borderRadius: 8,
                                 fontSize: 12,
                                 fontWeight: 600,
-                                cursor: "pointer"
+                                cursor: "pointer",
+                                marginTop: 6
                               }}
                             >
-                              Limpiar Filtro Proveedor
+                              Limpiar filtro de búsqueda por caso
                             </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => setMostrarTodos(true)}
-                            style={{
-                              background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
-                              border: "1px solid #0284c7",
-                              color: isDark ? "#38bdf8" : "#0284c7",
-                              padding: "6px 14px",
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 600,
-                              cursor: "pointer"
-                            }}
-                          >
-                            Ver Histórico Completo
-                          </button>
-                        </div>
+                          </>
+                        ) : (
+                          <>
+                            <CalendarDays size={32} style={{ opacity: 0.4 }} />
+                            <div style={{ fontSize: 14, fontWeight: 600 }}>
+                              No hay servicios registrados {filtroProveedor ? `para la entidad "${filtroProveedor}" ` : ""}en {mostrarTodos ? "el consolidado histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                            </div>
+                            <div style={{ fontSize: 12 }}>
+                              {filtroProveedor 
+                                ? "Prueba cambiando de proveedor o limpiando el filtro de proveedor." 
+                                : "Selecciona otro mes con registros o haz clic en \"Ver Todos los Meses\"."}
+                            </div>
+                            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                              {filtroProveedor && (
+                                <button
+                                  type="button"
+                                  onClick={() => setFiltroProveedor("")}
+                                  style={{
+                                    background: isDark ? "rgba(239, 68, 68, 0.2)" : "#fee2e2",
+                                    border: "1px solid #ef4444",
+                                    color: "#ef4444",
+                                    padding: "6px 14px",
+                                    borderRadius: 8,
+                                    fontSize: 12,
+                                    fontWeight: 600,
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  Limpiar Filtro Proveedor
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setMostrarTodos(true)}
+                                style={{
+                                  background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+                                  border: "1px solid #0284c7",
+                                  color: isDark ? "#38bdf8" : "#0284c7",
+                                  padding: "6px 14px",
+                                  borderRadius: 8,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  cursor: "pointer"
+                                }}
+                              >
+                                Ver Histórico Completo
+                              </button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
