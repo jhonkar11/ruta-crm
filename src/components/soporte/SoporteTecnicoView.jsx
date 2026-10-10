@@ -25,7 +25,9 @@ import {
   Search,
   Layers,
   Check,
-  Zap
+  Zap,
+  Share2,
+  ExternalLink
 } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { isSoporteAuthorized, SOPORTE_ADMIN_EMAIL } from "../../utils/rbac";
@@ -71,6 +73,14 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [busquedaCasoCuenta, setBusquedaCasoCuenta] = useState(""); // Búsqueda en tiempo real por N° de Caso en tabla
   const [procesandoLocal, setProcesandoLocal] = useState(false);
   const [notificacionRespaldo, setNotificacionRespaldo] = useState(null);
+
+  // ── Alerta Modal de Caso Duplicado con Vista Previa ───────────────────────
+  const [alertaDuplicadoModal, setAlertaDuplicadoModal] = useState(null); // { casoExistente, nuevoServicio, nuevoRegistro }
+
+  // ── Compartir Cuenta de Cobro (Modo Solo Lectura para Proveedores) ──────────
+  const [showCompartirModal, setShowCompartirModal] = useState(false);
+  const [proveedorACompartir, setProveedorACompartir] = useState("");
+  const [copiadoEnlace, setCopiadoEnlace] = useState(false);
 
   // ── Modal de Edición ──────────────────────────────────────────────────────
   const [editandoServicio, setEditandoServicio] = useState(null); // null | objeto servicio
@@ -711,17 +721,14 @@ const handleGenerarPlantilla = async () => {
 
       const plantillaFinal = plantillaTexto || generarPlantillaSolucion(datosExtraidos, plantillaInstitucional);
 
-      // A. Guardar en Cuenta de Cobro (datos financieros y liquidación)
+      // A. Preparar objeto nuevoServicio
       const nuevoServicio = {
         ...datosExtraidos,
         plantilla_completa: plantillaFinal,
         foto_url: fotoUrlRemota || imagenPreview
       };
 
-      const guardado = await guardarServicioSoporte(nuevoServicio);
-      setServicios((prev) => [...prev, guardado]);
-
-      // B. Guardar de forma independiente en Registro de Servicios e Historial de Plantillas IT
+      // B. Preparar objeto nuevoRegistro
       const nuevoRegistro = {
         numero_caso: datosExtraidos.numero_caso,
         fecha_solicitud: datosExtraidos.fecha_solicitud,
@@ -744,19 +751,89 @@ const handleGenerarPlantilla = async () => {
         foto_url: fotoUrlRemota || imagenPreview
       };
 
-      const guardadoReg = await guardarRegistroServicio(nuevoRegistro);
-      setRegistrosServicios((prev) => [guardadoReg, ...prev.filter((r) => r.id !== guardadoReg.id)]);
+      // VALIDACIÓN ESTRICTA DE DUPLICADOS:
+      // Si el caso ya existe en la base de datos de servicios, interrumpir y mostrar modal de advertencia con vista previa
+      const numBuscado = (datosExtraidos.numero_caso || "").trim().toLowerCase();
+      const numBuscadoLimpio = numBuscado.replace(/[^a-z0-9]/g, "");
 
+      const casoExistente = servicios.find((s) => {
+        const c = (s.numero_caso || "").trim().toLowerCase();
+        const cLimpio = c.replace(/[^a-z0-9]/g, "");
+        return c === numBuscado || (numBuscadoLimpio.length >= 4 && cLimpio === numBuscadoLimpio);
+      });
+
+      if (casoExistente) {
+        setAlertaDuplicadoModal({
+          casoExistente,
+          nuevoServicio,
+          nuevoRegistro
+        });
+        return; // Interrumpe el guardado inmediato
+      }
+
+      await ejecutarGuardadoServicioYRegistro(nuevoServicio, nuevoRegistro);
+    } catch (err) {
+      alert("No se pudo agregar a la cuenta de cobro: " + err.message);
+    }
+  };
+
+  // Ejecuta la persistencia normal de un nuevo servicio
+  const ejecutarGuardadoServicioYRegistro = async (nuevoServicio, nuevoRegistro) => {
+    const guardado = await guardarServicioSoporte(nuevoServicio);
+    setServicios((prev) => [...prev, guardado]);
+
+    const guardadoReg = await guardarRegistroServicio(nuevoRegistro);
+    setRegistrosServicios((prev) => [guardadoReg, ...prev.filter((r) => r.id !== guardadoReg.id)]);
+
+    setGuardadoExitoso(true);
+    setTimeout(() => setGuardadoExitoso(false), 3000);
+
+    resetFormulario();
+    setTab("cuentas");
+  };
+
+  // Reemplazar / Actualizar registro existente al confirmar en el modal de duplicados
+  const handleConfirmarReemplazoDuplicado = async () => {
+    if (!alertaDuplicadoModal) return;
+    const { casoExistente, nuevoServicio, nuevoRegistro } = alertaDuplicadoModal;
+
+    try {
+      // 1. Actualizar en cuentas de cobro
+      const servicioActualizado = {
+        ...nuevoServicio,
+        id: casoExistente.id
+      };
+      await actualizarServicioSoporte(servicioActualizado);
+      setServicios((prev) =>
+        prev.map((s) => (s.id === casoExistente.id ? { ...s, ...servicioActualizado } : s))
+      );
+
+      // 2. Actualizar o guardar en el registro histórico
+      const regExistente = registrosServicios.find((r) => {
+        const c = (r.numero_caso || "").trim().toLowerCase();
+        const numBuscado = (nuevoRegistro.numero_caso || "").trim().toLowerCase();
+        return c === numBuscado;
+      });
+
+      if (regExistente) {
+        const regActualizado = { ...nuevoRegistro, id: regExistente.id };
+        await guardarRegistroServicio(regActualizado);
+        setRegistrosServicios((prev) =>
+          prev.map((r) => (r.id === regExistente.id ? regActualizado : r))
+        );
+      } else {
+        const guardadoReg = await guardarRegistroServicio(nuevoRegistro);
+        setRegistrosServicios((prev) => [guardadoReg, ...prev]);
+      }
+
+      setAlertaDuplicadoModal(null);
       setGuardadoExitoso(true);
       setTimeout(() => setGuardadoExitoso(false), 3000);
 
-      // Limpieza total automática de todos los campos e inputs del formulario
       resetFormulario();
-
-      // Cambiar a la pestaña de Cuentas de Cobro para ver el impacto
       setTab("cuentas");
     } catch (err) {
-      alert("No se pudo agregar a la cuenta de cobro: " + err.message);
+      alert("Error al actualizar el registro existente: " + err.message);
     }
   };
 
@@ -918,13 +995,25 @@ const handleGenerarPlantilla = async () => {
     for (const f of fechas) {
       if (!f || typeof f !== "string") continue;
       const fTrim = f.trim();
+
+      // Formato DD/MM/YYYY o DD-MM-YYYY
       const mDMY = fTrim.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
       if (mDMY) {
         return { mes: parseInt(mDMY[2], 10), anio: parseInt(mDMY[3], 10) };
       }
+
+      // Formato YYYY/MM/DD o YYYY-MM-DD
       const mYMD = fTrim.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
       if (mYMD) {
         return { mes: parseInt(mYMD[2], 10), anio: parseInt(mYMD[1], 10) };
+      }
+
+      // Formato DD/MM/YY (ej. 15/09/24 -> 2024)
+      const mDM2Y = fTrim.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+      if (mDM2Y) {
+        const yy = parseInt(mDM2Y[3], 10);
+        const anioCompleto = yy < 50 ? 2000 + yy : 1900 + yy;
+        return { mes: parseInt(mDM2Y[2], 10), anio: anioCompleto };
       }
     }
     if (s.creado_en) {
@@ -943,6 +1032,18 @@ const handleGenerarPlantilla = async () => {
       ...servicios.map((s) => extraerMesAnio(s)?.anio).filter(Boolean)
     ])
   ).sort((a, b) => b - a);
+
+  // Detección de registros fuera del año actual o en otros años para el mes activo
+  // (ej. si está en Septiembre 2026, detecta si hay registros en Septiembre 2024)
+  const serviciosMesOtrosAnios = servicios.filter((s) => {
+    if (mostrarTodos) return false;
+    if (String(filtroAnio) === "todos") return false;
+    if (filtroProveedor && (s.proveedor || "").trim().toLowerCase() !== filtroProveedor.trim().toLowerCase()) {
+      return false;
+    }
+    const info = extraerMesAnio(s);
+    return info && info.mes === Number(filtroMes) && info.anio !== Number(filtroAnio);
+  });
 
   // Servicios filtrados según el periodo activo (mes y año o todos), proveedor y búsqueda en tiempo real por N° de Caso
   const serviciosFiltrados = servicios.filter((s) => {
@@ -967,6 +1068,12 @@ const handleGenerarPlantilla = async () => {
     if (mostrarTodos) return true;
     const info = extraerMesAnio(s);
     if (!info) return false;
+
+    // Si filtroAnio es 'todos', sólo evaluamos el mes
+    if (String(filtroAnio) === "todos") {
+      return info.mes === Number(filtroMes);
+    }
+
     return info.mes === Number(filtroMes) && info.anio === Number(filtroAnio);
   });
 
@@ -2832,7 +2939,8 @@ const handleGenerarPlantilla = async () => {
                   <select
                     value={filtroAnio}
                     onChange={(e) => {
-                      setFiltroAnio(Number(e.target.value));
+                      const val = e.target.value === "todos" ? "todos" : Number(e.target.value);
+                      setFiltroAnio(val);
                       setMostrarTodos(false);
                     }}
                     style={{
@@ -2847,6 +2955,9 @@ const handleGenerarPlantilla = async () => {
                       outline: "none"
                     }}
                   >
+                    <option value="todos" style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                      Todos los años
+                    </option>
                     {aniosDisponibles.map((a) => (
                       <option key={a} value={a} style={{ background: isDark ? "#0f172a" : "#fff" }}>
                         {a}
@@ -2885,7 +2996,7 @@ const handleGenerarPlantilla = async () => {
                     </option>
                     {NOMBRES_MESES.map((nom, idx) => (
                       <option key={idx + 1} value={idx + 1} style={{ background: isDark ? "#0f172a" : "#fff" }}>
-                        {nom} {filtroAnio}
+                        {nom} {String(filtroAnio) === "todos" ? "(Todos los años)" : filtroAnio}
                       </option>
                     ))}
                   </select>
@@ -2916,6 +3027,49 @@ const handleGenerarPlantilla = async () => {
               </div>
             </div>
 
+            {/* Aviso informativo cuando existen registros en otros años (ej. 2024 en Septiembre) */}
+            {serviciosMesOtrosAnios.length > 0 && !mostrarTodos && (
+              <div
+                style={{
+                  background: isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb",
+                  border: isDark ? "1px solid rgba(245, 158, 11, 0.4)" : "1px solid #fde68a",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  fontSize: 12.5,
+                  color: isDark ? "#fde68a" : "#92400e"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <AlertTriangle size={16} style={{ flexShrink: 0, color: "#f59e0b" }} />
+                  <span>
+                    Existen <strong>{serviciosMesOtrosAnios.length}</strong> registro(s) de{" "}
+                    <strong>{NOMBRES_MESES[filtroMes - 1]}</strong> en otros años históricos (ej. 2024) que están ocultos por el filtro actual ({filtroAnio}).
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFiltroAnio("todos")}
+                  style={{
+                    background: isDark ? "rgba(245, 158, 11, 0.3)" : "#fef3c7",
+                    border: "1px solid #f59e0b",
+                    color: isDark ? "#fbbf24" : "#b45309",
+                    padding: "4px 10px",
+                    borderRadius: 6,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    flexShrink: 0
+                  }}
+                >
+                  Ver todos los años para {NOMBRES_MESES[filtroMes - 1]}
+                </button>
+              </div>
+            )}
+
             {/* Pestañas horizontales de los 12 Meses */}
             <div
               style={{
@@ -2935,7 +3089,9 @@ const handleGenerarPlantilla = async () => {
                     return false;
                   }
                   const info = extraerMesAnio(s);
-                  return info && info.mes === numMes && info.anio === filtroAnio;
+                  if (!info || info.mes !== numMes) return false;
+                  if (String(filtroAnio) === "todos") return true;
+                  return info.anio === filtroAnio;
                 }).length;
 
                 return (
@@ -3018,35 +3174,66 @@ const handleGenerarPlantilla = async () => {
                 </div>
               </div>
 
-              {/* Botón Descargar Excel */}
-              <button
-                type="button"
-                disabled={exportandoExcel || serviciosFiltrados.length === 0}
-                onClick={handleDescargarExcel}
-                style={{
-                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                  border: "none",
-                  color: "#fff",
-                  borderRadius: 12,
-                  padding: "12px 20px",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: exportandoExcel || serviciosFiltrados.length === 0 ? "not-allowed" : "pointer",
-                  opacity: serviciosFiltrados.length === 0 ? 0.6 : 1,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  boxShadow: "0 6px 20px rgba(16, 185, 129, 0.4)",
-                  transition: "all 0.2s"
-                }}
-              >
-                <Download size={18} />
-                <span>
-                  {exportandoExcel
-                    ? "Generando Excel..."
-                    : `Descargar Excel ${filtroProveedor ? `${filtroProveedor} - ` : ""}${mostrarTodos ? "Histórico" : NOMBRES_MESES[filtroMes - 1]} (.xlsx)`}
-                </span>
-              </button>
+              {/* Acciones de Cuenta de Cobro */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                {/* Botón Compartir Vista Proveedor (Modo Solo Lectura) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProveedorACompartir(filtroProveedor || "R&S Soluciones");
+                    setShowCompartirModal(true);
+                  }}
+                  title="Generar enlace web único de solo lectura para proveedores o clientes externos"
+                  style={{
+                    background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+                    border: isDark ? "1.5px solid rgba(56, 189, 248, 0.5)" : "1.5px solid #38bdf8",
+                    color: isDark ? "#38bdf8" : "#0284c7",
+                    borderRadius: 12,
+                    padding: "12px 18px",
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    boxShadow: isDark ? "0 4px 12px rgba(56, 189, 248, 0.15)" : "0 4px 12px rgba(2, 132, 199, 0.12)",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <Share2 size={17} />
+                  <span>Compartir Cuenta de Cobro (Vista Proveedor)</span>
+                </button>
+
+                {/* Botón Descargar Excel */}
+                <button
+                  type="button"
+                  disabled={exportandoExcel || serviciosFiltrados.length === 0}
+                  onClick={handleDescargarExcel}
+                  style={{
+                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                    border: "none",
+                    color: "#fff",
+                    borderRadius: 12,
+                    padding: "12px 20px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: exportandoExcel || serviciosFiltrados.length === 0 ? "not-allowed" : "pointer",
+                    opacity: serviciosFiltrados.length === 0 ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    boxShadow: "0 6px 20px rgba(16, 185, 129, 0.4)",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <Download size={18} />
+                  <span>
+                    {exportandoExcel
+                      ? "Generando Excel..."
+                      : `Descargar Excel ${filtroProveedor ? `${filtroProveedor} - ` : ""}${mostrarTodos ? "Histórico" : NOMBRES_MESES[filtroMes - 1]} (.xlsx)`}
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* Cuadro de Liquidación en Letras */}
@@ -3306,6 +3493,8 @@ const handleGenerarPlantilla = async () => {
                   serviciosFiltrados.map((s, idx) => {
                     const status = paymentStatusMap[s.id] || s.payment_status || "confirmed";
                     const isPending = status === "pending";
+                    const info = extraerMesAnio(s);
+                    const esAnioDiferente = info && info.anio && info.anio !== ahora.getFullYear();
 
                     return (
                       <tr
@@ -3323,7 +3512,28 @@ const handleGenerarPlantilla = async () => {
                         }}
                       >
                         <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
-                          {s.numero_caso}
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                            <span>{s.numero_caso}</span>
+                            {esAnioDiferente && (
+                              <span
+                                title={`Registro histórico del año ${info.anio}`}
+                                style={{
+                                  background: isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7",
+                                  border: isDark ? "1px solid rgba(245, 158, 11, 0.5)" : "1px solid #fde68a",
+                                  color: isDark ? "#fbbf24" : "#b45309",
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  padding: "1px 6px",
+                                  borderRadius: 6,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 3
+                                }}
+                              >
+                                📅 {info.anio} (Histórico)
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_solicitud}</td>
                         <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
@@ -4708,6 +4918,466 @@ const handleGenerarPlantilla = async () => {
           </div>
         </div>
       )}
+
+      {/* MODAL 1: ALERTA INTERACTIVA DE CASO DUPLICADO CON VISTA PREVIA */}
+      {alertaDuplicadoModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+        >
+          <div
+            style={{
+              background: isDark ? "#0f172a" : "#ffffff",
+              border: isDark ? "1.5px solid rgba(245, 158, 11, 0.5)" : "1.5px solid #f59e0b",
+              borderRadius: 18,
+              width: "100%",
+              maxWidth: 720,
+              maxHeight: "92vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+              overflow: "hidden"
+            }}
+          >
+            {/* Cabecera del modal */}
+            <div
+              style={{
+                padding: "16px 20px",
+                background: isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb",
+                borderBottom: isDark ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid #fde68a",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    background: "#f59e0b",
+                    color: "#ffffff",
+                    borderRadius: "50%",
+                    width: 32,
+                    height: 32,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <AlertTriangle size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: isDark ? "#fef08a" : "#92400e" }}>
+                    Atención: Este caso ya está registrado
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: isDark ? "#fde68a" : "#b45309" }}>
+                    N° de Caso: <strong>{alertaDuplicadoModal.casoExistente.numero_caso}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAlertaDuplicadoModal(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: isDark ? "#fde68a" : "#92400e",
+                  cursor: "pointer",
+                  padding: 4
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Cuerpo del modal: Vista previa comparativa */}
+            <div style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: textTitle,
+                  background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+                  padding: 12,
+                  borderRadius: 10,
+                  border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0"
+                }}
+              >
+                El número de caso ingresado ya cuenta con un registro en la base de datos de Cuentas de Cobro.
+                ¿Desea <strong>actualizar y reemplazar</strong> el registro existente con los nuevos datos ingresados o <strong>cancelar</strong> el guardado para evitar duplicados?
+              </div>
+
+              {/* Comparativa visual: Registro Existente vs Nuevo Registro */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                {/* Columna: Registro Existente en BD */}
+                <div
+                  style={{
+                    background: isDark ? "rgba(239, 68, 68, 0.08)" : "#fef2f2",
+                    border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid #fecaca",
+                    borderRadius: 12,
+                    padding: 14,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    fontSize: 12
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: "#ef4444", borderBottom: isDark ? "1px solid rgba(239, 68, 68, 0.2)" : "1px solid #fee2e2", paddingBottom: 6 }}>
+                    📁 Registro Existente en Base de Datos
+                  </div>
+                  <div><strong>Cliente:</strong> {alertaDuplicadoModal.casoExistente.cliente || "-"}</div>
+                  <div><strong>Proveedor:</strong> {alertaDuplicadoModal.casoExistente.proveedor || "-"}</div>
+                  <div><strong>Mesa:</strong> {alertaDuplicadoModal.casoExistente.mesa || "-"}</div>
+                  <div><strong>Fecha Atención:</strong> {alertaDuplicadoModal.casoExistente.fecha_atencion || alertaDuplicadoModal.casoExistente.fecha_solicitud || "-"}</div>
+                  <div><strong>Equipo:</strong> {alertaDuplicadoModal.casoExistente.equipo || "-"}</div>
+                  <div><strong>Falla:</strong> {alertaDuplicadoModal.casoExistente.falla || "-"}</div>
+                  <div><strong>Valor Servicios:</strong> {formatearMonedaCOP(alertaDuplicadoModal.casoExistente.valor_servicios)}</div>
+                  <div><strong>Viáticos:</strong> {formatearMonedaCOP(alertaDuplicadoModal.casoExistente.valor_viaticos)}</div>
+                </div>
+
+                {/* Columna: Nuevo Registro a Guardar */}
+                <div
+                  style={{
+                    background: isDark ? "rgba(16, 185, 129, 0.08)" : "#f0fdf4",
+                    border: isDark ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid #bbf7d0",
+                    borderRadius: 12,
+                    padding: 14,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 8,
+                    fontSize: 12
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: "#10b981", borderBottom: isDark ? "1px solid rgba(16, 185, 129, 0.2)" : "1px solid #dcfce7", paddingBottom: 6 }}>
+                    ✨ Nuevos Datos a Guardar / Reemplazar
+                  </div>
+                  <div><strong>Cliente:</strong> {alertaDuplicadoModal.nuevoServicio.cliente || "-"}</div>
+                  <div><strong>Proveedor:</strong> {alertaDuplicadoModal.nuevoServicio.proveedor || "-"}</div>
+                  <div><strong>Mesa:</strong> {alertaDuplicadoModal.nuevoServicio.mesa || "-"}</div>
+                  <div><strong>Fecha Atención:</strong> {alertaDuplicadoModal.nuevoServicio.fecha_atencion || alertaDuplicadoModal.nuevoServicio.fecha_solicitud || "-"}</div>
+                  <div><strong>Equipo:</strong> {alertaDuplicadoModal.nuevoServicio.equipo || "-"}</div>
+                  <div><strong>Falla:</strong> {alertaDuplicadoModal.nuevoServicio.falla || "-"}</div>
+                  <div><strong>Valor Servicios:</strong> {formatearMonedaCOP(alertaDuplicadoModal.nuevoServicio.valor_servicios)}</div>
+                  <div><strong>Viáticos:</strong> {formatearMonedaCOP(alertaDuplicadoModal.nuevoServicio.valor_viaticos)}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de Acción */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #e2e8f0",
+                background: isDark ? "rgba(30, 41, 59, 0.5)" : "#f8fafc",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 12
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setAlertaDuplicadoModal(null)}
+                style={{
+                  background: isDark ? "rgba(255, 255, 255, 0.1)" : "#e2e8f0",
+                  border: "none",
+                  color: textTitle,
+                  padding: "10px 18px",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Cancelar Guardado
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarReemplazoDuplicado}
+                style={{
+                  background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  padding: "10px 20px",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 14px rgba(245, 158, 11, 0.35)"
+                }}
+              >
+                <RefreshCw size={15} />
+                <span>Actualizar / Reemplazar Registro Existente</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: GENERADOR DE ENLACE DE COMPARTICIÓN EXTERNA (MODO SOLO LECTURA PARA PROVEEDORES) */}
+      {showCompartirModal && (() => {
+        const provElegido = proveedorACompartir || filtroProveedor || "R&S Soluciones";
+        const mesElegido = mostrarTodos ? "todos" : filtroMes;
+        const anioElegido = mostrarTodos ? "todos" : filtroAnio;
+
+        // Construir URL pública limpia de solo lectura
+        const baseOrigin = window.location.origin;
+        const urlParams = new URLSearchParams();
+        urlParams.set("view", "proveedor-readonly");
+        urlParams.set("proveedor", provElegido);
+        urlParams.set("mes", String(mesElegido));
+        urlParams.set("anio", String(anioElegido));
+        urlParams.set("ts", Date.now().toString());
+
+        // Snapshot cifrado de servicios para visualización garantizada
+        try {
+          const snapshotJson = JSON.stringify(serviciosFiltrados.slice(0, 80));
+          const base64Data = btoa(unescape(encodeURIComponent(snapshotJson)));
+          urlParams.set("data", base64Data);
+        } catch (e) {
+          console.warn("No se pudo codificar snapshot base64:", e);
+        }
+
+        const urlCompartida = `${baseOrigin}?${urlParams.toString()}`;
+
+        return (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.75)",
+              backdropFilter: "blur(6px)",
+              zIndex: 99999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16
+            }}
+          >
+            <div
+              style={{
+                background: isDark ? "#0f172a" : "#ffffff",
+                border: isDark ? "1.5px solid rgba(56, 189, 248, 0.4)" : "1.5px solid #38bdf8",
+                borderRadius: 18,
+                width: "100%",
+                maxWidth: 620,
+                boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+                overflow: "hidden"
+              }}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  padding: "16px 20px",
+                  background: isDark ? "rgba(56, 189, 248, 0.15)" : "#f0f9ff",
+                  borderBottom: isDark ? "1px solid rgba(56, 189, 248, 0.3)" : "1px solid #bae6fd",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      background: "#0284c7",
+                      color: "#fff",
+                      borderRadius: 10,
+                      padding: 7,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <Share2 size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: textTitle }}>
+                      Compartir Cuenta de Cobro (Vista Proveedor)
+                    </h3>
+                    <p style={{ margin: 0, fontSize: 12, color: textSub }}>
+                      Modo auditoría externo estrictamente de solo lectura
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCompartirModal(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: textSub,
+                    cursor: "pointer",
+                    padding: 4
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Contenido */}
+              <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+                <div
+                  style={{
+                    background: isDark ? "rgba(16, 185, 129, 0.1)" : "#f0fdf4",
+                    border: isDark ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid #bbf7d0",
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 12.5,
+                    color: isDark ? "#86efac" : "#166534",
+                    lineHeight: 1.5
+                  }}
+                >
+                  🔒 <strong>Acceso Seguro y Aislado:</strong> Este enlace permite a entidades externas (como <em>{provElegido}</em>) auditar el formato de cuenta de cobro y los <strong>{serviciosFiltrados.length} servicios</strong> de este periodo. No podrán editar, eliminar, ni ver pestañas internas ni requerir inicio de sesión.
+                </div>
+
+                {/* Parámetros a compartir */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 12.5 }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: labelColor, marginBottom: 4 }}>
+                      Proveedor / Entidad:
+                    </label>
+                    <select
+                      value={provElegido}
+                      onChange={(e) => setProveedorACompartir(e.target.value)}
+                      style={{
+                        width: "100%",
+                        background: inputBg,
+                        border: inputBorder,
+                        color: inputText,
+                        borderRadius: 8,
+                        padding: "8px 10px",
+                        fontWeight: 600
+                      }}
+                    >
+                      {historialProveedores.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: labelColor, marginBottom: 4 }}>
+                      Periodo Seleccionado:
+                    </label>
+                    <div
+                      style={{
+                        background: inputBg,
+                        border: inputBorder,
+                        borderRadius: 8,
+                        padding: "8px 10px",
+                        color: inputText,
+                        fontWeight: 600
+                      }}
+                    >
+                      {mostrarTodos ? "Histórico Completo" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Input con la URL generada */}
+                <div>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: labelColor, marginBottom: 4 }}>
+                    Enlace Web Público Generado:
+                  </label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={urlCompartida}
+                      style={{
+                        flex: 1,
+                        background: inputBg,
+                        border: inputBorder,
+                        color: inputText,
+                        borderRadius: 8,
+                        padding: "9px 12px",
+                        fontSize: 12,
+                        fontFamily: "'IBM Plex Mono', monospace"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(urlCompartida);
+                        setCopiadoEnlace(true);
+                        setTimeout(() => setCopiadoEnlace(false), 2500);
+                      }}
+                      style={{
+                        background: copiadoEnlace ? "#10b981" : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                        border: "none",
+                        color: "#fff",
+                        borderRadius: 8,
+                        padding: "9px 14px",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        flexShrink: 0
+                      }}
+                    >
+                      {copiadoEnlace ? <Check size={15} /> : <Copy size={15} />}
+                      <span>{copiadoEnlace ? "¡Copiado!" : "Copiar Enlace"}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Acciones de apertura */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                  <a
+                    href={urlCompartida}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      color: isDark ? "#38bdf8" : "#0284c7",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      textDecoration: "none"
+                    }}
+                  >
+                    <ExternalLink size={14} /> Abrir vista previa externa en nueva pestaña
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setShowCompartirModal(false)}
+                    style={{
+                      background: isDark ? "rgba(255, 255, 255, 0.1)" : "#e2e8f0",
+                      border: "none",
+                      color: textTitle,
+                      padding: "8px 16px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer"
+                    }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Modal de diagnóstico del motor de IA (la llave vive en el servidor) */}
       <ConfigApiKeyModal

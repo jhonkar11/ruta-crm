@@ -27,6 +27,8 @@ import ModuloContable from "./components/contable/ModuloContable";
 import { isSoporteAuthorized } from "./utils/rbac";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
+import VistaProveedorReadOnly from "./components/share/VistaProveedorReadOnly";
+
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
   const { records, loading: recordsLoading, error, saveCliente, actualizarCampos, archivar, desarchivar, eliminar, registrarNovedad } = useClientes();
@@ -329,6 +331,18 @@ export default function App() {
     }
     setConfirmTarget(null);
   };
+
+  // Acceso público de solo lectura para entidades externas (Proveedores como R&S Soluciones)
+  const searchParams = new URLSearchParams(window.location.search);
+  const esVistaProveedorCompartida =
+    searchParams.get("view") === "proveedor-readonly" ||
+    searchParams.get("vista") === "cuenta-proveedor" ||
+    searchParams.has("data") ||
+    searchParams.has("token");
+
+  if (esVistaProveedorCompartida) {
+    return <VistaProveedorReadOnly theme={theme} />;
+  }
 
   if (authLoading) {
     return (
