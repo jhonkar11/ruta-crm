@@ -31,7 +31,10 @@ const NOMBRES_MESES = [
 ];
 
 export default function VistaProveedorReadOnly({ theme = "light" }) {
-  const isDark = theme === "dark";
+  // FORZAR TEMA CLARO INSTITUCIONAL (FONDO BLANCO):
+  // Elimina cualquier herencia de modo oscuro en la vista compartida.
+  // Garantiza que la página pública siempre se visualice con fondo blanco y texto oscuro en cualquier dispositivo o móvil.
+  const isDark = false;
 
   // ── Parámetros de la URL ─────────────────────────────────────────────────────
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
@@ -81,12 +84,83 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   const [imagenZoomModal, setImagenZoomModal] = useState(null); // { url, titulo }
   const [zoomNivel, setZoomNivel] = useState(1);
 
+  const tokenParam = params.get("token");
+  const [esSnapshotToken, setEsSnapshotToken] = useState(false);
+
   useEffect(() => {
     let cancelado = false;
     async function cargar() {
       setLoading(true);
       try {
-        // Si viene snapshot comprimido en la URL
+        // 1. Si viene un token, consultar prioritariamente la tabla shared_audits de Supabase
+        if (tokenParam) {
+          try {
+            // Intentar recuperar de Supabase
+            const { data: auditSnapshot, error: auditError } = await supabase
+              .from("shared_audits")
+              .select("*")
+              .eq("token", tokenParam)
+              .maybeSingle();
+
+            if (!auditError && auditSnapshot) {
+              // Si el snapshot contiene los servicios embebidos completos
+              if (Array.isArray(auditSnapshot.services_snapshot) && auditSnapshot.services_snapshot.length > 0) {
+                if (!cancelado) {
+                  setServicios(auditSnapshot.services_snapshot);
+                  setEsSnapshotToken(true);
+                  if (auditSnapshot.month && auditSnapshot.month !== "todos") setFiltroMes(Number(auditSnapshot.month) || auditSnapshot.month);
+                  if (auditSnapshot.year && auditSnapshot.year !== "todos") setFiltroAnio(Number(auditSnapshot.year) || auditSnapshot.year);
+                  setLoading(false);
+                  return;
+                }
+              }
+
+              // Si tiene service_ids exactos, consultar únicamente esos IDs en soporte_servicios
+              if (Array.isArray(auditSnapshot.service_ids) && auditSnapshot.service_ids.length > 0) {
+                const { data: serviciosPorIds, error: idsError } = await supabase
+                  .from("soporte_servicios")
+                  .select("*")
+                  .in("id", auditSnapshot.service_ids)
+                  .order("creado_en", { ascending: true });
+
+                if (!idsError && serviciosPorIds && serviciosPorIds.length > 0) {
+                  if (!cancelado) {
+                    setServicios(serviciosPorIds);
+                    setEsSnapshotToken(true);
+                    if (auditSnapshot.month && auditSnapshot.month !== "todos") setFiltroMes(Number(auditSnapshot.month) || auditSnapshot.month);
+                    if (auditSnapshot.year && auditSnapshot.year !== "todos") setFiltroAnio(Number(auditSnapshot.year) || auditSnapshot.year);
+                    setLoading(false);
+                    return;
+                  }
+                }
+              }
+            }
+
+            // Respaldo secundario: snapshot en localStorage guardado durante la generación
+            try {
+              const localSnapRaw = localStorage.getItem(`SHARED_SNAPSHOT_${tokenParam}`);
+              if (localSnapRaw) {
+                const localSnap = JSON.parse(localSnapRaw);
+                if (Array.isArray(localSnap.services_snapshot) && localSnap.services_snapshot.length > 0) {
+                  if (!cancelado) {
+                    setServicios(localSnap.services_snapshot);
+                    setEsSnapshotToken(true);
+                    if (localSnap.month && localSnap.month !== "todos") setFiltroMes(Number(localSnap.month) || localSnap.month);
+                    if (localSnap.year && localSnap.year !== "todos") setFiltroAnio(Number(localSnap.year) || localSnap.year);
+                    setLoading(false);
+                    return;
+                  }
+                }
+              }
+            } catch (snapLocalErr) {
+              console.warn("Aviso al leer snapshot local:", snapLocalErr);
+            }
+          } catch (tokenErr) {
+            console.warn("Aviso al consultar snapshot en shared_audits:", tokenErr);
+          }
+        }
+
+        // 2. Si viene snapshot comprimido en la URL
         if (rawPayload) {
           try {
             const parsed = JSON.parse(decodeURIComponent(escape(atob(rawPayload))));
@@ -102,8 +176,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           }
         }
 
-        // 1. Consulta amplia a Supabase para obtener todos los registros del periodo
-        // y permitir filtrado robusto y flexible del lado del cliente (sin filtros SQL restrictivos)
+        // 3. Consulta general a Supabase para obtener todos los registros del periodo
         let registrosRemotos = null;
         try {
           const { data: dbData, error: dbError } = await supabase
@@ -118,7 +191,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           console.warn("Consulta general remota a Supabase con aviso:", queryErr);
         }
 
-        // 2. Si no trajo datos o falló, recurrir al catálogo general de soporteService (respaldo local garantizado)
+        // 4. Si no trajo datos o falló, recurrir al catálogo general de soporteService (respaldo local garantizado)
         if (!registrosRemotos || registrosRemotos.length === 0) {
           registrosRemotos = await getServiciosSoporte();
         }
@@ -136,7 +209,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     }
     cargar();
     return () => { cancelado = true; };
-  }, [rawPayload]);
+  }, [rawPayload, tokenParam]);
 
   // Helper de extracción de mes y año
   const extraerMesAnio = (s) => {
@@ -178,11 +251,14 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     rawNorm.includes("soluciones");
 
   // REGLA DE INTEGRIDAD Y FILTRADO FLEXIBLE:
-  // - Trae exactamente los servicios correspondientes al proveedor.
-  // - Si el parámetro en URL es rs-soluciones / R&S Soluciones, captura cualquier registro
-  //   cuyo proveedor contenga 'R&S', 'RS', o esté asociado a esa cuenta, garantizando que
-  //   siempre aparezcan los 12 registros exactos y los $1.150.000 del CRM principal.
+  // - Si los servicios vienen directamente del snapshot por token (shared_audits),
+  //   se utilizan exactamente esos registros garantizando 100% de coincidencia inmutable.
+  // - De lo contrario, se aplica la normalización flexible sobre el catálogo general.
   const serviciosProveedor = useMemo(() => {
+    if (esSnapshotToken) {
+      return servicios;
+    }
+
     if (!proveedorParam || proveedorParam === "todos") {
       return servicios.filter((s) => {
         const p = (s.proveedor || "").trim();
@@ -248,6 +324,11 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
         if (!caso.includes(q)) return false;
       }
 
+      // Si viene por snapshot exacto de token y el usuario no ha cambiado filtros manualmente
+      if (esSnapshotToken) {
+        return true;
+      }
+
       // 2. Filtrado por mes y año
       if (filtroMes === "todos" && filtroAnio === "todos") return true;
 
@@ -263,7 +344,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
       return true;
     });
-  }, [serviciosProveedor, busqueda, filtroMes, filtroAnio]);
+  }, [serviciosProveedor, busqueda, filtroMes, filtroAnio, esSnapshotToken]);
 
   // Cálculos de liquidación
   const totalServicios = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_servicios) || 0), 0);
@@ -297,10 +378,11 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
   return (
     <div
+      className="bg-white text-gray-900 min-h-screen"
       style={{
         minHeight: "100vh",
-        background: isDark ? "#090d16" : "#f8fafc",
-        color: isDark ? "#f1f5f9" : "#0f172a",
+        background: "#ffffff",
+        color: "#0f172a",
         fontFamily: "'Inter', system-ui, sans-serif",
         padding: "24px 16px 60px"
       }}

@@ -335,6 +335,7 @@ export default function App() {
   // Acceso público de solo lectura para entidades externas (Proveedores como R&S Soluciones)
   const searchParams = new URLSearchParams(window.location.search);
   const esVistaProveedorCompartida =
+    searchParams.get("view") === "shared" ||
     searchParams.get("view") === "provider" ||
     searchParams.get("view") === "proveedor-readonly" ||
     searchParams.get("vista") === "cuenta-proveedor" ||
@@ -342,7 +343,7 @@ export default function App() {
     searchParams.has("token");
 
   if (esVistaProveedorCompartida) {
-    return <VistaProveedorReadOnly theme={theme} />;
+    return <VistaProveedorReadOnly theme="light" />;
   }
 
   if (authLoading) {

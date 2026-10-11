@@ -63,6 +63,7 @@ import {
   purgarEvidenciasMensuales
 } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
+import { supabase } from "../../services/supabaseClient";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 import AutoResizeTextarea from "./AutoResizeTextarea";
 import ConfigApiKeyModal from "./ConfigApiKeyModal";
@@ -93,6 +94,8 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [showCompartirModal, setShowCompartirModal] = useState(false);
   const [proveedorACompartir, setProveedorACompartir] = useState("");
   const [copiadoEnlace, setCopiadoEnlace] = useState(false);
+  const [generandoTokenShare, setGenerandoTokenShare] = useState(false);
+  const [sharedTokenGenerado, setSharedTokenGenerado] = useState("");
 
   // ── Modal de Edición ──────────────────────────────────────────────────────
   const [editandoServicio, setEditandoServicio] = useState(null); // null | objeto servicio
@@ -1158,6 +1161,74 @@ const handleGenerarPlantilla = async () => {
   const totalMateriales = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_materiales) || 0), 0);
   const granTotal = totalServicios + totalViaticos + totalMateriales;
   const textoEnLetras = numeroALetras(granTotal);
+
+  // ── Generador y persistencia de Snapshot por Token Único (shared_audits) ─────
+  const handleAbrirCompartirConSnapshot = async () => {
+    const provElegido = filtroProveedor || "R&S Soluciones";
+    setProveedorACompartir(provElegido);
+    setShowCompartirModal(true);
+    setGenerandoTokenShare(true);
+
+    try {
+      const normalizarSlug = (nom) =>
+        (nom || "")
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/&/g, "y")
+          .replace(/[^a-z0-9]/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "");
+
+      const provSlug = normalizarSlug(provElegido) || "rs-soluciones";
+      const mesStr = mostrarTodos ? "todos" : String(filtroMes);
+      const anioStr = mostrarTodos ? "todos" : String(filtroAnio);
+      const tokenHash = Math.random().toString(36).substring(2, 8);
+      const tokenUnico = `tk_${provSlug.slice(0, 10)}_${mesStr}_${anioStr}_${tokenHash}`;
+
+      const idsVisibles = serviciosFiltrados.map((s) => s.id || s.numero_caso).filter(Boolean);
+
+      // Intentar persistir en la tabla shared_audits de Supabase
+      try {
+        await supabase.from("shared_audits").upsert({
+          token: tokenUnico,
+          provider_entity: provElegido,
+          month: mesStr,
+          year: anioStr,
+          total_amount: granTotal,
+          service_ids: idsVisibles,
+          services_snapshot: serviciosFiltrados,
+          updated_at: new Date().toISOString()
+        });
+      } catch (dbErr) {
+        console.warn("Aviso al guardar snapshot remoto (fallback local activo):", dbErr);
+      }
+
+      // Respaldo en localStorage por si no hay conexión
+      try {
+        localStorage.setItem(
+          `SHARED_SNAPSHOT_${tokenUnico}`,
+          JSON.stringify({
+            token: tokenUnico,
+            provider_entity: provElegido,
+            month: mesStr,
+            year: anioStr,
+            total_amount: granTotal,
+            service_ids: idsVisibles,
+            services_snapshot: serviciosFiltrados
+          })
+        );
+      } catch (localErr) {
+        console.warn("Aviso guardando snapshot local:", localErr);
+      }
+
+      setSharedTokenGenerado(tokenUnico);
+    } catch (e) {
+      console.error("Error al preparar snapshot para compartir:", e);
+    } finally {
+      setGenerandoTokenShare(false);
+    }
+  };
 
   // Handler para iniciar la edición de un registro
   const handleAbrirEditarServicio = (servicio) => {
@@ -3320,14 +3391,11 @@ const handleGenerarPlantilla = async () => {
 
               {/* Acciones de Cuenta de Cobro */}
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                {/* Botón Compartir Vista Proveedor (Modo Solo Lectura) */}
+                {/* Botón Compartir Vista Proveedor (Modo Solo Lectura con Snapshot) */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setProveedorACompartir(filtroProveedor || "R&S Soluciones");
-                    setShowCompartirModal(true);
-                  }}
-                  title="Generar enlace web único de solo lectura para proveedores o clientes externos"
+                  onClick={handleAbrirCompartirConSnapshot}
+                  title="Generar enlace web único de solo lectura con snapshot garantizado"
                   style={{
                     background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
                     border: isDark ? "1.5px solid rgba(56, 189, 248, 0.5)" : "1.5px solid #38bdf8",
@@ -5514,8 +5582,7 @@ const handleGenerarPlantilla = async () => {
         const mesElegido = mostrarTodos ? "todos" : filtroMes;
         const anioElegido = mostrarTodos ? "todos" : filtroAnio;
 
-        // Normalizar prov a un slug seguro o nombre limpio
-        // 'R&S Soluciones' -> 'rs-soluciones'
+        // Normalizar prov a un slug seguro
         const normalizarSlug = (nom) =>
           (nom || "")
             .toLowerCase()
@@ -5528,20 +5595,22 @@ const handleGenerarPlantilla = async () => {
 
         const provSlug = normalizarSlug(provElegido) || "rs-soluciones";
 
-        // Construir URL pública limpia, segura y corta
+        // Usar el token único generado y guardado en shared_audits
+        const tokenActivo = sharedTokenGenerado || (() => {
+          const tokenHash = Math.random().toString(36).substring(2, 8);
+          return `tk_${provSlug.slice(0, 10)}_${mesElegido}_${anioElegido}_${tokenHash}`;
+        })();
+
+        // Construir URL limpia basada en el token único
         const baseOrigin = window.location.origin;
         const urlParams = new URLSearchParams();
-        urlParams.set("view", "provider");
-        urlParams.set("prov", provSlug); // parámetro slug seguro (ej. rs-soluciones)
+        urlParams.set("view", "shared");
+        urlParams.set("token", tokenActivo);
+        urlParams.set("prov", provSlug);
         if (mesElegido !== "todos") urlParams.set("mes", String(mesElegido));
         if (anioElegido !== "todos") urlParams.set("anio", String(anioElegido));
 
-        // Generar un token corto de integridad/autenticación para la entidad externa
-        const tokenHash = Math.random().toString(36).substring(2, 8);
-        const shortToken = `tk_${provSlug.slice(0, 10)}_${mesElegido}_${anioElegido}_${tokenHash}`;
-        urlParams.set("token", shortToken);
-
-        const urlCompartida = `${baseOrigin}?${urlParams.toString()}`;
+        const urlCompartida = `${baseOrigin}/?${urlParams.toString()}`;
 
         return (
           <div
