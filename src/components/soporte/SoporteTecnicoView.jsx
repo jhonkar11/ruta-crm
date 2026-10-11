@@ -75,10 +75,13 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [loadingServicios, setLoadingServicios] = useState(true);
 
   // ── Filtro por Mes/Año y Proveedor/Entidad ────────────────────────────────
+  // CORRECCIÓN: mostrarTodos inicia en true para que el histórico completo sea
+  // visible por defecto. El filtro por mes puede activarse manualmente, pero
+  // nunca debe ocultar registros previos al abrir el módulo.
   const ahora = new Date();
   const [filtroMes, setFiltroMes] = useState(ahora.getMonth() + 1); // 1–12
   const [filtroAnio, setFiltroAnio] = useState(ahora.getFullYear());
-  const [mostrarTodos, setMostrarTodos] = useState(false);
+  const [mostrarTodos, setMostrarTodos] = useState(true); // ← true: muestra histórico completo al abrir
   const [filtroProveedor, setFiltroProveedor] = useState(""); // "" = todos los proveedores
   const [busquedaCasoCuenta, setBusquedaCasoCuenta] = useState(""); // Búsqueda en tiempo real por N° de Caso en tabla
   const [procesandoLocal, setProcesandoLocal] = useState(false);
