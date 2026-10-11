@@ -32,10 +32,15 @@ const NOMBRES_MESES = [
 export default function VistaProveedorReadOnly({ theme = "light" }) {
   const isDark = theme === "dark";
 
-  // Parámetros de la URL
+  // ── Parámetros de la URL ─────────────────────────────────────────────────────
+  // CORRECCIÓN: decodeURIComponent para soportar %26→& y otros caracteres especiales
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const proveedorParam = params.get("prov") || params.get("proveedor") || "R&S Soluciones";
-  const mesParam = params.get("mes"); // número o "todos"
+  const _provRaw = params.get("prov") || params.get("proveedor") || "";
+  const proveedorParam = useMemo(() => {
+    try { return decodeURIComponent(_provRaw).trim() || "R&S Soluciones"; }
+    catch { return _provRaw.trim() || "R&S Soluciones"; }
+  }, [_provRaw]);
+  const mesParam = params.get("mes");   // número o "todos"
   const anioParam = params.get("anio"); // número o "todos"
   const rawPayload = params.get("data");
 
@@ -108,19 +113,30 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     return null;
   };
 
-  // Filtrado estricto: solo el proveedor solicitado (o todos si no se especificó)
+  // ── BLINDAJE ESTRICTO DE FILTRADO POR PROVEEDOR ──────────────────────────────
+  // Normaliza a minúsculas y colapsa espacios múltiples para comparación robusta
+  const normProv = (str) => (str || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const provNorm = normProv(proveedorParam);
+
+  // REGLA DE INTEGRIDAD ABSOLUTA (tolerancia CERO):
+  //  ✗ Proveedor vacío ("")  → EXCLUIDO siempre
+  //  ✗ Proveedor "-"         → EXCLUIDO (marcador de campo sin asignar)
+  //  ✗ Proveedor diferente   → EXCLUIDO — sin includes(), sin parciales, exacto
+  //  ✓ Coincidencia exacta   → INCLUIDO y contabilizado en el total
   const serviciosProveedor = useMemo(() => {
+    if (!proveedorParam || proveedorParam === "todos") {
+      // En modo "todos" igualmente excluir registros sin proveedor asignado
+      return servicios.filter((s) => {
+        const p = (s.proveedor || "").trim();
+        return p && p !== "-";
+      });
+    }
     return servicios.filter((s) => {
-      if (proveedorParam && proveedorParam !== "todos") {
-        const provServ = (s.proveedor || "").trim().toLowerCase();
-        const provBuscado = proveedorParam.trim().toLowerCase();
-        if (provServ !== provBuscado && !provServ.includes(provBuscado) && !provBuscado.includes(provServ)) {
-          return false;
-        }
-      }
-      return true;
+      const p = (s.proveedor || "").trim();
+      if (!p || p === "-") return false;       // excluir vacíos y guiones
+      return normProv(p) === provNorm;         // coincidencia exacta normalizada
     });
-  }, [servicios, proveedorParam]);
+  }, [servicios, proveedorParam, provNorm]);
 
   // Años disponibles en los servicios del proveedor
   const aniosDisponibles = useMemo(() => {

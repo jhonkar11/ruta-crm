@@ -2526,16 +2526,27 @@ const handleGenerarPlantilla = async () => {
                   />
                 </div>
 
-                {/* Fechas */}
+
+                {/* Fechas — Selector de calendario nativo (DD/MM/YYYY ↔ YYYY-MM-DD) */}
                 <div>
                   <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
-                    Fecha solicitud:
+                    📅 Fecha solicitud:
                   </label>
                   <input
-                    type="text"
-                    value={datosExtraidos.fecha_solicitud}
-                    onChange={(e) => setDatosExtraidos({ ...datosExtraidos, fecha_solicitud: e.target.value })}
-                    placeholder="DD/MM/AAAA"
+                    type="date"
+                    value={(() => {
+                      // Convertir DD/MM/YYYY → YYYY-MM-DD para el picker nativo
+                      const v = datosExtraidos.fecha_solicitud || "";
+                      const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                      return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : v;
+                    })()}
+                    onChange={(e) => {
+                      // Convertir YYYY-MM-DD → DD/MM/YYYY para almacenamiento
+                      const v = e.target.value;
+                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      const dmy = m ? `${m[3]}/${m[2]}/${m[1]}` : v;
+                      setDatosExtraidos({ ...datosExtraidos, fecha_solicitud: dmy });
+                    }}
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -2544,20 +2555,29 @@ const handleGenerarPlantilla = async () => {
                       borderRadius: 8,
                       padding: "8px 10px",
                       color: inputText,
-                      fontSize: 12
+                      fontSize: 12,
+                      colorScheme: isDark ? "dark" : "light"
                     }}
                   />
                 </div>
 
                 <div>
                   <label style={{ fontSize: 11, color: labelColor, display: "block", marginBottom: 4 }}>
-                    Fecha atención:
+                    📅 Fecha atención:
                   </label>
                   <input
-                    type="text"
-                    value={datosExtraidos.fecha_atencion}
-                    onChange={(e) => setDatosExtraidos({ ...datosExtraidos, fecha_atencion: e.target.value })}
-                    placeholder="DD/MM/AAAA"
+                    type="date"
+                    value={(() => {
+                      const v = datosExtraidos.fecha_atencion || "";
+                      const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                      return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : v;
+                    })()}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      const dmy = m ? `${m[3]}/${m[2]}/${m[1]}` : v;
+                      setDatosExtraidos({ ...datosExtraidos, fecha_atencion: dmy });
+                    }}
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -2566,10 +2586,12 @@ const handleGenerarPlantilla = async () => {
                       borderRadius: 8,
                       padding: "8px 10px",
                       color: inputText,
-                      fontSize: 12
+                      fontSize: 12,
+                      colorScheme: isDark ? "dark" : "light"
                     }}
                   />
                 </div>
+
 
                 {/* Coordinador con Memoria Histórica */}
                 <div>
@@ -4666,16 +4688,24 @@ const handleGenerarPlantilla = async () => {
                   />
                 </div>
 
-                {/* Fechas */}
+                {/* Fechas — Selector de calendario nativo */}
                 <div>
                   <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                    Fecha Solicitud:
+                    📅 Fecha Solicitud:
                   </label>
                   <input
-                    type="text"
-                    value={editFormData.fecha_solicitud || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, fecha_solicitud: e.target.value })}
-                    placeholder="DD/MM/AAAA"
+                    type="date"
+                    value={(() => {
+                      const v = editFormData.fecha_solicitud || "";
+                      const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                      return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : v;
+                    })()}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      const dmy = m ? `${m[3]}/${m[2]}/${m[1]}` : v;
+                      setEditFormData({ ...editFormData, fecha_solicitud: dmy });
+                    }}
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -4684,20 +4714,29 @@ const handleGenerarPlantilla = async () => {
                       borderRadius: 8,
                       padding: "8px 10px",
                       color: inputText,
-                      fontSize: 12.5
+                      fontSize: 12.5,
+                      colorScheme: isDark ? "dark" : "light"
                     }}
                   />
                 </div>
 
                 <div>
                   <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                    Fecha Atención:
+                    📅 Fecha Atención:
                   </label>
                   <input
-                    type="text"
-                    value={editFormData.fecha_atencion || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, fecha_atencion: e.target.value })}
-                    placeholder="DD/MM/AAAA"
+                    type="date"
+                    value={(() => {
+                      const v = editFormData.fecha_atencion || "";
+                      const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                      return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : v;
+                    })()}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      const dmy = m ? `${m[3]}/${m[2]}/${m[1]}` : v;
+                      setEditFormData({ ...editFormData, fecha_atencion: dmy });
+                    }}
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -4706,20 +4745,29 @@ const handleGenerarPlantilla = async () => {
                       borderRadius: 8,
                       padding: "8px 10px",
                       color: inputText,
-                      fontSize: 12.5
+                      fontSize: 12.5,
+                      colorScheme: isDark ? "dark" : "light"
                     }}
                   />
                 </div>
 
                 <div>
                   <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 4, fontWeight: 600 }}>
-                    Fecha Finalización:
+                    📅 Fecha Finalización:
                   </label>
                   <input
-                    type="text"
-                    value={editFormData.fecha_finalizacion || ""}
-                    onChange={(e) => setEditFormData({ ...editFormData, fecha_finalizacion: e.target.value })}
-                    placeholder="DD/MM/AAAA"
+                    type="date"
+                    value={(() => {
+                      const v = editFormData.fecha_finalizacion || "";
+                      const m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                      return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : v;
+                    })()}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      const dmy = m ? `${m[3]}/${m[2]}/${m[1]}` : v;
+                      setEditFormData({ ...editFormData, fecha_finalizacion: dmy });
+                    }}
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -4728,10 +4776,12 @@ const handleGenerarPlantilla = async () => {
                       borderRadius: 8,
                       padding: "8px 10px",
                       color: inputText,
-                      fontSize: 12.5
+                      fontSize: 12.5,
+                      colorScheme: isDark ? "dark" : "light"
                     }}
                   />
                 </div>
+
 
                 {/* Mesa */}
                 <div>
