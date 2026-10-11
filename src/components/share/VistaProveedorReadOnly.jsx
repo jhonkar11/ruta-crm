@@ -14,7 +14,11 @@ import {
   Copy,
   Check,
   Image as ImageIcon,
-  FileText
+  FileText,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { getServiciosSoporte } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
@@ -47,6 +51,8 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   const [exportandoExcel, setExportandoExcel] = useState(false);
   const [visorModal, setVisorModal] = useState(null); // Servicio seleccionado para ver plantilla e imagen
   const [copiadoPlantilla, setCopiadoPlantilla] = useState(false);
+  const [imagenZoomModal, setImagenZoomModal] = useState(null); // { url, titulo }
+  const [zoomNivel, setZoomNivel] = useState(1);
 
   useEffect(() => {
     let cancelado = false;
@@ -769,6 +775,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                 {visorModal.foto_url ? (
                   <div
                     style={{
+                      position: "relative",
                       borderRadius: 10,
                       overflow: "hidden",
                       border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #e2e8f0",
@@ -783,6 +790,13 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                       alt={`Evidencia del caso ${visorModal.numero_caso}`}
                       style={{ maxWidth: "100%", maxHeight: 320, objectFit: "contain" }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => { setZoomNivel(1); setImagenZoomModal({ url: visorModal.foto_url, titulo: `Evidencia Caso ${visorModal.numero_caso}` }); }}
+                      style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.7)", border: "none", color: "#fff", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}
+                    >
+                      <Maximize2 size={14} /> Zoom / Pantalla Completa
+                    </button>
                   </div>
                 ) : (
                   <div
@@ -829,6 +843,39 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                 Cerrar Visor
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE ZOOM DE EVIDENCIA FOTOGRÁFICA */}
+      {imagenZoomModal && (
+        <div
+          onClick={() => setImagenZoomModal(null)}
+          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.92)", zIndex: 999999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div style={{ position: "absolute", top: 14, right: 14, display: "flex", gap: 8 }}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setZoomNivel((z) => Math.min(z + 0.5, 4)); }} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+              <ZoomIn size={16} /> +Zoom
+            </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setZoomNivel((z) => Math.max(z - 0.5, 0.5)); }} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+              <ZoomOut size={16} /> -Zoom
+            </button>
+            <button type="button" onClick={() => setImagenZoomModal(null)} style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.5)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+              <X size={16} /> Cerrar
+            </button>
+          </div>
+          {imagenZoomModal.titulo && (
+            <div style={{ position: "absolute", top: 16, left: 16, color: "#94a3b8", fontSize: 12 }}>{imagenZoomModal.titulo}</div>
+          )}
+          <div onClick={(e) => e.stopPropagation()} style={{ overflow: "auto", maxWidth: "95vw", maxHeight: "88vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <img
+              src={imagenZoomModal.url}
+              alt={imagenZoomModal.titulo || "Evidencia"}
+              style={{ transform: `scale(${zoomNivel})`, transformOrigin: "center", transition: "transform 0.2s", maxWidth: "90vw", maxHeight: "85vh", objectFit: "contain", borderRadius: 4 }}
+            />
+          </div>
+          <div style={{ position: "absolute", bottom: 14, color: "#64748b", fontSize: 11 }}>
+            Clic fuera de la imagen para cerrar · Zoom: {Math.round(zoomNivel * 100)}%
           </div>
         </div>
       )}

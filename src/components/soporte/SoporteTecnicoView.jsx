@@ -27,7 +27,12 @@ import {
   Check,
   Zap,
   Share2,
-  ExternalLink
+  ExternalLink,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  Minimize2,
+  Image as ImageIcon
 } from "lucide-react";
 import { C } from "../../styles/tokens";
 import { isSoporteAuthorized, SOPORTE_ADMIN_EMAIL } from "../../utils/rbac";
@@ -91,6 +96,12 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [editandoServicio, setEditandoServicio] = useState(null); // null | objeto servicio
   const [editFormData, setEditFormData] = useState({});
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [comprimiendoFotoEdit, setComprimiendoFotoEdit] = useState(false);
+  const editFileInputRef = useRef(null);
+
+  // ── Visor con Zoom / Pantalla Completa para Evidencias ───────────────────────
+  const [imagenZoomModal, setImagenZoomModal] = useState(null); // { url, titulo }
+  const [zoomNivel, setZoomNivel] = useState(1); // 1, 1.5, 2, 2.5...
 
   // ── Módulo Independiente: Registro de Servicios & Historial de Plantillas ──
   const [registrosServicios, setRegistrosServicios] = useState([]);
@@ -1177,6 +1188,61 @@ const handleGenerarPlantilla = async () => {
     });
   };
 
+  // Handler para seleccionar y comprimir nueva imagen en el modal de edición
+  const handleFotoEdicionSelect = async (file) => {
+    if (!file) return;
+    if (file.type && !file.type.startsWith("image/")) {
+      alert("Por favor selecciona un archivo de imagen válido (JPG, PNG, WEBP, etc.)");
+      return;
+    }
+
+    setComprimiendoFotoEdit(true);
+    try {
+      let fileToProcess = file;
+      try {
+        const options = {
+          maxSizeMB: 0.7,
+          maxWidthOrHeight: 1280,
+          useWebWorker: false,
+          fileType: "image/jpeg",
+          initialQuality: 0.85
+        };
+        fileToProcess = await imageCompression(file, options);
+      } catch (compErr) {
+        console.warn("Compresión no disponible en este dispositivo, usando archivo original:", compErr);
+      }
+
+      // Convertir a DataURL para preview y subida
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const result = reader.result;
+        if (typeof result === "string") {
+          try {
+            // Subir al bucket temporal de Supabase
+            const resBlob = await (await fetch(result)).blob();
+            const fotoUrlRemota = await subirImagenTemporalSoporte(resBlob);
+            setEditFormData((prev) => ({
+              ...prev,
+              foto_url: fotoUrlRemota || result
+            }));
+          } catch (uploadErr) {
+            console.warn("Error subiendo foto al bucket, guardando en Base64:", uploadErr);
+            setEditFormData((prev) => ({
+              ...prev,
+              foto_url: result
+            }));
+          } finally {
+            setComprimiendoFotoEdit(false);
+          }
+        }
+      };
+      reader.readAsDataURL(fileToProcess);
+    } catch (err) {
+      console.error("Error al procesar foto de edición:", err);
+      setComprimiendoFotoEdit(false);
+    }
+  };
+
   // Handler para guardar los cambios de edición en Supabase y refrescar el estado
   const handleGuardarEdicion = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
@@ -1190,6 +1256,27 @@ const handleGenerarPlantilla = async () => {
       setServicios((prev) =>
         prev.map((s) => (s.id === actualizado.id ? { ...s, ...actualizado } : s))
       );
+
+      // Sincronizar también con el registro documental de servicios e historial si existe
+      try {
+        const regCoincidente = registrosServicios.find(
+          (r) => (r.numero_caso || "").trim().toLowerCase() === (editFormData.numero_caso || "").trim().toLowerCase()
+        );
+        if (regCoincidente) {
+          const regActualizado = {
+            ...regCoincidente,
+            ...editFormData,
+            id: regCoincidente.id
+          };
+          await guardarRegistroServicio(regActualizado);
+          setRegistrosServicios((prev) =>
+            prev.map((r) => (r.id === regCoincidente.id ? regActualizado : r))
+          );
+        }
+      } catch (regSyncErr) {
+        console.warn("No se pudo sincronizar edición con registrosServicios:", regSyncErr);
+      }
+
       setEditandoServicio(null);
     } catch (err) {
       alert("Error al actualizar servicio: " + err.message);
@@ -3412,22 +3499,23 @@ const handleGenerarPlantilla = async () => {
               </div>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1040, fontSize: 12.5 }}>
+            <div style={{ width: "100%", overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5, tableLayout: "auto" }}>
               <thead>
                 <tr style={{ background: "#135E6B", color: "#ffffff", textAlign: "center" }}>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>N° de Caso</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Fecha solicitud</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Fecha Atención</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Fecha finalización</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Mesa</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Proveedor / Entidad</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Cliente</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Coordinador</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Valor servicios</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Viáticos</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Materiales</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Estado</th>
-                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Acciones</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "11%", minWidth: 95 }}>N° de Caso</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "7%", minWidth: 72 }}>Solicitud</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "7%", minWidth: 72 }}>Atención</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "7%", minWidth: 72 }}>Fin</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "6%", minWidth: 60 }}>Mesa</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "8%", minWidth: 80 }}>Proveedor</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "9%", minWidth: 85 }}>Cliente</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "8%", minWidth: 78 }}>Coordinador</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "8%", minWidth: 75 }}>Servicios</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "5%", minWidth: 50 }}>Viáticos</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "5%", minWidth: 50 }}>Materiales</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "7%", minWidth: 70 }}>Estado</th>
+                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "12%", minWidth: 105 }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -3544,9 +3632,9 @@ const handleGenerarPlantilla = async () => {
                           transition: "background 0.2s, border-left 0.2s"
                         }}
                       >
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600 }}>
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                            <span>{s.numero_caso}</span>
+                        <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 700, wordBreak: "break-all", fontSize: 11 }}>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                            <span style={{ lineHeight: 1.25 }}>{s.numero_caso}</span>
                             {esAnioDiferente && (
                               <span
                                 title={`Registro histórico del año ${info.anio}`}
@@ -3554,41 +3642,42 @@ const handleGenerarPlantilla = async () => {
                                   background: isDark ? "rgba(245, 158, 11, 0.2)" : "#fef3c7",
                                   border: isDark ? "1px solid rgba(245, 158, 11, 0.5)" : "1px solid #fde68a",
                                   color: isDark ? "#fbbf24" : "#b45309",
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: 700,
-                                  padding: "1px 6px",
-                                  borderRadius: 6,
+                                  padding: "1px 4px",
+                                  borderRadius: 4,
                                   display: "inline-flex",
-                                  alignItems: "center",
-                                  gap: 3
+                                  alignItems: "center"
                                 }}
                               >
-                                📅 {info.anio} (Histórico)
+                                {info.anio}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_solicitud}</td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_atencion}</td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.fecha_finalizacion}</td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.mesa}</td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600, color: isDark ? "#38bdf8" : "#0284c7" }}>
+                        <td style={{ padding: "7px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontSize: 11 }}>{s.fecha_solicitud || "-"}</td>
+                        <td style={{ padding: "7px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontSize: 11 }}>{s.fecha_atencion || "-"}</td>
+                        <td style={{ padding: "7px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontSize: 11 }}>{s.fecha_finalizacion || "-"}</td>
+                        <td style={{ padding: "7px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontSize: 11 }}>{s.mesa || "-"}</td>
+                        <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontWeight: 600, color: isDark ? "#38bdf8" : "#0284c7", fontSize: 11 }}>
                           {s.proveedor || "-"}
                         </td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.cliente}</td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>{s.coordinador}</td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isPending ? "#ea580c" : (isDark ? "#6ee7b7" : "#059669"), fontWeight: 700 }}>
+                        <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontSize: 11, lineHeight: 1.25 }}>
+                          {s.cliente || "-"}
+                        </td>
+                        <td style={{ padding: "7px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", fontSize: 11 }}>{s.coordinador || "-"}</td>
+                        <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", color: isPending ? "#ea580c" : (isDark ? "#6ee7b7" : "#059669"), fontWeight: 700, fontSize: 11.5, fontFamily: "'IBM Plex Mono', monospace" }}>
                           {formatearMonedaCOP(s.valor_servicios)}
                         </td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
+                        <td style={{ padding: "7px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}>
                           {Number(s.valor_viaticos) > 0 ? formatearMonedaCOP(s.valor_viaticos) : "$ -"}
                         </td>
-                        <td style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right" }}>
+                        <td style={{ padding: "7px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", textAlign: "right", fontSize: 11, fontFamily: "'IBM Plex Mono', monospace" }}>
                           {Number(s.valor_materiales) > 0 ? formatearMonedaCOP(s.valor_materiales) : "$ -"}
                         </td>
 
                         {/* Columna de Estado Financiero Interactivo */}
-                        <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                        <td style={{ padding: "6px 2px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
                           <button
                             type="button"
                             onClick={() => handleTogglePaymentStatus(s.id)}
@@ -3603,44 +3692,34 @@ const handleGenerarPlantilla = async () => {
                               color: isPending
                                 ? (isDark ? "#fb923c" : "#c2410c")
                                 : (isDark ? "#6ee7b7" : "#15803d"),
-                              padding: "4px 8px",
-                              borderRadius: 8,
-                              fontSize: 11,
+                              padding: "3px 6px",
+                              borderRadius: 6,
+                              fontSize: 10,
                               fontWeight: 700,
                               cursor: "pointer",
                               display: "inline-flex",
                               alignItems: "center",
-                              gap: 5,
-                              boxShadow: isPending ? "0 0 10px rgba(249, 115, 22, 0.35)" : "none",
+                              gap: 3,
+                              boxShadow: isPending ? "0 0 8px rgba(249, 115, 22, 0.35)" : "none",
                               transition: "all 0.15s"
                             }}
                           >
                             {isPending ? (
                               <>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    width: 7,
-                                    height: 7,
-                                    borderRadius: "50%",
-                                    background: "#f97316",
-                                    boxShadow: "0 0 6px #f97316"
-                                  }}
-                                />
-                                <AlertTriangle size={12} />
+                                <AlertTriangle size={11} />
                                 <span>Pendiente</span>
                               </>
                             ) : (
                               <>
-                                <CheckCircle size={12} />
+                                <CheckCircle size={11} />
                                 <span>Confirmado</span>
                               </>
                             )}
                           </button>
                         </td>
 
-                        <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                        <td style={{ padding: "6px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
                             {/* Botón de Visualización de Plantilla (Ojo) */}
                             <button
                               type="button"
@@ -3649,6 +3728,10 @@ const handleGenerarPlantilla = async () => {
                                   registrosServicios.find((r) => (r.numero_caso || "").trim().toLowerCase() === (s.numero_caso || "").trim().toLowerCase())?.plantilla_completa ||
                                   `*REPORTE DE SERVICIO TÉCNICO*\nN° Caso: ${s.numero_caso}\nCliente: ${s.cliente}\nEquipo: ${s.equipo || "N/A"}\nFalla: ${s.falla || "N/A"}\nSolución: ${s.solucion || "N/A"}\nTécnico: ${s.tecnico || "Jhon Alexander Vasquez Reveló"}`;
                                 
+                                const fotoAdjunta = s.foto_url ||
+                                  registrosServicios.find((r) => (r.numero_caso || "").trim().toLowerCase() === (s.numero_caso || "").trim().toLowerCase())?.foto_url ||
+                                  null;
+
                                 setModalVerPlantilla({
                                   id: s.id,
                                   numero_caso: s.numero_caso,
@@ -3660,27 +3743,28 @@ const handleGenerarPlantilla = async () => {
                                   falla: s.falla,
                                   fecha_atencion: s.fecha_atencion,
                                   fecha_solicitud: s.fecha_solicitud,
-                                  plantilla_completa: plantillaTextoReg
+                                  plantilla_completa: plantillaTextoReg,
+                                  foto_url: fotoAdjunta
                                 });
                               }}
-                              title="Ver plantilla corporativa oficial de este servicio"
+                              title="Ver plantilla corporativa oficial y evidencia fotográfica"
                               style={{
                                 background: isDark ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)",
                                 border: isDark ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(16, 185, 129, 0.3)",
                                 color: isDark ? "#6ee7b7" : "#059669",
                                 cursor: "pointer",
-                                padding: "5px 7px",
-                                borderRadius: 6,
-                                display: "flex",
+                                padding: "4px 6px",
+                                borderRadius: 5,
+                                display: "inline-flex",
                                 alignItems: "center",
-                                gap: 4,
-                                fontSize: 11,
+                                gap: 3,
+                                fontSize: 10.5,
                                 fontWeight: 700,
                                 transition: "all 0.15s"
                               }}
                             >
-                              <Eye size={13} />
-                              <span>Ver Plantilla</span>
+                              <Eye size={12} />
+                              <span>Ver</span>
                             </button>
 
                             {/* Botón de Edición (Lápiz) */}
@@ -3693,17 +3777,17 @@ const handleGenerarPlantilla = async () => {
                                 border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid rgba(2, 132, 199, 0.3)",
                                 color: isDark ? "#38bdf8" : "#0284c7",
                                 cursor: "pointer",
-                                padding: "5px 7px",
-                                borderRadius: 6,
-                                display: "flex",
+                                padding: "4px 6px",
+                                borderRadius: 5,
+                                display: "inline-flex",
                                 alignItems: "center",
-                                gap: 4,
-                                fontSize: 11,
+                                gap: 3,
+                                fontSize: 10.5,
                                 fontWeight: 600,
                                 transition: "all 0.15s"
                               }}
                             >
-                              <Pencil size={13} />
+                              <Pencil size={12} />
                               <span>Editar</span>
                             </button>
 
@@ -3717,17 +3801,15 @@ const handleGenerarPlantilla = async () => {
                                 border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(239, 68, 68, 0.25)",
                                 color: "#ef4444",
                                 cursor: "pointer",
-                                padding: "5px 7px",
-                                borderRadius: 6,
-                                display: "flex",
+                                padding: "4px 6px",
+                                borderRadius: 5,
+                                display: "inline-flex",
                                 alignItems: "center",
-                                gap: 4,
-                                fontSize: 11,
-                                fontWeight: 600,
+                                justifyContent: "center",
                                 transition: "all 0.15s"
                               }}
                             >
-                              <Trash2 size={13} />
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         </td>
@@ -3737,26 +3819,26 @@ const handleGenerarPlantilla = async () => {
                 )}
 
                 {/* Fila de Subtotales de Liquidación: Acordados En servicio, Grupo Ava Viáticos, Materiales */}
-                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.45)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 700, textAlign: "center", fontSize: 12 }}>
-                  <td colSpan={5} style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontStyle: "italic", color: textSub }}>
+                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.45)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 700, textAlign: "center", fontSize: 11.5 }}>
+                  <td colSpan={5} style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontStyle: "italic", color: textSub }}>
                     Firma Digital Registrada en Sistema
                   </td>
-                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
+                  <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
                     Acordados En servicio
                   </td>
-                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
+                  <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
                     Grupo Ava Viáticos
                   </td>
-                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
+                  <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
                     Materiales
                   </td>
-                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", color: isDark ? "#a7f3d0" : "#059669", fontWeight: 800, textAlign: "right" }}>
+                  <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", color: isDark ? "#a7f3d0" : "#059669", fontWeight: 800, textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>
                     {formatearMonedaCOP(totalServicios)}
                   </td>
-                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "right" }}>
+                  <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>
                     {totalViaticos > 0 ? formatearMonedaCOP(totalViaticos) : "$ -"}
                   </td>
-                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "right" }}>
+                  <td style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>
                     {totalMateriales > 0 ? formatearMonedaCOP(totalMateriales) : "$ -"}
                   </td>
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
@@ -3765,10 +3847,10 @@ const handleGenerarPlantilla = async () => {
 
                 {/* Fila de Total General */}
                 <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.7)" : "#cbd5e1", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 900, textAlign: "right" }}>
-                  <td colSpan={8} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", textAlign: "center" }}>
+                  <td colSpan={8} style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", textAlign: "center", fontSize: 12 }}>
                     TOTAL CUENTA DE COBRO {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "HISTÓRICO" : `(${NOMBRES_MESES[filtroMes - 1].toUpperCase()} ${filtroAnio})`}
                   </td>
-                  <td colSpan={3} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", color: isDark ? "#6ee7b7" : "#047857", fontSize: 14, textAlign: "right" }}>
+                  <td colSpan={3} style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", color: isDark ? "#6ee7b7" : "#047857", fontSize: 13.5, textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>
                     {formatearMonedaCOP(granTotal)}
                   </td>
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8" }} />
@@ -3776,6 +3858,7 @@ const handleGenerarPlantilla = async () => {
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Bloque Oficial de Firma, Identificación y Declaración Legal Art. 383 E.T. (R&S Soluciones S.A.S.) */}
@@ -4870,6 +4953,47 @@ const handleGenerarPlantilla = async () => {
                     }}
                   />
                 </div>
+
+                {/* Campo de Evidencia Fotográfica en Edición */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ fontSize: 11.5, color: labelColor, display: "block", marginBottom: 6, fontWeight: 600 }}>
+                    <ImageIcon size={13} style={{ display: "inline", marginRight: 4 }} />
+                    Evidencia Fotográfica (Adjuntar / Actualizar / Reemplazar):
+                  </label>
+                  <input
+                    type="file"
+                    ref={editFileInputRef}
+                    style={{ display: "none" }}
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleFotoEdicionSelect(e.target.files[0]);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                  {editFormData.foto_url ? (
+                    <div style={{ position: "relative", borderRadius: 8, overflow: "hidden", background: "#000", maxHeight: 180, display: "flex", justifyContent: "center", border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #e2e8f0" }}>
+                      <img src={editFormData.foto_url} alt="Evidencia actual" style={{ maxWidth: "100%", maxHeight: 180, objectFit: "contain" }} />
+                      <div style={{ position: "absolute", top: 6, right: 6, display: "flex", gap: 4 }}>
+                        <button type="button" onClick={() => { setZoomNivel(1); setImagenZoomModal({ url: editFormData.foto_url, titulo: `Evidencia Caso ${editFormData.numero_caso}` }); }} style={{ background: "rgba(0,0,0,0.7)", border: "none", color: "#fff", borderRadius: 6, padding: "4px 6px", cursor: "pointer", display: "flex", alignItems: "center", gap: 3, fontSize: 11 }}>
+                          <Maximize2 size={13} /> Ampliar
+                        </button>
+                        <button type="button" onClick={() => editFileInputRef.current?.click()} style={{ background: "rgba(2,132,199,0.85)", border: "none", color: "#fff", borderRadius: 6, padding: "4px 6px", cursor: "pointer", display: "flex", alignItems: "center", gap: 3, fontSize: 11 }}>
+                          <UploadCloud size={13} /> {comprimiendoFotoEdit ? "Comprimiendo..." : "Reemplazar"}
+                        </button>
+                        <button type="button" onClick={() => setEditFormData((prev) => ({ ...prev, foto_url: "" }))} style={{ background: "rgba(239,68,68,0.8)", border: "none", color: "#fff", borderRadius: 6, padding: "4px 6px", cursor: "pointer", display: "flex", alignItems: "center", gap: 3, fontSize: 11 }}>
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => editFileInputRef.current?.click()} disabled={comprimiendoFotoEdit} style={{ width: "100%", border: isDark ? "2px dashed rgba(56,189,248,0.3)" : "2px dashed #93c5fd", borderRadius: 8, padding: "14px 16px", background: "transparent", color: isDark ? "#94a3b8" : "#64748b", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 12.5 }}>
+                      <UploadCloud size={16} />
+                      {comprimiendoFotoEdit ? "Comprimiendo imagen..." : "Adjuntar evidencia fotográfica (JPG, PNG, WEBP)"}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Botones de Acción */}
@@ -5077,6 +5201,21 @@ const handleGenerarPlantilla = async () => {
                 <div><strong>Equipo:</strong> {modalVerPlantilla.equipo || "-"}</div>
                 <div><strong>Falla:</strong> {modalVerPlantilla.falla || "-"}</div>
               </div>
+
+              {/* Evidencia Fotográfica con Zoom */}
+              {modalVerPlantilla.foto_url && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: textSub, display: "flex", alignItems: "center", gap: 5 }}>
+                    <ImageIcon size={13} /> Evidencia Fotográfica:
+                  </span>
+                  <div style={{ position: "relative", borderRadius: 10, overflow: "hidden", background: "#000", display: "flex", justifyContent: "center", maxHeight: 280, border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #e2e8f0" }}>
+                    <img src={modalVerPlantilla.foto_url} alt={`Evidencia ${modalVerPlantilla.numero_caso}`} style={{ maxWidth: "100%", maxHeight: 280, objectFit: "contain" }} />
+                    <button type="button" onClick={() => { setZoomNivel(1); setImagenZoomModal({ url: modalVerPlantilla.foto_url, titulo: `Evidencia Caso ${modalVerPlantilla.numero_caso}` }); }} style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.7)", border: "none", color: "#fff", borderRadius: 8, padding: "5px 9px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                      <Maximize2 size={14} /> Zoom / Pantalla Completa
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -5573,6 +5712,39 @@ const handleGenerarPlantilla = async () => {
         onEstadoVerificado={(r) => setMotorListo(!!r?.configurado)}
         theme={theme}
       />
+
+      {/* MODAL DE ZOOM DE EVIDENCIA FOTOGRÁFICA */}
+      {imagenZoomModal && (
+        <div
+          onClick={() => setImagenZoomModal(null)}
+          style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.92)", zIndex: 999999, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div style={{ position: "absolute", top: 14, right: 14, display: "flex", gap: 8 }}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setZoomNivel((z) => Math.min(z + 0.5, 4)); }} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+              <ZoomIn size={16} /> +Zoom
+            </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setZoomNivel((z) => Math.max(z - 0.5, 0.5)); }} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+              <ZoomOut size={16} /> -Zoom
+            </button>
+            <button type="button" onClick={() => setImagenZoomModal(null)} style={{ background: "rgba(239,68,68,0.3)", border: "1px solid rgba(239,68,68,0.5)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
+              <X size={16} /> Cerrar
+            </button>
+          </div>
+          {imagenZoomModal.titulo && (
+            <div style={{ position: "absolute", top: 16, left: 16, color: "#94a3b8", fontSize: 12 }}>{imagenZoomModal.titulo}</div>
+          )}
+          <div onClick={(e) => e.stopPropagation()} style={{ overflow: "auto", maxWidth: "95vw", maxHeight: "88vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <img
+              src={imagenZoomModal.url}
+              alt={imagenZoomModal.titulo || "Evidencia"}
+              style={{ transform: `scale(${zoomNivel})`, transformOrigin: "center", transition: "transform 0.2s", maxWidth: "90vw", maxHeight: "85vh", objectFit: "contain", borderRadius: 4 }}
+            />
+          </div>
+          <div style={{ position: "absolute", bottom: 14, color: "#64748b", fontSize: 11 }}>
+            Clic fuera de la imagen para cerrar · Zoom: {Math.round(zoomNivel * 100)}%
+          </div>
+        </div>
+      )}
 
       {/* Datalists globales para memoria histórica y autocompletado interactivo */}
       <datalist id="datalist-proveedores">
