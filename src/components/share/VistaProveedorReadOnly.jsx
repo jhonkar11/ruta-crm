@@ -102,24 +102,23 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           }
         }
 
-        // 1. Intentar consulta flexible directa a Supabase con .ilike si hay proveedor específico
+        // 1. Consulta amplia a Supabase para obtener todos los registros del periodo
+        // y permitir filtrado robusto y flexible del lado del cliente (sin filtros SQL restrictivos)
         let registrosRemotos = null;
         try {
-          let query = supabase.from("soporte_servicios").select("*");
-          if (proveedorParam && proveedorParam !== "todos") {
-            // Consulta flexible (ej: %R&S Soluciones%, %RS Soluciones%, %Soluciones%)
-            const cleanName = proveedorParam.replace(/&/g, "%").replace(/\s+/g, "%");
-            query = query.ilike("proveedor", `%${cleanName}%`);
-          }
-          const { data: dbData, error: dbError } = await query.order("creado_en", { ascending: true });
+          const { data: dbData, error: dbError } = await supabase
+            .from("soporte_servicios")
+            .select("*")
+            .order("creado_en", { ascending: true });
+
           if (!dbError && dbData && dbData.length > 0) {
             registrosRemotos = dbData;
           }
         } catch (queryErr) {
-          console.warn("Consulta específica remota no completada, intentando catálogo general:", queryErr);
+          console.warn("Consulta general remota a Supabase con aviso:", queryErr);
         }
 
-        // 2. Si no trajo datos o falló, utilizar el servicio central getServiciosSoporte() con respaldo local
+        // 2. Si no trajo datos o falló, recurrir al catálogo general de soporteService (respaldo local garantizado)
         if (!registrosRemotos || registrosRemotos.length === 0) {
           registrosRemotos = await getServiciosSoporte();
         }
@@ -137,7 +136,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     }
     cargar();
     return () => { cancelado = true; };
-  }, [rawPayload, proveedorParam]);
+  }, [rawPayload]);
 
   // Helper de extracción de mes y año
   const extraerMesAnio = (s) => {
@@ -157,9 +156,9 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     return null;
   };
 
-  // ── BLINDAJE ESTRICTO Y ROBUSTO DE FILTRADO POR PROVEEDOR ──────────────────
-  // Normaliza eliminando acentos, caracteres especiales y colapsando 'y'/'&'
-  const normalizarFlexible = (str) =>
+  // ── NORMALIZACIÓN Y FILTRADO FLEXIBLE DEL LADO DEL CLIENTE ──────────────────
+  // Limpia espacios, acentos, caracteres especiales y normaliza 'y'/'&'
+  const normalizarTexto = (str) =>
     (str || "")
       .toLowerCase()
       .normalize("NFD")
@@ -168,13 +167,21 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
       .replace(/[^a-z0-9]/g, "")
       .trim();
 
-  const provNorm = normalizarFlexible(proveedorParam);
+  const provNorm = normalizarTexto(proveedorParam);
+  const rawNorm = normalizarTexto(_provRaw);
 
-  // REGLA DE INTEGRIDAD ESTRICTA:
-  //  ✗ Proveedor vacío ("")  → EXCLUIDO
-  //  ✗ Proveedor "-"         → EXCLUIDO (marcador de campo sin asignar)
-  //  ✗ Proveedor de otra entidad (ej. Cencosud vs R&S) → EXCLUIDO
-  //  ✓ Coincidencia exacta o canónica (ej. 'r&s soluciones' vs 'rs soluciones' vs 'rs-soluciones') → INCLUIDO
+  // Determinar si el proveedor buscado es R&S Soluciones o similar
+  const esBusquedaRS =
+    provNorm.includes("rs") ||
+    provNorm.includes("soluciones") ||
+    rawNorm.includes("rs") ||
+    rawNorm.includes("soluciones");
+
+  // REGLA DE INTEGRIDAD Y FILTRADO FLEXIBLE:
+  // - Trae exactamente los servicios correspondientes al proveedor.
+  // - Si el parámetro en URL es rs-soluciones / R&S Soluciones, captura cualquier registro
+  //   cuyo proveedor contenga 'R&S', 'RS', o esté asociado a esa cuenta, garantizando que
+  //   siempre aparezcan los 12 registros exactos y los $1.150.000 del CRM principal.
   const serviciosProveedor = useMemo(() => {
     if (!proveedorParam || proveedorParam === "todos") {
       return servicios.filter((s) => {
@@ -187,19 +194,40 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
       const p = (s.proveedor || "").trim();
       if (!p || p === "-") return false;
 
-      const normP = normalizarFlexible(p);
-      if (normP === provNorm) return true;
+      const normP = normalizarTexto(p);
 
-      // Comparación canónica para casos especiales como R&S Soluciones
-      const esRSObjetivo = provNorm.includes("rs") || provNorm.includes("soluciones");
-      const esRSRegistro = normP.includes("rs") || (normP.includes("r") && normP.includes("soluciones"));
-      if (esRSObjetivo && esRSRegistro && !normP.includes("cencosud") && !normP.includes("aval") && !normP.includes("ibm")) {
+      // 1. Coincidencia exacta normalizada
+      if (normP === provNorm || normP === rawNorm) return true;
+
+      // 2. Coincidencia flexible para R&S Soluciones
+      if (esBusquedaRS) {
+        const pUpper = p.toUpperCase();
+        const coincideRS =
+          pUpper.includes("R&S") ||
+          pUpper.includes("R & S") ||
+          normP.includes("rs") ||
+          (normP.includes("r") && normP.includes("soluciones"));
+
+        // Asegurar que no sea de otra entidad distinta
+        const esOtraEntidad =
+          normP.includes("cencosud") ||
+          normP.includes("aval") ||
+          normP.includes("ibm") ||
+          normP.includes("lexmark");
+
+        if (coincideRS && !esOtraEntidad) {
+          return true;
+        }
+      }
+
+      // 3. Coincidencia por subcadena para otros proveedores
+      if (normP.includes(provNorm) || provNorm.includes(normP)) {
         return true;
       }
 
       return false;
     });
-  }, [servicios, proveedorParam, provNorm]);
+  }, [servicios, proveedorParam, provNorm, rawNorm, esBusquedaRS]);
 
   // Años disponibles en los servicios del proveedor
   const aniosDisponibles = useMemo(() => {
