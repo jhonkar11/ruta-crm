@@ -907,11 +907,34 @@ const handleGenerarPlantilla = async () => {
     }
   };
 
-  // 5. Eliminar servicio
+  // 5. Eliminar servicio con Eliminación en Cascada (Sincronizada)
   const handleEliminarServicio = async (id) => {
-    if (confirm("¿Estás seguro de eliminar este servicio de la cuenta de cobro?")) {
-      await eliminarServicioSoporte(id);
-      setServicios((prev) => prev.filter((s) => s.id !== id));
+    const servAEliminar = servicios.find((s) => s.id === id);
+    const numeroCaso = servAEliminar?.numero_caso?.trim();
+
+    if (confirm(`¿Estás seguro de eliminar este servicio (${numeroCaso || "Sin número"}) de la cuenta de cobro?\n\nEsta acción también eliminará de forma sincronizada el registro correspondiente en el Historial de Plantillas IT.`)) {
+      try {
+        // A. Eliminar de la tabla de servicios / cuenta de cobro
+        await eliminarServicioSoporte(id);
+        setServicios((prev) => prev.filter((s) => s.id !== id));
+
+        // B. Eliminación en Cascada: buscar y eliminar en registrosServicios e historial de plantillas
+        if (numeroCaso) {
+          const numLimpio = numeroCaso.toLowerCase();
+          const registroCoincidente = registrosServicios.find((r) => {
+            const casoReg = (r.numero_caso || "").trim().toLowerCase();
+            return casoReg === numLimpio || (r.id === id);
+          });
+
+          if (registroCoincidente) {
+            await eliminarRegistroServicio(registroCoincidente.id);
+            setRegistrosServicios((prev) => prev.filter((r) => r.id !== registroCoincidente.id));
+          }
+        }
+      } catch (err) {
+        console.error("Error en eliminación en cascada:", err);
+        alert("Ocurrió un error al eliminar el servicio: " + err.message);
+      }
     }
   };
 
@@ -3608,6 +3631,48 @@ const handleGenerarPlantilla = async () => {
 
                         <td style={{ padding: "8px 6px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                            {/* Botón de Visualización de Plantilla (Ojo) */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const plantillaTextoReg = s.plantilla_completa ||
+                                  registrosServicios.find((r) => (r.numero_caso || "").trim().toLowerCase() === (s.numero_caso || "").trim().toLowerCase())?.plantilla_completa ||
+                                  `*REPORTE DE SERVICIO TÉCNICO*\nN° Caso: ${s.numero_caso}\nCliente: ${s.cliente}\nEquipo: ${s.equipo || "N/A"}\nFalla: ${s.falla || "N/A"}\nSolución: ${s.solucion || "N/A"}\nTécnico: ${s.tecnico || "Jhon Alexander Vasquez Reveló"}`;
+                                
+                                setModalVerPlantilla({
+                                  id: s.id,
+                                  numero_caso: s.numero_caso,
+                                  cliente: s.cliente,
+                                  proveedor: s.proveedor,
+                                  mesa: s.mesa,
+                                  coordinador: s.coordinador,
+                                  equipo: s.equipo,
+                                  falla: s.falla,
+                                  fecha_atencion: s.fecha_atencion,
+                                  fecha_solicitud: s.fecha_solicitud,
+                                  plantilla_completa: plantillaTextoReg
+                                });
+                              }}
+                              title="Ver plantilla corporativa oficial de este servicio"
+                              style={{
+                                background: isDark ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)",
+                                border: isDark ? "1px solid rgba(16, 185, 129, 0.4)" : "1px solid rgba(16, 185, 129, 0.3)",
+                                color: isDark ? "#6ee7b7" : "#059669",
+                                cursor: "pointer",
+                                padding: "5px 7px",
+                                borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                transition: "all 0.15s"
+                              }}
+                            >
+                              <Eye size={13} />
+                              <span>Ver Plantilla</span>
+                            </button>
+
                             {/* Botón de Edición (Lápiz) */}
                             <button
                               type="button"
@@ -5133,23 +5198,20 @@ const handleGenerarPlantilla = async () => {
         const mesElegido = mostrarTodos ? "todos" : filtroMes;
         const anioElegido = mostrarTodos ? "todos" : filtroAnio;
 
-        // Construir URL pública limpia de solo lectura
+        // Construir URL pública limpia, segura y corta (sin volcar objetos masivos en data)
         const baseOrigin = window.location.origin;
         const urlParams = new URLSearchParams();
-        urlParams.set("view", "proveedor-readonly");
-        urlParams.set("proveedor", provElegido);
-        urlParams.set("mes", String(mesElegido));
-        urlParams.set("anio", String(anioElegido));
-        urlParams.set("ts", Date.now().toString());
+        urlParams.set("view", "provider");
+        urlParams.set("prov", provElegido);
+        if (mesElegido !== "todos") urlParams.set("mes", String(mesElegido));
+        if (anioElegido !== "todos") urlParams.set("anio", String(anioElegido));
 
-        // Snapshot cifrado de servicios para visualización garantizada
-        try {
-          const snapshotJson = JSON.stringify(serviciosFiltrados.slice(0, 80));
-          const base64Data = btoa(unescape(encodeURIComponent(snapshotJson)));
-          urlParams.set("data", base64Data);
-        } catch (e) {
-          console.warn("No se pudo codificar snapshot base64:", e);
-        }
+        // Generar un token corto de integridad/autenticación para la entidad externa
+        // ej: tk_rs_9_2026_x7a9
+        const provSlug = provElegido.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
+        const tokenHash = Math.random().toString(36).substring(2, 8);
+        const shortToken = `tk_${provSlug}_${mesElegido}_${anioElegido}_${tokenHash}`;
+        urlParams.set("token", shortToken);
 
         const urlCompartida = `${baseOrigin}?${urlParams.toString()}`;
 

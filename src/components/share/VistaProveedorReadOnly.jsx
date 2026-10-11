@@ -24,7 +24,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
   // Parámetros de la URL
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
-  const proveedorParam = params.get("prov") || "R&S Soluciones";
+  const proveedorParam = params.get("prov") || params.get("proveedor") || "R&S Soluciones";
   const mesParam = params.get("mes"); // número o "todos"
   const anioParam = params.get("anio"); // número o "todos"
   const rawPayload = params.get("data");
@@ -32,8 +32,12 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [filtroMes, setFiltroMes] = useState(mesParam === "todos" ? "todos" : Number(mesParam) || new Date().getMonth() + 1);
-  const [filtroAnio, setFiltroAnio] = useState(anioParam === "todos" ? "todos" : Number(anioParam) || new Date().getFullYear());
+  const [filtroMes, setFiltroMes] = useState(
+    mesParam ? (mesParam === "todos" ? "todos" : Number(mesParam)) : "todos"
+  );
+  const [filtroAnio, setFiltroAnio] = useState(
+    anioParam ? (anioParam === "todos" ? "todos" : Number(anioParam)) : "todos"
+  );
   const [exportandoExcel, setExportandoExcel] = useState(false);
 
   useEffect(() => {
