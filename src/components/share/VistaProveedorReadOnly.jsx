@@ -45,6 +45,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     "rs-soluciones": "R&S Soluciones",
     "r-s-soluciones": "R&S Soluciones",
     "rssoluciones": "R&S Soluciones",
+    "rys-soluciones": "R&S Soluciones",
     "cencosud": "Cencosud",
     "grupo-aval": "Grupo Aval",
     "ibm-colombia": "IBM Colombia",
@@ -688,8 +689,55 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
               <tbody>
                 {serviciosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={13} style={{ padding: 32, textAlign: "center", color: "#94a3b8" }}>
-                      No hay servicios registrados para este periodo o búsqueda.
+                    <td colSpan={13} style={{ padding: 36, textAlign: "center", color: "#64748b" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
+                          No hay servicios registrados para la entidad "{proveedorParam}" en este periodo.
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>
+                          Puedes cambiar el mes, quitar el filtro de búsqueda o activar el modo de respaldo general.
+                        </div>
+                        <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", justifyContent: "center" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBusqueda("");
+                              setEsSnapshotToken(false);
+                            }}
+                            style={{
+                              background: "#f1f5f9",
+                              border: "1px solid #cbd5e1",
+                              color: "#334155",
+                              padding: "6px 14px",
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer"
+                            }}
+                          >
+                            Mostrar Todos los Servicios del Mes (Sin filtro estricto)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFiltroMes("todos");
+                              setFiltroAnio("todos");
+                            }}
+                            style={{
+                              background: "#e0f2fe",
+                              border: "1px solid #0284c7",
+                              color: "#0284c7",
+                              padding: "6px 14px",
+                              borderRadius: 8,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              cursor: "pointer"
+                            }}
+                          >
+                            Ver Todo el Histórico
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ) : (

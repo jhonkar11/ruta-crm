@@ -1082,12 +1082,60 @@ const handleGenerarPlantilla = async () => {
     ])
   ).sort((a, b) => b - a);
 
+  // Helper de coincidencia flexible e insensible por entidad proveedora
+  const coincideProveedorFlexible = (provRegistro, provBuscado) => {
+    if (!provBuscado || provBuscado === "todos") return true;
+    const r = (provRegistro || "").trim();
+    if (!r || r === "-") return false;
+
+    // Limpieza de acentos, caracteres especiales y normalización de & y espacios
+    const norm = (s) =>
+      (s || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/&/g, "y")
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+
+    const normReg = norm(r);
+    const normBus = norm(provBuscado);
+
+    // 1. Coincidencia normalizada directa o por subcadena
+    if (normReg === normBus || normReg.includes(normBus) || normBus.includes(normReg)) {
+      return true;
+    }
+
+    // 2. Detección flexible para variaciones de R&S Soluciones (R&S, RS, RyS, Soluciones)
+    const esBusquedaRS = normBus.includes("rs") || normBus.includes("soluciones");
+    if (esBusquedaRS) {
+      const upperReg = r.toUpperCase();
+      const esRS =
+        upperReg.includes("R&S") ||
+        upperReg.includes("R & S") ||
+        normReg.includes("rs") ||
+        (normReg.includes("r") && normReg.includes("soluciones"));
+
+      const esOtraEntidad =
+        normReg.includes("cencosud") ||
+        normReg.includes("aval") ||
+        normReg.includes("ibm") ||
+        normReg.includes("lexmark");
+
+      if (esRS && !esOtraEntidad) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   // Detección de registros fuera del año actual o en otros años para el mes activo
   // (ej. si está en Septiembre 2026, detecta si hay registros en Septiembre 2024)
   const serviciosMesOtrosAnios = servicios.filter((s) => {
     if (mostrarTodos) return false;
     if (String(filtroAnio) === "todos") return false;
-    if (filtroProveedor && (s.proveedor || "").trim().toLowerCase() !== filtroProveedor.trim().toLowerCase()) {
+    if (filtroProveedor && !coincideProveedorFlexible(s.proveedor, filtroProveedor)) {
       return false;
     }
     const info = extraerMesAnio(s);
@@ -1108,8 +1156,8 @@ const handleGenerarPlantilla = async () => {
       }
     }
 
-    // 1. Filtrado por Proveedor / Entidad
-    if (filtroProveedor && (s.proveedor || "").trim().toLowerCase() !== filtroProveedor.trim().toLowerCase()) {
+    // 1. Filtrado Flexible por Proveedor / Entidad
+    if (filtroProveedor && !coincideProveedorFlexible(s.proveedor, filtroProveedor)) {
       return false;
     }
 
