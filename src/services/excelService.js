@@ -59,31 +59,152 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   worksheet.getColumn("K").width = 16; // Valor Materiales
   worksheet.getColumn("L").width = 4;
 
-  const fontGeneral = { name: "Arial", size: 10, color: { argb: "FF000000" } };
-  const fontBold = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
+  const fontGeneral = { name: "Arial", size: 9.5, color: { argb: "FF000000" } };
+  const fontBold = { name: "Arial", size: 9.5, bold: true, color: { argb: "FF000000" } };
 
-  // Fila 9: Razón social del emisor / Entidad
+  const borderThin = {
+    top: { style: "thin", color: { argb: "FF000000" } },
+    left: { style: "thin", color: { argb: "FF000000" } },
+    bottom: { style: "thin", color: { argb: "FF000000" } },
+    right: { style: "thin", color: { argb: "FF000000" } },
+  };
+
+  // ── FILAS 1 A 4: CABECERA CORPORATIVA OFICIAL ──
+  // B1..D3: Logo / Texto R&S SOLUCIONES
+  worksheet.mergeCells("B1:D3");
+  const cellLogo = worksheet.getCell("B1");
+  cellLogo.value = "R&S\nSOLUCIONES";
+  cellLogo.font = { name: "Arial", size: 16, bold: true, color: { argb: "FF135E6B" } };
+  cellLogo.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+  ["B1", "C1", "D1", "B2", "C2", "D2", "B3", "C3", "D3"].forEach((c) => {
+    worksheet.getCell(c).border = borderThin;
+  });
+
+  // E1..H3: Título CUENTA DE COBRO
+  worksheet.mergeCells("E1:H3");
+  const cellTitulo = worksheet.getCell("E1");
+  cellTitulo.value = "CUENTA DE COBRO";
+  cellTitulo.font = { name: "Arial", size: 17, bold: true, color: { argb: "FF0F2B48" } };
+  cellTitulo.alignment = { horizontal: "center", vertical: "middle" };
+  cellTitulo.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE9F2F7" } };
+  for (let r = 1; r <= 3; r++) {
+    ["E", "F", "G", "H"].forEach((col) => {
+      worksheet.getCell(`${col}${r}`).border = borderThin;
+    });
+  }
+
+  // I1..K2: Versión: 04
+  worksheet.mergeCells("I1:K2");
+  const cellVersion = worksheet.getCell("I1");
+  cellVersion.value = "Versión: 04";
+  cellVersion.font = { name: "Arial", size: 9.5, bold: true };
+  cellVersion.alignment = { horizontal: "center", vertical: "middle" };
+  cellVersion.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCE6F1" } };
+  for (let r = 1; r <= 2; r++) {
+    ["I", "J", "K"].forEach((col) => {
+      worksheet.getCell(`${col}${r}`).border = borderThin;
+    });
+  }
+
+  // I3..K3: Fecha: 04 de Junio de 2026 (o fecha actual)
+  worksheet.mergeCells("I3:K3");
+  const cellFechaDoc = worksheet.getCell("I3");
+  const hoy = new Date();
+  const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  const fechaDocTexto = `Fecha: ${String(hoy.getDate()).padStart(2, "0")} de ${mesesNombres[hoy.getMonth()]} de ${hoy.getFullYear()}`;
+  cellFechaDoc.value = fechaDocTexto;
+  cellFechaDoc.font = { name: "Arial", size: 8.5, bold: true };
+  cellFechaDoc.alignment = { horizontal: "center", vertical: "middle" };
+  cellFechaDoc.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCE6F1" } };
+  ["I3", "J3", "K3"].forEach((col) => {
+    worksheet.getCell(col).border = borderThin;
+  });
+
+  // ── FILA 5: CIUDAD Y FECHA ──
+  // B5:C5: Ciudad: Popayán
+  worksheet.mergeCells("B5:C5");
+  const cellCiudadEtq = worksheet.getCell("B5");
+  cellCiudadEtq.value = "Ciudad:";
+  cellCiudadEtq.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FFFFFFFF" } };
+  cellCiudadEtq.alignment = { horizontal: "center", vertical: "middle" };
+  cellCiudadEtq.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0A192F" } };
+  cellCiudadEtq.border = borderThin;
+  worksheet.getCell("C5").border = borderThin;
+
+  worksheet.mergeCells("D5:F5");
+  const cellCiudadVal = worksheet.getCell("D5");
+  cellCiudadVal.value = "Popayán";
+  cellCiudadVal.font = fontBold;
+  cellCiudadVal.alignment = { horizontal: "center", vertical: "middle" };
+  ["D5", "E5", "F5"].forEach((c) => { worksheet.getCell(c).border = borderThin; });
+
+  // G5..H5: Fecha:
+  worksheet.mergeCells("G5:H5");
+  const cellFechaEtq = worksheet.getCell("G5");
+  cellFechaEtq.value = "Fecha:";
+  cellFechaEtq.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FFFFFFFF" } };
+  cellFechaEtq.alignment = { horizontal: "center", vertical: "middle" };
+  cellFechaEtq.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0A192F" } };
+  cellFechaEtq.border = borderThin;
+  worksheet.getCell("H5").border = borderThin;
+
+  // I5..K5: Fecha valor (DD/MM/AAAA)
+  worksheet.mergeCells("I5:K5");
+  const cellFechaVal = worksheet.getCell("I5");
+  const fechaCorta = `${String(hoy.getDate()).padStart(2, "0")}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${hoy.getFullYear()}`;
+  cellFechaVal.value = fechaCorta;
+  cellFechaVal.font = fontBold;
+  cellFechaVal.alignment = { horizontal: "center", vertical: "middle" };
+  ["I5", "J5", "K5"].forEach((c) => { worksheet.getCell(c).border = borderThin; });
+
+  // ── FILA 7: NÚMERO DE CUENTA DE COBRO ──
+  worksheet.mergeCells("H7:I7");
+  const cellNumCuentaEtq = worksheet.getCell("H7");
+  cellNumCuentaEtq.value = "Numero de cuenta de cobro:";
+  cellNumCuentaEtq.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
+  cellNumCuentaEtq.alignment = { horizontal: "center", vertical: "middle" };
+  cellNumCuentaEtq.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0A192F" } };
+  cellNumCuentaEtq.border = borderThin;
+  worksheet.getCell("I7").border = borderThin;
+
+  worksheet.mergeCells("J7:K7");
+  const cellNumCuentaVal = worksheet.getCell("J7");
+  // Número de cobro según el mes o consecutivo
+  const numCuentaDefecto = metadata.numeroCuenta || (hoy.getMonth() + 1);
+  cellNumCuentaVal.value = numCuentaDefecto;
+  cellNumCuentaVal.font = { name: "Arial", size: 10, bold: true };
+  cellNumCuentaVal.alignment = { horizontal: "center", vertical: "middle" };
+  cellNumCuentaVal.border = borderThin;
+  worksheet.getCell("K7").border = borderThin;
+
+  // ── FILA 9: R&S SOLUCIONES S.A.S. / NIT ──
   worksheet.mergeCells("B9:K9");
   const cellEmpresa = worksheet.getCell("B9");
-  cellEmpresa.value = metadata.empresa || EMPRESA;
-  cellEmpresa.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF135E6B" } };
+  cellEmpresa.value = "R&S SOLUCIONES S.A.S.";
+  cellEmpresa.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF000000" } };
   cellEmpresa.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Fila 12: DEBE A
+  worksheet.mergeCells("B10:K10");
+  const cellNit = worksheet.getCell("B10");
+  cellNit.value = "NIT: 900.291.287-9";
+  cellNit.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FF333333" } };
+  cellNit.alignment = { horizontal: "center", vertical: "middle" };
+
+  // ── FILA 12: DEBE A ──
   worksheet.mergeCells("B12:K12");
   const cellDebeA = worksheet.getCell("B12");
-  cellDebeA.value = `DEBE A: ${metadata.nombre || "Jhon Alexander Vasquez Reveló"}`;
-  cellDebeA.font = fontBold;
+  cellDebeA.value = `DEBE A:  ${metadata.nombre || "Jhon Alexander Vasquez Reveló"}`;
+  cellDebeA.font = { name: "Arial", size: 10, bold: true };
   cellDebeA.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Fila 14: Cédula
+  // ── FILA 14: CÉDULA ──
   worksheet.mergeCells("B14:K14");
   const cellCC = worksheet.getCell("B14");
   cellCC.value = `C.C. ${metadata.cedula || "10308105"}`;
-  cellCC.font = fontBold;
+  cellCC.font = { name: "Arial", size: 10, bold: true };
   cellCC.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Calcular totales sobre los registros ya normalizados
+  // Calcular totales
   const totalServicios = registros.reduce((acc, s) => acc + s.valor_servicios, 0);
   const totalViaticos = registros.reduce((acc, s) => acc + s.valor_viaticos, 0);
   const totalMateriales = registros.reduce((acc, s) => acc + s.valor_materiales, 0);
@@ -92,38 +213,28 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   const textoEnLetras = numeroALetras(granTotal);
   const totalFormateado = new Intl.NumberFormat("es-CO").format(granTotal);
 
-  // Fila 17: LA SUMA DE
+  // ── FILA 17: LA SUMA DE ──
   worksheet.mergeCells("B17:K17");
   const cellSuma = worksheet.getCell("B17");
-  cellSuma.value = `LA SUMA DE ${textoEnLetras}):`;
-  cellSuma.font = fontBold;
+  cellSuma.value = `LA SUMA DE (${textoEnLetras}):`;
+  cellSuma.font = { name: "Arial", size: 9.5, bold: true };
   cellSuma.alignment = { horizontal: "center", vertical: "middle" };
-  cellSuma.border = {
-    top: { style: "thin", color: { argb: "FF00A86B" } },
-    left: { style: "thin", color: { argb: "FF00A86B" } },
-    right: { style: "thin", color: { argb: "FF00A86B" } },
-  };
 
-  // Fila 18: SON (VALOR)
+  // ── FILA 18: SON (VALOR) ──
   worksheet.mergeCells("B18:K18");
   const cellSon = worksheet.getCell("B18");
   cellSon.value = `SON (${totalFormateado}):`;
-  cellSon.font = fontBold;
+  cellSon.font = { name: "Arial", size: 9.5, bold: true };
   cellSon.alignment = { horizontal: "center", vertical: "middle" };
-  cellSon.border = {
-    bottom: { style: "thin", color: { argb: "FF00A86B" } },
-    left: { style: "thin", color: { argb: "FF00A86B" } },
-    right: { style: "thin", color: { argb: "FF00A86B" } },
-  };
 
-  // Fila 22: POR CONCEPTO DE
-  worksheet.mergeCells("B22:K22");
-  const cellConcepto = worksheet.getCell("B22");
+  // ── FILA 21: POR CONCEPTO DE ──
+  worksheet.mergeCells("B21:K21");
+  const cellConcepto = worksheet.getCell("B21");
   cellConcepto.value = "POR CONCEPTO DE : PRESTACIÓN DE SERVICIOS DE SOPORTE TÉCNICO EN SITIO.";
-  cellConcepto.font = fontBold;
+  cellConcepto.font = { name: "Arial", size: 9.5, bold: true };
   cellConcepto.alignment = { horizontal: "center", vertical: "middle" };
 
-  // Fila 24: ENCABEZADOS DE LA TABLA
+  // ── FILA 23: ENCABEZADOS DE LA TABLA (Idénticos al screenshot) ──
   const encabezados = [
     { col: "B", titulo: "N° de Caso" },
     { col: "C", titulo: "Fecha de solicitud" },
@@ -138,17 +249,12 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   ];
 
   const tealColor = "FF135E6B"; // Color idéntico al screenshot oficial
-  const borderThin = {
-    top: { style: "thin", color: { argb: "FF7F7F7F" } },
-    left: { style: "thin", color: { argb: "FF7F7F7F" } },
-    bottom: { style: "thin", color: { argb: "FF7F7F7F" } },
-    right: { style: "thin", color: { argb: "FF7F7F7F" } },
-  };
+  const filaEncabezado = 23;
 
   encabezados.forEach(({ col, titulo }) => {
-    const cell = worksheet.getCell(`${col}24`);
+    const cell = worksheet.getCell(`${col}${filaEncabezado}`);
     cell.value = titulo;
-    cell.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.font = { name: "Arial", size: 9, bold: true, color: { argb: "FFFFFFFF" } };
     cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
     cell.fill = {
       type: "pattern",
@@ -157,19 +263,17 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
     };
     cell.border = borderThin;
   });
-  worksheet.getRow(24).height = 24;
+  worksheet.getRow(filaEncabezado).height = 24;
 
-  // Filas de Datos a partir de la fila 25
-  const filaInicio = 25;
-  // Mínimo 7 filas visibles para conservar el espacio del formato oficial; por
-  // encima de eso crece con el número real de casos (exportación masiva).
-  const numItems = Math.max(registros.length, 7);
+  // Filas de Datos a partir de la fila 24
+  const filaInicio = 24;
+  const numItems = Math.max(registros.length, 12); // Conserva el espacio visual del formato
 
   for (let idx = 0; idx < numItems; idx++) {
     const rowNum = filaInicio + idx;
     const item = registros[idx] || null;
     const row = worksheet.getRow(rowNum);
-    row.height = 20;
+    row.height = 19;
 
     const cellB = worksheet.getCell(`B${rowNum}`);
     const cellC = worksheet.getCell(`C${rowNum}`);
@@ -186,35 +290,47 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
       cellB.value = item.numero_caso;
       cellB.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellC.value = item.fecha_solicitud || "n/d";
+      cellC.value = item.fecha_solicitud || "-";
       cellC.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellD.value = item.fecha_atencion || "n/d";
+      cellD.value = item.fecha_atencion || "-";
       cellD.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellE.value = item.fecha_finalizacion || "n/d";
+      cellE.value = item.fecha_finalizacion || "-";
       cellE.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellF.value = item.mesa;
+      cellF.value = item.mesa || "-";
       cellF.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellG.value = item.cliente;
+      cellG.value = item.cliente || "-";
       cellG.alignment = { horizontal: "center", vertical: "middle" };
 
-      cellH.value = item.coordinador;
+      cellH.value = item.coordinador || "-";
       cellH.alignment = { horizontal: "center", vertical: "middle" };
 
-      // Valores numéricos con formato moneda
       cellI.value = item.valor_servicios;
-      cellI.numFmt = '"$" #,##0';
+      cellI.numFmt = '"$" #,##0;("$" #,##0);"-"';
       cellI.alignment = { horizontal: "right", vertical: "middle" };
 
       cellJ.value = item.valor_viaticos;
-      cellJ.numFmt = '"$" #,##0';
+      cellJ.numFmt = '"$" #,##0;("$" #,##0);"-"';
       cellJ.alignment = { horizontal: "right", vertical: "middle" };
 
       cellK.value = item.valor_materiales;
-      cellK.numFmt = '"$" #,##0';
+      cellK.numFmt = '"$" #,##0;("$" #,##0);"-"';
+      cellK.alignment = { horizontal: "right", vertical: "middle" };
+    } else {
+      // Celdas vacías con guión de moneda según la imagen
+      cellI.value = 0;
+      cellI.numFmt = '"$" -';
+      cellI.alignment = { horizontal: "right", vertical: "middle" };
+
+      cellJ.value = 0;
+      cellJ.numFmt = '"$" -';
+      cellJ.alignment = { horizontal: "right", vertical: "middle" };
+
+      cellK.value = 0;
+      cellK.numFmt = '"$" -';
       cellK.alignment = { horizontal: "right", vertical: "middle" };
     }
 
@@ -224,49 +340,112 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
     });
   }
 
-  // Fila de Totales
-  const filaTotal = filaInicio + numItems;
-  const rowTot = worksheet.getRow(filaTotal);
-  rowTot.height = 22;
+  // ── FILA DE RESUMEN SUBTOTAL: Acordados En servicio, Grupo Ava Viáticos, Materiales ──
+  const filaSubtotal = filaInicio + numItems;
+  const rowSub = worksheet.getRow(filaSubtotal);
+  rowSub.height = 20;
 
-  // Limpiar celdas B..H de la fila total
-  for (let c = 2; c <= 8; c++) {
-    const cell = rowTot.getCell(c);
-    cell.border = borderThin;
-  }
+  worksheet.mergeCells(`B${filaSubtotal}:E${filaSubtotal}`);
+  const cellFirmaMini = worksheet.getCell(`B${filaSubtotal}`);
+  cellFirmaMini.value = "Firma Digital Registrada";
+  cellFirmaMini.font = { name: "Arial", size: 8.5, italic: true, color: { argb: "FF555555" } };
+  cellFirmaMini.alignment = { horizontal: "center", vertical: "middle" };
+  for (let c = 2; c <= 5; c++) worksheet.getCell(filaSubtotal, c).border = borderThin;
 
-  const cellTotI = worksheet.getCell(`I${filaTotal}`);
-  cellTotI.value = { formula: `SUM(I${filaInicio}:I${filaTotal - 1})`, result: totalServicios };
+  worksheet.getCell(`F${filaSubtotal}`).value = "Acordados En servicio";
+  worksheet.getCell(`F${filaSubtotal}`).font = { name: "Arial", size: 8, bold: true };
+  worksheet.getCell(`F${filaSubtotal}`).alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getCell(`F${filaSubtotal}`).border = borderThin;
+
+  worksheet.getCell(`G${filaSubtotal}`).value = "Grupo Ava  Viáticos";
+  worksheet.getCell(`G${filaSubtotal}`).font = { name: "Arial", size: 8, bold: true };
+  worksheet.getCell(`G${filaSubtotal}`).alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getCell(`G${filaSubtotal}`).border = borderThin;
+
+  worksheet.getCell(`H${filaSubtotal}`).value = "Materiales";
+  worksheet.getCell(`H${filaSubtotal}`).font = { name: "Arial", size: 8, bold: true };
+  worksheet.getCell(`H${filaSubtotal}`).alignment = { horizontal: "center", vertical: "middle" };
+  worksheet.getCell(`H${filaSubtotal}`).border = borderThin;
+
+  const cellTotI = worksheet.getCell(`I${filaSubtotal}`);
+  cellTotI.value = { formula: `SUM(I${filaInicio}:I${filaSubtotal - 1})`, result: totalServicios };
   cellTotI.font = fontBold;
   cellTotI.numFmt = '"$" #,##0';
   cellTotI.alignment = { horizontal: "right", vertical: "middle" };
   cellTotI.border = borderThin;
 
-  const cellTotJ = worksheet.getCell(`J${filaTotal}`);
-  cellTotJ.value = { formula: `SUM(J${filaInicio}:J${filaTotal - 1})`, result: totalViaticos };
+  const cellTotJ = worksheet.getCell(`J${filaSubtotal}`);
+  cellTotJ.value = { formula: `SUM(J${filaInicio}:J${filaSubtotal - 1})`, result: totalViaticos };
   cellTotJ.font = fontBold;
   cellTotJ.numFmt = '"$" #,##0';
   cellTotJ.alignment = { horizontal: "right", vertical: "middle" };
   cellTotJ.border = borderThin;
 
-  const cellTotK = worksheet.getCell(`K${filaTotal}`);
-  cellTotK.value = { formula: `SUM(K${filaInicio}:K${filaTotal - 1})`, result: totalMateriales };
+  const cellTotK = worksheet.getCell(`K${filaSubtotal}`);
+  cellTotK.value = { formula: `SUM(K${filaInicio}:K${filaSubtotal - 1})`, result: totalMateriales };
   cellTotK.font = fontBold;
   cellTotK.numFmt = '"$" #,##0';
   cellTotK.alignment = { horizontal: "right", vertical: "middle" };
   cellTotK.border = borderThin;
 
-  // Fila de Firma
-  const filaFirma = filaTotal + 3;
-  const cellFirma = worksheet.getCell(`B${filaFirma}`);
-  cellFirma.value = "FIRMA _______________________________________";
-  cellFirma.font = fontBold;
+  // ── FILA TOTAL GENERAL (SON) ──
+  const filaGranTotal = filaSubtotal + 1;
+  worksheet.mergeCells(`B${filaGranTotal}:H${filaGranTotal}`);
+  const cellTotLbl = worksheet.getCell(`B${filaGranTotal}`);
+  cellTotLbl.value = "TOTAL LIQUIDACIÓN CUENTA DE COBRO:";
+  cellTotLbl.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FF0A192F" } };
+  cellTotLbl.alignment = { horizontal: "right", vertical: "middle" };
+  for (let c = 2; c <= 8; c++) worksheet.getCell(filaGranTotal, c).border = borderThin;
 
-  // Encabezado del archivo: se antepone la razón social y la fecha de emisión para
-  // que el .xlsx quede identificable cuando se cargan varios en la misma carpeta.
-  const hoy = new Date();
-  const fechaEmision = `${String(hoy.getDate()).padStart(2, "0")}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${hoy.getFullYear()}`;
-  worksheet.getCell(`B${filaFirma + 1}`).value = `${EMPRESA} · Documento generado el ${fechaEmision}`;
+  const cellGranTotVal = worksheet.getCell(`I${filaGranTotal}`);
+  cellGranTotVal.value = { formula: `SUM(I${filaSubtotal}:K${filaSubtotal})`, result: granTotal };
+  cellGranTotVal.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF059669" } };
+  cellGranTotVal.numFmt = '"$" #,##0';
+  cellGranTotVal.alignment = { horizontal: "right", vertical: "middle" };
+  cellGranTotVal.border = borderThin;
+
+  worksheet.getCell(`J${filaGranTotal}`).border = borderThin;
+  worksheet.getCell(`K${filaGranTotal}`).border = borderThin;
+
+  // ── BLOQUE DE FIRMA Y DATOS DE IDENTIFICACIÓN (Filas posteriores) ──
+  const fFirma = filaGranTotal + 3;
+  worksheet.getCell(`B${fFirma}`).value = "FIRMA";
+  worksheet.getCell(`B${fFirma}`).font = fontBold;
+
+  worksheet.getCell(`B${fFirma + 1}`).value = "__________________________________________________";
+  worksheet.getCell(`B${fFirma + 1}`).font = fontBold;
+
+  worksheet.getCell(`B${fFirma + 3}`).value = `NOMBRE COMPLETO: ${metadata.nombre || "Jhon Alexander Vasquez Reveló"}`;
+  worksheet.getCell(`B${fFirma + 3}`).font = fontGeneral;
+
+  worksheet.getCell(`B${fFirma + 4}`).value = "TIPO DE IDENTIFICACION: Cedula";
+  worksheet.getCell(`B${fFirma + 4}`).font = fontGeneral;
+
+  worksheet.getCell(`B${fFirma + 5}`).value = `NUMERO DE IDENTIFICACION: ${metadata.cedula || "10308105"}`;
+  worksheet.getCell(`B${fFirma + 5}`).font = fontGeneral;
+
+  worksheet.getCell(`B${fFirma + 6}`).value = "CIUDAD Y DIRECCION DE DOMICILIO: Popayán Cra 13 # 10-52 Las Américas";
+  worksheet.getCell(`B${fFirma + 6}`).font = fontGeneral;
+
+  worksheet.getCell(`B${fFirma + 7}`).value = "TELEFONO Y/O CELULAR: 3122174851   Cuenta de Ahorro Nequi 3122174851";
+  worksheet.getCell(`B${fFirma + 7}`).font = fontGeneral;
+
+  // ── TEXTO LEGAL DE RETENCIÓN EN LA FUENTE (Art. 383 E.T.) ──
+  const fLegal = fFirma + 9;
+  worksheet.mergeCells(`B${fLegal}:K${fLegal + 3}`);
+  const cellLegal = worksheet.getCell(`B${fLegal}`);
+  cellLegal.value =
+    "Yo, Jhon Alexander Vasquez Reveló identificado con CC numero: 10308105, con el fin de dar cumplimiento a las obligaciones establecidas en la ley\n" +
+    "1819 de 2016 y del parágrafo 2 del artículo 383 del estatuto tributario, manifiesto bajo gravedad de juramento que: para efectos de la tabla de retención en la fuente establecida en el artículo 383 del estatuto tributario\n" +
+    "por la cual se aplica a los pagos o abonos en cuenta por concepto de ingresos por honorarios o compensación por servicios personales, NO he contratado o vinculado mas de un trabajador asociado a la actividad\n" +
+    "que desarrollo y no reúno ninguno de los requisitos para ser declarante de renta.";
+  cellLegal.font = { name: "Arial", size: 7.5, italic: true };
+  cellLegal.alignment = { horizontal: "left", vertical: "top", wrapText: true };
+  for (let r = fLegal; r <= fLegal + 3; r++) {
+    for (let c = 2; c <= 11; c++) {
+      worksheet.getCell(r, c).border = borderThin;
+    }
+  }
 
   // Generar buffer binario
   const buffer = await workbook.xlsx.writeBuffer();

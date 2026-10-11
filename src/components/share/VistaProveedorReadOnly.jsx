@@ -8,7 +8,13 @@ import {
   Building2,
   CheckCircle2,
   Clock,
-  Printer
+  Printer,
+  Eye,
+  X,
+  Copy,
+  Check,
+  Image as ImageIcon,
+  FileText
 } from "lucide-react";
 import { getServiciosSoporte } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
@@ -39,6 +45,8 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     anioParam ? (anioParam === "todos" ? "todos" : Number(anioParam)) : "todos"
   );
   const [exportandoExcel, setExportandoExcel] = useState(false);
+  const [visorModal, setVisorModal] = useState(null); // Servicio seleccionado para ver plantilla e imagen
+  const [copiadoPlantilla, setCopiadoPlantilla] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -479,12 +487,13 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Viáticos</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Materiales</th>
                   <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Estado</th>
+                  <th style={{ padding: "10px 8px", border: "1px solid rgba(255,255,255,0.2)" }}>Plantilla & Evidencia</th>
                 </tr>
               </thead>
               <tbody>
                 {serviciosFiltrados.length === 0 ? (
                   <tr>
-                    <td colSpan={12} style={{ padding: 32, textAlign: "center", color: "#94a3b8" }}>
+                    <td colSpan={13} style={{ padding: 32, textAlign: "center", color: "#94a3b8" }}>
                       No hay servicios registrados para este periodo o búsqueda.
                     </td>
                   </tr>
@@ -557,6 +566,28 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                             ✓ Auditado
                           </span>
                         </td>
+                        <td style={{ padding: "9px 8px", border: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid #e2e8f0", whiteSpace: "nowrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => setVisorModal(s)}
+                            style={{
+                              background: isDark ? "rgba(56, 189, 248, 0.15)" : "#e0f2fe",
+                              border: isDark ? "1px solid rgba(56, 189, 248, 0.4)" : "1px solid #bae6fd",
+                              color: isDark ? "#38bdf8" : "#0284c7",
+                              borderRadius: 6,
+                              padding: "4px 8px",
+                              fontSize: 11,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4
+                            }}
+                          >
+                            <Eye size={13} />
+                            <span>Ver Plantilla</span>
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -577,6 +608,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                     {totalMateriales ? formatearMonedaCOP(totalMateriales) : "$ -"}
                   </td>
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #cbd5e1" }}></td>
+                  <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #cbd5e1" }}></td>
                 </tr>
               </tfoot>
             </table>
@@ -589,6 +621,217 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           <br />Modo Solo Lectura Verificado · Prohibida la alteración de datos de liquidación.
         </footer>
       </div>
+
+      {/* VISOR MODAL: AUDITORÍA DE PLANTILLA CORPORATIVA Y EVIDENCIA FOTOGRÁFICA */}
+      {visorModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.75)",
+            backdropFilter: "blur(6px)",
+            zIndex: 99999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16
+          }}
+        >
+          <div
+            style={{
+              background: isDark ? "#0f172a" : "#ffffff",
+              border: isDark ? "1.5px solid rgba(56, 189, 248, 0.4)" : "1.5px solid #38bdf8",
+              borderRadius: 18,
+              width: "100%",
+              maxWidth: 760,
+              maxHeight: "92vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+              overflow: "hidden"
+            }}
+          >
+            {/* Header del Visor */}
+            <div
+              style={{
+                padding: "16px 20px",
+                background: isDark ? "rgba(30, 41, 59, 0.8)" : "#f0f9ff",
+                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid #bae6fd",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    background: "#0284c7",
+                    color: "#ffffff",
+                    borderRadius: 10,
+                    padding: 7,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+                    Plantilla de Servicio · Caso: {visorModal.numero_caso}
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: isDark ? "#94a3b8" : "#64748b" }}>
+                    {visorModal.cliente} · {visorModal.fecha_atencion || visorModal.fecha_solicitud} · {visorModal.proveedor || proveedorParam}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVisorModal(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: isDark ? "#94a3b8" : "#64748b",
+                  cursor: "pointer",
+                  padding: 4
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Contenido del Visor: Plantilla Corporativa Oficial + Imagen de Evidencia */}
+            <div style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Plantilla Corporativa */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#94a3b8" : "#475569" }}>
+                    Texto Oficial de la Plantilla Corporativa:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(visorModal.plantilla_completa || "No hay texto registrado.");
+                      setCopiadoPlantilla(true);
+                      setTimeout(() => setCopiadoPlantilla(false), 2000);
+                    }}
+                    style={{
+                      background: copiadoPlantilla ? "#10b981" : "linear-gradient(135deg, #0284c7 0%, #0369a1 100%)",
+                      border: "none",
+                      color: "#fff",
+                      borderRadius: 6,
+                      padding: "5px 10px",
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5
+                    }}
+                  >
+                    {copiadoPlantilla ? <Check size={13} /> : <Copy size={13} />}
+                    <span>{copiadoPlantilla ? "¡Copiada!" : "Copiar Plantilla"}</span>
+                  </button>
+                </div>
+
+                <textarea
+                  readOnly
+                  value={
+                    visorModal.plantilla_completa ||
+                    `*REPORTE DE SOPORTE TÉCNICO EN SITIO*\nN° Caso: ${visorModal.numero_caso}\nFecha: ${visorModal.fecha_atencion || visorModal.fecha_solicitud}\nCliente: ${visorModal.cliente}\nEquipo: ${visorModal.equipo || "N/A"}\nFalla: ${visorModal.falla || "N/A"}\nSolución: ${visorModal.solucion || "N/A"}\nEstado: CERRADO Y AUDITADO\nTécnico: Jhon Alexander Vasquez Reveló`
+                  }
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    minHeight: 180,
+                    background: isDark ? "rgba(0,0,0,0.3)" : "#f8fafc",
+                    border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #cbd5e1",
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 12,
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    lineHeight: 1.6,
+                    color: isDark ? "#f1f5f9" : "#0f172a",
+                    resize: "vertical"
+                  }}
+                />
+              </div>
+
+              {/* Evidencia Fotográfica Vinculada */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#94a3b8" : "#475569", display: "flex", alignItems: "center", gap: 6 }}>
+                  <ImageIcon size={15} /> Evidencia Fotográfica / Soporte Adjunto:
+                </span>
+
+                {visorModal.foto_url ? (
+                  <div
+                    style={{
+                      borderRadius: 10,
+                      overflow: "hidden",
+                      border: isDark ? "1px solid rgba(255,255,255,0.15)" : "1px solid #e2e8f0",
+                      background: "#000",
+                      display: "flex",
+                      justifyContent: "center",
+                      maxHeight: 320
+                    }}
+                  >
+                    <img
+                      src={visorModal.foto_url}
+                      alt={`Evidencia del caso ${visorModal.numero_caso}`}
+                      style={{ maxWidth: "100%", maxHeight: 320, objectFit: "contain" }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background: isDark ? "rgba(255,255,255,0.03)" : "#f1f5f9",
+                      border: isDark ? "1px dashed rgba(255,255,255,0.15)" : "1px dashed #cbd5e1",
+                      borderRadius: 10,
+                      padding: "24px 16px",
+                      textAlign: "center",
+                      color: isDark ? "#94a3b8" : "#64748b",
+                      fontSize: 12
+                    }}
+                  >
+                    No se adjuntó imagen fotográfica para este caso o fue purgada por política de retención mensual (TTL).
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer del Visor */}
+            <div
+              style={{
+                padding: "12px 20px",
+                borderTop: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0",
+                background: isDark ? "rgba(30, 41, 59, 0.5)" : "#f8fafc",
+                display: "flex",
+                justifyContent: "flex-end"
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setVisorModal(null)}
+                style={{
+                  background: isDark ? "rgba(255, 255, 255, 0.1)" : "#e2e8f0",
+                  border: "none",
+                  color: isDark ? "#f1f5f9" : "#0f172a",
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  cursor: "pointer"
+                }}
+              >
+                Cerrar Visor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

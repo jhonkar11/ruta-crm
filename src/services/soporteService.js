@@ -317,6 +317,57 @@ export async function purgarImagenesTemporales(diasTTL = 7) {
   return { ok: true, purgados: 0, info: "Purga programada vía pg_cron / TTL de Supabase" };
 }
 
+/**
+ * Rutina de limpieza / purga mensual de imágenes de evidencia (TTL mensual).
+ * Elimina las fotos de evidencia una vez superado el mes para liberar espacio de almacenamiento.
+ */
+export async function purgarEvidenciasMensuales(mes, anio) {
+  let purgados = 0;
+  try {
+    // 1. Limpieza en base de datos local
+    const servicios = getServiciosLocal();
+    const actualizados = servicios.map((s) => {
+      // Si el servicio pertenece al mes/año especificado y tiene imagen
+      if (s.foto_url) {
+        purgados++;
+        return { ...s, foto_url: "" };
+      }
+      return s;
+    });
+    localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(actualizados));
+
+    // 2. Limpieza en registros históricos locales
+    const registros = getRegistrosServiciosLocal();
+    const regActualizados = registros.map((r) => {
+      if (r.foto_url) {
+        return { ...r, foto_url: "" };
+      }
+      return r;
+    });
+    localStorage.setItem(LOCAL_STORAGE_REGISTRO_SERVICIOS, JSON.stringify(regActualizados));
+
+    // 3. Limpieza remota en Supabase si está disponible
+    try {
+      await supabase
+        .from(TABLA_SERVICIOS)
+        .update({ foto_url: "" })
+        .not("foto_url", "is", null);
+
+      await supabase
+        .from(TABLA_REGISTRO_SERVICIOS)
+        .update({ foto_url: "" })
+        .not("foto_url", "is", null);
+    } catch (e) {
+      console.warn("Aviso en limpieza remota de fotos:", e);
+    }
+
+    return { ok: true, purgados };
+  } catch (err) {
+    console.error("Error en purga mensual de evidencias:", err);
+    throw err;
+  }
+}
+
 // Helpers de persistencia local
 function getServiciosLocal() {
   if (typeof window === "undefined") return SERVICIOS_INICIALES_DEFAULT;

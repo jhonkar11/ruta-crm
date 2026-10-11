@@ -475,8 +475,112 @@ export function ejecutarMapeoEstructuralLocal({
     plantillaCorporativa = partes.join("\n");
   }
 
+  // Si la plantilla generada o mapeada está incompleta, intentar enriquecerla desde la memoria histórica
+  if (!plantillaInstitucional && datosEstructurados.falla) {
+    const memoriaEncontrada = consultarMemoriaPlantillaHistorica({
+      falla: datosEstructurados.falla,
+      cliente: datosEstructurados.cliente,
+      proveedor: datosEstructurados.proveedor
+    });
+    if (memoriaEncontrada && memoriaEncontrada.plantilla) {
+      // Si la memoria histórica contiene soluciones o causas técnicas mejor redactadas
+      if (!datosEstructurados.solucion && memoriaEncontrada.solucion) {
+        datosEstructurados.solucion = memoriaEncontrada.solucion;
+      }
+      if (!datosEstructurados.causa && memoriaEncontrada.causa) {
+        datosEstructurados.causa = memoriaEncontrada.causa;
+      }
+      if (!datosEstructurados.pruebas && memoriaEncontrada.pruebas) {
+        datosEstructurados.pruebas = memoriaEncontrada.pruebas;
+      }
+    }
+  }
+
   return {
     datos: datosEstructurados,
     plantillaCorporativa: plantillaCorporativa.trim()
   };
 }
+
+const LOCAL_STORAGE_MEMORIA_PLANTILLAS = "crm_memoria_plantillas_historicas";
+
+/**
+ * Guarda en memoria histórica local el patrón de plantilla y redacción técnica de un servicio.
+ */
+export function guardarPlantillaEnMemoriaHistorica(servicio) {
+  if (!servicio || !servicio.plantilla_completa) return;
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_MEMORIA_PLANTILLAS);
+    const lista = raw ? JSON.parse(raw) : [];
+
+    const claveFalla = (servicio.falla || "").trim().toLowerCase();
+    const claveCliente = (servicio.cliente || "").trim().toLowerCase();
+    const claveProveedor = (servicio.proveedor || "").trim().toLowerCase();
+
+    // Buscar si ya existe patrón similar
+    const existenteIdx = lista.findIndex(
+      (item) => item.claveFalla === claveFalla && item.claveProveedor === claveProveedor
+    );
+
+    const entrada = {
+      id: `mem-${Date.now()}`,
+      claveFalla,
+      claveCliente,
+      claveProveedor,
+      falla: servicio.falla || "",
+      causa: servicio.causa || "",
+      solucion: servicio.solucion || "",
+      pruebas: servicio.pruebas || "",
+      equipo: servicio.equipo || "",
+      plantilla: servicio.plantilla_completa,
+      actualizado_en: new Date().toISOString()
+    };
+
+    if (existenteIdx >= 0) {
+      lista[existenteIdx] = entrada;
+    } else {
+      lista.unshift(entrada);
+      if (lista.length > 100) lista.pop(); // Mantener top 100 patrones
+    }
+
+    localStorage.setItem(LOCAL_STORAGE_MEMORIA_PLANTILLAS, JSON.stringify(lista));
+  } catch (e) {
+    console.warn("No se pudo guardar en memoria histórica de plantillas:", e);
+  }
+}
+
+/**
+ * Consulta la memoria histórica para encontrar redacción o estructura previa de plantillas similares.
+ */
+export function consultarMemoriaPlantillaHistorica({ falla = "", cliente = "", proveedor = "" }) {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_MEMORIA_PLANTILLAS);
+    if (!raw) return null;
+    const lista = JSON.parse(raw);
+    if (!Array.isArray(lista) || lista.length === 0) return null;
+
+    const fLimpia = (falla || "").toLowerCase().trim();
+    const cLimpia = (cliente || "").toLowerCase().trim();
+    const pLimpia = (proveedor || "").toLowerCase().trim();
+
+    // 1. Coincidencia exacta de falla y proveedor
+    let match = lista.find(
+      (m) => m.claveFalla && fLimpia && m.claveFalla === fLimpia && m.claveProveedor === pLimpia
+    );
+    if (match) return match;
+
+    // 2. Coincidencia por palabras clave de falla (ej. "formateo", "disco", "impresora", "actualización", "sistema operativo")
+    match = lista.find(
+      (m) => m.claveFalla && fLimpia && (fLimpia.includes(m.claveFalla) || m.claveFalla.includes(fLimpia))
+    );
+    if (match) return match;
+
+    // 3. Coincidencia por entidad/cliente
+    match = lista.find((m) => m.claveCliente && cLimpia && m.claveCliente === cLimpia);
+    return match || null;
+  } catch (e) {
+    console.warn("Error consultando memoria histórica de plantillas:", e);
+    return null;
+  }
+}
+

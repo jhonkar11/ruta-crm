@@ -39,7 +39,11 @@ import {
   MODELO_GEMINI_POR_DEFECTO,
   MODELOS_GEMINI
 } from "../../services/geminiService";
-import { ejecutarMapeoEstructuralLocal } from "../../services/localTemplateMapper";
+import {
+  ejecutarMapeoEstructuralLocal,
+  guardarPlantillaEnMemoriaHistorica,
+  consultarMemoriaPlantillaHistorica
+} from "../../services/localTemplateMapper";
 import {
   getServiciosSoporte,
   guardarServicioSoporte,
@@ -50,7 +54,8 @@ import {
   eliminarRegistroServicio,
   depurarRegistrosServiciosPorMes,
   subirImagenTemporalSoporte,
-  purgarImagenesTemporales
+  purgarImagenesTemporales,
+  purgarEvidenciasMensuales
 } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
@@ -368,22 +373,21 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
       console.warn("No se pudo generar ObjectURL, usando FileReader directo:", previewErr);
     }
 
-    // B. Procesamiento y compresión en segundo plano
+    // B. Procesamiento y compresión optimizada automática previa al almacenamiento
     try {
       let fileToProcess = file;
-      // Comprimir solo si excede 1MB para proteger el rendimiento en móviles
-      if (file.size > 1024 * 1024) {
-        try {
-          const options = {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1600,
-            useWebWorker: false // Evita bloqueos en navegadores móviles / WebViews
-          };
-          fileToProcess = await imageCompression(file, options);
-        } catch (compErr) {
-          console.warn("Compresión no disponible en este dispositivo, usando archivo original:", compErr);
-          fileToProcess = file;
-        }
+      try {
+        const options = {
+          maxSizeMB: 0.7, // Reduce peso a nivel óptimo para web y transferencias
+          maxWidthOrHeight: 1280, // Máxima nitidez y legibilidad de texto técnico/pantallas
+          useWebWorker: false, // Evita bloqueos en navegadores móviles / WebViews
+          fileType: "image/jpeg",
+          initialQuality: 0.85
+        };
+        fileToProcess = await imageCompression(file, options);
+      } catch (compErr) {
+        console.warn("Compresión no disponible en este dispositivo, usando archivo original:", compErr);
+        fileToProcess = file;
       }
 
       // Convertir a Base64 para consumo por Gemini API
@@ -785,6 +789,9 @@ const handleGenerarPlantilla = async () => {
     const guardadoReg = await guardarRegistroServicio(nuevoRegistro);
     setRegistrosServicios((prev) => [guardadoReg, ...prev.filter((r) => r.id !== guardadoReg.id)]);
 
+    // APRENDIZAJE Y MEMORIA HISTÓRICA LOCAL INTELIGENTE:
+    guardarPlantillaEnMemoriaHistorica(nuevoRegistro);
+
     setGuardadoExitoso(true);
     setTimeout(() => setGuardadoExitoso(false), 3000);
 
@@ -825,6 +832,9 @@ const handleGenerarPlantilla = async () => {
         const guardadoReg = await guardarRegistroServicio(nuevoRegistro);
         setRegistrosServicios((prev) => [guardadoReg, ...prev]);
       }
+
+      // Guardar en memoria histórica
+      guardarPlantillaEnMemoriaHistorica(nuevoRegistro);
 
       setAlertaDuplicadoModal(null);
       setGuardadoExitoso(true);
@@ -3726,25 +3736,100 @@ const handleGenerarPlantilla = async () => {
                   })
                 )}
 
-                {/* Fila de Totales */}
-                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.4)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 800, textAlign: "right" }}>
-                  <td colSpan={8} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "center" }}>
-                    TOTAL CUENTA DE COBRO {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "HISTÓRICO" : `(${NOMBRES_MESES[filtroMes - 1].toUpperCase()} ${filtroAnio})`}
+                {/* Fila de Subtotales de Liquidación: Acordados En servicio, Grupo Ava Viáticos, Materiales */}
+                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.45)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 700, textAlign: "center", fontSize: 12 }}>
+                  <td colSpan={5} style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontStyle: "italic", color: textSub }}>
+                    Firma Digital Registrada en Sistema
                   </td>
-                  <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", color: isDark ? "#a7f3d0" : "#059669", fontSize: 13.5 }}>
+                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
+                    Acordados En servicio
+                  </td>
+                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
+                    Grupo Ava Viáticos
+                  </td>
+                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontWeight: 800 }}>
+                    Materiales
+                  </td>
+                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", color: isDark ? "#a7f3d0" : "#059669", fontWeight: 800, textAlign: "right" }}>
                     {formatearMonedaCOP(totalServicios)}
                   </td>
-                  <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }}>
+                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "right" }}>
                     {totalViaticos > 0 ? formatearMonedaCOP(totalViaticos) : "$ -"}
                   </td>
-                  <td style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }}>
+                  <td style={{ padding: "8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", textAlign: "right" }}>
                     {totalMateriales > 0 ? formatearMonedaCOP(totalMateriales) : "$ -"}
                   </td>
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
                 </tr>
+
+                {/* Fila de Total General */}
+                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.7)" : "#cbd5e1", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 900, textAlign: "right" }}>
+                  <td colSpan={8} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", textAlign: "center" }}>
+                    TOTAL CUENTA DE COBRO {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "HISTÓRICO" : `(${NOMBRES_MESES[filtroMes - 1].toUpperCase()} ${filtroAnio})`}
+                  </td>
+                  <td colSpan={3} style={{ padding: "12px 10px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", color: isDark ? "#6ee7b7" : "#047857", fontSize: 14, textAlign: "right" }}>
+                    {formatearMonedaCOP(granTotal)}
+                  </td>
+                  <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8" }} />
+                  <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8" }} />
+                </tr>
               </tbody>
             </table>
+          </div>
+
+          {/* Bloque Oficial de Firma, Identificación y Declaración Legal Art. 383 E.T. (R&S Soluciones S.A.S.) */}
+          <div
+            style={{
+              background: cardBg,
+              border: cardBorder,
+              borderRadius: 18,
+              padding: 24,
+              boxShadow: cardShadow,
+              display: "flex",
+              flexDirection: "column",
+              gap: 16
+            }}
+          >
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
+              {/* Sección de Firma */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: textTitle, marginBottom: 8 }}>FIRMA:</div>
+                <div style={{ borderBottom: isDark ? "1.5px solid rgba(255,255,255,0.3)" : "1.5px solid #000000", width: 260, height: 40, display: "flex", alignItems: "flex-end", paddingBottom: 4 }}>
+                  <span style={{ fontFamily: "'Dancing Script', cursive, serif", fontSize: 20, color: isDark ? "#38bdf8" : "#0284c7" }}>
+                    Jhon Alexander Vasquez
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: textSub, marginTop: 4 }}>
+                  Firma digital registrada y autorizada para cobro
+                </div>
+              </div>
+
+              {/* Datos de Identificación y Contacto */}
+              <div style={{ fontSize: 12, lineHeight: 1.8, color: textTitle }}>
+                <div><strong>NOMBRE COMPLETO:</strong> Jhon Alexander Vasquez Reveló</div>
+                <div><strong>TIPO DE IDENTIFICACIÓN:</strong> Cédula de Ciudadanía</div>
+                <div><strong>NÚMERO DE IDENTIFICACIÓN:</strong> 10308105</div>
+                <div><strong>CIUDAD Y DIRECCIÓN DE DOMICILIO:</strong> Popayán Cra 13 # 10-52 Las Américas</div>
+                <div><strong>TELÉFONO Y/O CELULAR:</strong> 3122174851 · Cuenta de Ahorro Nequi 3122174851</div>
+              </div>
+            </div>
+
+            {/* Texto Legal de Retención en la Fuente */}
+            <div
+              style={{
+                background: isDark ? "rgba(0,0,0,0.25)" : "#f8fafc",
+                border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #cbd5e1",
+                borderRadius: 10,
+                padding: "12px 16px",
+                fontSize: 11,
+                lineHeight: 1.6,
+                color: isDark ? "#94a3b8" : "#475569",
+                fontStyle: "italic"
+              }}
+            >
+              Yo, Jhon Alexander Vasquez Reveló identificado con CC numero: 10308105, con el fin de dar cumplimiento a las obligaciones establecidas en la ley 1819 de 2016 y del parágrafo 2 del artículo 383 del estatuto tributario, manifiesto bajo gravedad de juramento que: para efectos de la tabla de retención en la fuente establecida en el artículo 383 del estatuto tributario por la cual se aplica a los pagos o abonos en cuenta por concepto de ingresos por honorarios o compensación por servicios personales, NO he contratado o vinculado mas de un trabajador asociado a la actividad que desarrollo y no reúno ninguno de los requisitos para ser declarante de renta.
+            </div>
           </div>
         </div>
       )}
@@ -3790,35 +3875,75 @@ const handleGenerarPlantilla = async () => {
                 </div>
               </div>
 
-              {/* Botón Depurar por Mes */}
-              <button
-                type="button"
-                disabled={depurando || registrosServiciosFiltrados.length === 0}
-                onClick={handleDepurarMesRegistros}
-                title={`Eliminar exclusivamente las plantillas de ${mostrarTodosReg ? "todos los meses" : NOMBRES_MESES[filtroMesReg - 1]} en el Registro de Servicios`}
-                style={{
-                  background: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)",
-                  border: isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fca5a5",
-                  color: isDark ? "#fca5a5" : "#b91c1c",
-                  padding: "8px 14px",
-                  borderRadius: 10,
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  cursor: depurando || registrosServiciosFiltrados.length === 0 ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  opacity: registrosServiciosFiltrados.length === 0 ? 0.6 : 1,
-                  transition: "all 0.2s"
-                }}
-              >
-                <Trash2 size={15} />
-                <span>
-                  {depurando
-                    ? "Depurando mes..."
-                    : `Depurar ${mostrarTodosReg ? "Histórico" : NOMBRES_MESES[filtroMesReg - 1]}`}
-                </span>
-              </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                {/* Botón Purga Mensual de Evidencias (TTL) */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const confirmacion = confirm(
+                      "⚠️ ¿CONFIRMAS LA PURGA MENSUAL DE EVIDENCIAS FOTOGRÁFICAS?\n\n" +
+                      "✓ Esta rutina liberará espacio en disco eliminando las imágenes de evidencia de casos antiguos.\n" +
+                      "✓ Los datos financieros, números de caso y plantillas corporativas permanecerán intactos."
+                    );
+                    if (!confirmacion) return;
+                    try {
+                      const res = await purgarEvidenciasMensuales(filtroMesReg, filtroAnioReg);
+                      alert(`✓ Purga completada con éxito: Se liberó espacio de ${res.purgados} imagen(es) de evidencia.`);
+                      cargarServicios();
+                    } catch (e) {
+                      alert("Error durante la purga de evidencias: " + e.message);
+                    }
+                  }}
+                  title="Eliminar fotos de soporte y capturas superado el periodo mensual (liberar almacenamiento)"
+                  style={{
+                    background: isDark ? "rgba(245, 158, 11, 0.15)" : "#fffbeb",
+                    border: isDark ? "1px solid rgba(245, 158, 11, 0.4)" : "1px solid #fde68a",
+                    color: isDark ? "#fbbf24" : "#b45309",
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <RefreshCw size={14} />
+                  <span>Purga Mensual de Evidencias (TTL)</span>
+                </button>
+
+                {/* Botón Depurar por Mes */}
+                <button
+                  type="button"
+                  disabled={depurando || registrosServiciosFiltrados.length === 0}
+                  onClick={handleDepurarMesRegistros}
+                  title={`Eliminar exclusivamente las plantillas de ${mostrarTodosReg ? "todos los meses" : NOMBRES_MESES[filtroMesReg - 1]} en el Registro de Servicios`}
+                  style={{
+                    background: isDark ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)",
+                    border: isDark ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid #fca5a5",
+                    color: isDark ? "#fca5a5" : "#b91c1c",
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: depurando || registrosServiciosFiltrados.length === 0 ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    opacity: registrosServiciosFiltrados.length === 0 ? 0.6 : 1,
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <Trash2 size={15} />
+                  <span>
+                    {depurando
+                      ? "Depurando mes..."
+                      : `Depurar ${mostrarTodosReg ? "Histórico" : NOMBRES_MESES[filtroMesReg - 1]}`}
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* Barra de Filtros: Buscador por N° Caso + Selector Mes/Año */}
