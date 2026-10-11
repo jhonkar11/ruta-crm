@@ -21,6 +21,7 @@ import {
   Minimize2
 } from "lucide-react";
 import { getServiciosSoporte } from "../../services/soporteService";
+import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 
@@ -33,13 +34,34 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   const isDark = theme === "dark";
 
   // ── Parámetros de la URL ─────────────────────────────────────────────────────
-  // CORRECCIÓN: decodeURIComponent para soportar %26→& y otros caracteres especiales
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const _provRaw = params.get("prov") || params.get("proveedor") || "";
+
+  // Mapa de slugs conocidos a nombres canónicos
+  const SLUG_MAP = {
+    "rs-soluciones": "R&S Soluciones",
+    "r-s-soluciones": "R&S Soluciones",
+    "rssoluciones": "R&S Soluciones",
+    "cencosud": "Cencosud",
+    "grupo-aval": "Grupo Aval",
+    "ibm-colombia": "IBM Colombia",
+    "lexmark": "Lexmark",
+    "almacenes-exito": "Almacenes Éxito"
+  };
+
   const proveedorParam = useMemo(() => {
-    try { return decodeURIComponent(_provRaw).trim() || "R&S Soluciones"; }
-    catch { return _provRaw.trim() || "R&S Soluciones"; }
+    let raw = "";
+    try {
+      raw = decodeURIComponent(_provRaw).trim();
+    } catch {
+      raw = _provRaw.trim();
+    }
+    if (!raw) return "R&S Soluciones";
+    const lower = raw.toLowerCase();
+    if (SLUG_MAP[lower]) return SLUG_MAP[lower];
+    return raw;
   }, [_provRaw]);
+
   const mesParam = params.get("mes");   // número o "todos"
   const anioParam = params.get("anio"); // número o "todos"
   const rawPayload = params.get("data");
@@ -80,20 +102,42 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           }
         }
 
-        // Cargar desde Supabase o almacenamiento local
-        const data = await getServiciosSoporte();
+        // 1. Intentar consulta flexible directa a Supabase con .ilike si hay proveedor específico
+        let registrosRemotos = null;
+        try {
+          let query = supabase.from("soporte_servicios").select("*");
+          if (proveedorParam && proveedorParam !== "todos") {
+            // Consulta flexible (ej: %R&S Soluciones%, %RS Soluciones%, %Soluciones%)
+            const cleanName = proveedorParam.replace(/&/g, "%").replace(/\s+/g, "%");
+            query = query.ilike("proveedor", `%${cleanName}%`);
+          }
+          const { data: dbData, error: dbError } = await query.order("creado_en", { ascending: true });
+          if (!dbError && dbData && dbData.length > 0) {
+            registrosRemotos = dbData;
+          }
+        } catch (queryErr) {
+          console.warn("Consulta específica remota no completada, intentando catálogo general:", queryErr);
+        }
+
+        // 2. Si no trajo datos o falló, utilizar el servicio central getServiciosSoporte() con respaldo local
+        if (!registrosRemotos || registrosRemotos.length === 0) {
+          registrosRemotos = await getServiciosSoporte();
+        }
+
         if (!cancelado) {
-          setServicios(data || []);
+          setServicios(registrosRemotos || []);
         }
       } catch (err) {
         console.error("Error cargando servicios para vista de proveedor:", err);
+        const locales = await getServiciosSoporte();
+        if (!cancelado) setServicios(locales || []);
       } finally {
         if (!cancelado) setLoading(false);
       }
     }
     cargar();
     return () => { cancelado = true; };
-  }, [rawPayload]);
+  }, [rawPayload, proveedorParam]);
 
   // Helper de extracción de mes y año
   const extraerMesAnio = (s) => {
@@ -113,28 +157,47 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     return null;
   };
 
-  // ── BLINDAJE ESTRICTO DE FILTRADO POR PROVEEDOR ──────────────────────────────
-  // Normaliza a minúsculas y colapsa espacios múltiples para comparación robusta
-  const normProv = (str) => (str || "").trim().toLowerCase().replace(/\s+/g, " ");
-  const provNorm = normProv(proveedorParam);
+  // ── BLINDAJE ESTRICTO Y ROBUSTO DE FILTRADO POR PROVEEDOR ──────────────────
+  // Normaliza eliminando acentos, caracteres especiales y colapsando 'y'/'&'
+  const normalizarFlexible = (str) =>
+    (str || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/&/g, "y")
+      .replace(/[^a-z0-9]/g, "")
+      .trim();
 
-  // REGLA DE INTEGRIDAD ABSOLUTA (tolerancia CERO):
-  //  ✗ Proveedor vacío ("")  → EXCLUIDO siempre
+  const provNorm = normalizarFlexible(proveedorParam);
+
+  // REGLA DE INTEGRIDAD ESTRICTA:
+  //  ✗ Proveedor vacío ("")  → EXCLUIDO
   //  ✗ Proveedor "-"         → EXCLUIDO (marcador de campo sin asignar)
-  //  ✗ Proveedor diferente   → EXCLUIDO — sin includes(), sin parciales, exacto
-  //  ✓ Coincidencia exacta   → INCLUIDO y contabilizado en el total
+  //  ✗ Proveedor de otra entidad (ej. Cencosud vs R&S) → EXCLUIDO
+  //  ✓ Coincidencia exacta o canónica (ej. 'r&s soluciones' vs 'rs soluciones' vs 'rs-soluciones') → INCLUIDO
   const serviciosProveedor = useMemo(() => {
     if (!proveedorParam || proveedorParam === "todos") {
-      // En modo "todos" igualmente excluir registros sin proveedor asignado
       return servicios.filter((s) => {
         const p = (s.proveedor || "").trim();
         return p && p !== "-";
       });
     }
+
     return servicios.filter((s) => {
       const p = (s.proveedor || "").trim();
-      if (!p || p === "-") return false;       // excluir vacíos y guiones
-      return normProv(p) === provNorm;         // coincidencia exacta normalizada
+      if (!p || p === "-") return false;
+
+      const normP = normalizarFlexible(p);
+      if (normP === provNorm) return true;
+
+      // Comparación canónica para casos especiales como R&S Soluciones
+      const esRSObjetivo = provNorm.includes("rs") || provNorm.includes("soluciones");
+      const esRSRegistro = normP.includes("rs") || (normP.includes("r") && normP.includes("soluciones"));
+      if (esRSObjetivo && esRSRegistro && !normP.includes("cencosud") && !normP.includes("aval") && !normP.includes("ibm")) {
+        return true;
+      }
+
+      return false;
     });
   }, [servicios, proveedorParam, provNorm]);
 

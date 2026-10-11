@@ -75,13 +75,12 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [loadingServicios, setLoadingServicios] = useState(true);
 
   // ── Filtro por Mes/Año y Proveedor/Entidad ────────────────────────────────
-  // CORRECCIÓN: mostrarTodos inicia en true para que el histórico completo sea
-  // visible por defecto. El filtro por mes puede activarse manualmente, pero
-  // nunca debe ocultar registros previos al abrir el módulo.
+  // Por defecto se acota estrictamente al periodo en curso (mes y año actual).
+  // La tabla y los totales reflejan exclusivamente el mes seleccionado.
   const ahora = new Date();
   const [filtroMes, setFiltroMes] = useState(ahora.getMonth() + 1); // 1–12
   const [filtroAnio, setFiltroAnio] = useState(ahora.getFullYear());
-  const [mostrarTodos, setMostrarTodos] = useState(true); // ← true: muestra histórico completo al abrir
+  const [mostrarTodos, setMostrarTodos] = useState(false); // ← false: acota al periodo actual por defecto
   const [filtroProveedor, setFiltroProveedor] = useState(""); // "" = todos los proveedores
   const [busquedaCasoCuenta, setBusquedaCasoCuenta] = useState(""); // Búsqueda en tiempo real por N° de Caso en tabla
   const [procesandoLocal, setProcesandoLocal] = useState(false);
@@ -5515,19 +5514,31 @@ const handleGenerarPlantilla = async () => {
         const mesElegido = mostrarTodos ? "todos" : filtroMes;
         const anioElegido = mostrarTodos ? "todos" : filtroAnio;
 
-        // Construir URL pública limpia, segura y corta (sin volcar objetos masivos en data)
+        // Normalizar prov a un slug seguro o nombre limpio
+        // 'R&S Soluciones' -> 'rs-soluciones'
+        const normalizarSlug = (nom) =>
+          (nom || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/&/g, "y")
+            .replace(/[^a-z0-9]/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-|-$/g, "");
+
+        const provSlug = normalizarSlug(provElegido) || "rs-soluciones";
+
+        // Construir URL pública limpia, segura y corta
         const baseOrigin = window.location.origin;
         const urlParams = new URLSearchParams();
         urlParams.set("view", "provider");
-        urlParams.set("prov", provElegido);
+        urlParams.set("prov", provSlug); // parámetro slug seguro (ej. rs-soluciones)
         if (mesElegido !== "todos") urlParams.set("mes", String(mesElegido));
         if (anioElegido !== "todos") urlParams.set("anio", String(anioElegido));
 
         // Generar un token corto de integridad/autenticación para la entidad externa
-        // ej: tk_rs_9_2026_x7a9
-        const provSlug = provElegido.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
         const tokenHash = Math.random().toString(36).substring(2, 8);
-        const shortToken = `tk_${provSlug}_${mesElegido}_${anioElegido}_${tokenHash}`;
+        const shortToken = `tk_${provSlug.slice(0, 10)}_${mesElegido}_${anioElegido}_${tokenHash}`;
         urlParams.set("token", shortToken);
 
         const urlCompartida = `${baseOrigin}?${urlParams.toString()}`;
