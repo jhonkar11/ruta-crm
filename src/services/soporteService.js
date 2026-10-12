@@ -1,10 +1,87 @@
 import { supabase } from "./supabaseClient";
 
-const TABLA_SERVICIOS = "soporte_servicios";
+export const TABLA_SERVICIOS_OFICIAL = "injected_services";
+export const TABLA_SERVICIOS_LEGACY = "soporte_servicios";
+const TABLA_SERVICIOS = "injected_services";
 const TABLA_REGISTRO_SERVICIOS = "soporte_registro_servicios";
 const BUCKET_TEMPORAL = "soporte-temporales";
 const LOCAL_STORAGE_SERVICIOS = "CRM_SOPORTE_SERVICIOS_LOCAL";
 const LOCAL_STORAGE_REGISTRO_SERVICIOS = "CRM_SOPORTE_REGISTRO_SERVICIOS_LOCAL";
+
+/**
+ * Normaliza un registro para el formato oficial injected_services (inglés / snake_case estándar)
+ */
+export function normalizarParaInjectedServices(item) {
+  if (!item) return null;
+  return {
+    id: item.id || `serv-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    case_number: item.case_number || item.numero_caso || "Sin número",
+    request_date: item.request_date || item.fecha_solicitud || "",
+    service_date: item.service_date || item.fecha_atencion || "",
+    end_date: item.end_date || item.fecha_finalizacion || "",
+    mesa: item.mesa || "2",
+    provider_entity: item.provider_entity || item.proveedor || "",
+    client: item.client || item.cliente || "Cliente",
+    coordinator: item.coordinator || item.coordinador || "Oswaldo",
+    service_value: Number(item.service_value != null ? item.service_value : item.valor_servicios) || 0,
+    travel_expenses: Number(item.travel_expenses != null ? item.travel_expenses : item.valor_viaticos) || 0,
+    materials: Number(item.materials != null ? item.materials : item.valor_materiales) || 0,
+    status: item.status || item.payment_status || "confirmed",
+    template_data: item.template_data || item.plantilla_completa || "",
+    evidence_image: item.evidence_image || item.foto_url || "",
+    created_at: item.created_at || item.creado_en || new Date().toISOString()
+  };
+}
+
+/**
+ * Normaliza cualquier fila proveniente de la base de datos (sea injected_services o soporte_servicios)
+ * al formato unificado de la interfaz de React para compatibilidad total bidireccional.
+ */
+export function normalizarServicioUnificado(raw) {
+  if (!raw) return null;
+  return {
+    id: raw.id,
+    // Compatibilidad dual de nombres de campo (UI y cálculos financieros)
+    numero_caso: raw.case_number || raw.numero_caso || "",
+    case_number: raw.case_number || raw.numero_caso || "",
+    fecha_solicitud: raw.request_date || raw.fecha_solicitud || "",
+    request_date: raw.request_date || raw.fecha_solicitud || "",
+    fecha_atencion: raw.service_date || raw.fecha_atencion || "",
+    service_date: raw.service_date || raw.fecha_atencion || "",
+    fecha_finalizacion: raw.end_date || raw.fecha_finalizacion || "",
+    end_date: raw.end_date || raw.fecha_finalizacion || "",
+    mesa: raw.mesa || "2",
+    proveedor: raw.provider_entity || raw.proveedor || "",
+    provider_entity: raw.provider_entity || raw.proveedor || "",
+    cliente: raw.client || raw.cliente || "",
+    client: raw.client || raw.cliente || "",
+    coordinador: raw.coordinator || raw.coordinador || "Oswaldo",
+    coordinator: raw.coordinator || raw.coordinador || "Oswaldo",
+    valor_servicios: Number(raw.service_value != null ? raw.service_value : raw.valor_servicios) || 0,
+    service_value: Number(raw.service_value != null ? raw.service_value : raw.valor_servicios) || 0,
+    valor_viaticos: Number(raw.travel_expenses != null ? raw.travel_expenses : raw.valor_viaticos) || 0,
+    travel_expenses: Number(raw.travel_expenses != null ? raw.travel_expenses : raw.valor_viaticos) || 0,
+    valor_materiales: Number(raw.materials != null ? raw.materials : raw.valor_materiales) || 0,
+    materials: Number(raw.materials != null ? raw.materials : raw.valor_materiales) || 0,
+    sh: raw.sh || "SOFTWARE - HARDWARE",
+    tecnico: raw.tecnico || "Jhon Alexander Vasquez Reveló",
+    medio: raw.medio || "SITIO",
+    equipo: raw.equipo || "",
+    falla: raw.falla || "",
+    causa: raw.causa || "",
+    solucion: raw.solucion || "",
+    pruebas: raw.pruebas || "",
+    horas: raw.horas || {},
+    plantilla_completa: raw.template_data || raw.plantilla_completa || "",
+    template_data: raw.template_data || raw.plantilla_completa || "",
+    foto_url: raw.evidence_image || raw.foto_url || "",
+    evidence_image: raw.evidence_image || raw.foto_url || "",
+    payment_status: raw.status || raw.payment_status || "confirmed",
+    status: raw.status || raw.payment_status || "confirmed",
+    creado_en: raw.created_at || raw.creado_en || new Date().toISOString(),
+    created_at: raw.created_at || raw.creado_en || new Date().toISOString()
+  };
+}
 
 // Semilla inicial idéntica a la cuenta de cobro oficial del usuario
 export const SERVICIOS_INICIALES_DEFAULT = [
@@ -143,51 +220,146 @@ export const SERVICIOS_INICIALES_DEFAULT = [
   }
 ];
 
+let initTablePromise = null;
+
+/**
+ * Inicializa e intenta asegurar la tabla oficial injected_services en Supabase.
+ * Se ejecuta automáticamente al arrancar la app o ante la primera consulta.
+ */
+export async function inicializarTablaInjectedServices() {
+  if (initTablePromise) return initTablePromise;
+
+  initTablePromise = (async () => {
+    try {
+      // 1. Probar si injected_services responde
+      const { data, error } = await supabase
+        .from(TABLA_SERVICIOS_OFICIAL)
+        .select("id")
+        .limit(1);
+
+      if (!error) {
+        return { ok: true, tabla: TABLA_SERVICIOS_OFICIAL };
+      }
+
+      console.warn("Tabla 'injected_services' no accesible o inexistente:", error.message);
+
+      // Si hay RPC o migración remota
+      try {
+        await supabase.rpc("inicializar_tabla_injected_services");
+      } catch (rpcErr) {
+        // Ignorar si no existe el RPC
+      }
+
+      // Si existe soporte_servicios (legacy), podemos continuar con fallback
+      const { error: errLegacy } = await supabase
+        .from(TABLA_SERVICIOS_LEGACY)
+        .select("id")
+        .limit(1);
+
+      if (!errLegacy) {
+        return { ok: true, tabla: TABLA_SERVICIOS_LEGACY };
+      }
+
+      return { ok: false, error: error.message };
+    } catch (e) {
+      console.warn("Error en auto-inicialización de tabla en Supabase:", e.message);
+      return { ok: false, error: e.message };
+    }
+  })();
+
+  return initTablePromise;
+}
+
 /**
  * Obtiene los servicios registrados para la cuenta de cobro activa.
+ * Consulta prioritariamente injected_services, con fallback a soporte_servicios y
+ * respaldo blindado garantizado en localStorage para evitar pantalla en ceros.
  */
 export async function getServiciosSoporte() {
   try {
-    const { data, error } = await supabase
-      .from(TABLA_SERVICIOS)
+    // 1. Intentar consultar la tabla oficial injected_services
+    const { data: dataOficial, error: errOficial } = await supabase
+      .from(TABLA_SERVICIOS_OFICIAL)
       .select("*")
-      .order("creado_en", { ascending: true });
+      .order("created_at", { ascending: true });
 
-    if (error) {
-      console.warn("Aviso al consultar Supabase (usando almacenamiento local):", error.message);
-      return getServiciosLocal();
+    if (!errOficial && dataOficial && dataOficial.length > 0) {
+      const normalizados = dataOficial.map(normalizarServicioUnificado);
+      // Sincronizar respaldo de seguridad dual en localStorage
+      sincronizarCacheLocalServicios(normalizados);
+      return normalizados;
     }
 
-    if (!data || data.length === 0) {
-      // Si la tabla remota está vacía, poblar con las semillas o el almacenamiento local
-      const locales = getServiciosLocal();
-      return locales.length > 0 ? locales : SERVICIOS_INICIALES_DEFAULT;
+    // 2. Si la tabla oficial no existe o no tiene registros, consultar tabla soporte_servicios
+    if (errOficial || !dataOficial || dataOficial.length === 0) {
+      const { data: dataLegacy, error: errLegacy } = await supabase
+        .from(TABLA_SERVICIOS_LEGACY)
+        .select("*")
+        .order("creado_en", { ascending: true });
+
+      if (!errLegacy && dataLegacy && dataLegacy.length > 0) {
+        const normalizadosLegacy = dataLegacy.map(normalizarServicioUnificado);
+        sincronizarCacheLocalServicios(normalizadosLegacy);
+        // Si la tabla oficial injected_services está vacía o recién creada, sembrar estos registros
+        try {
+          const payloadMigracion = normalizadosLegacy.map(normalizarParaInjectedServices);
+          await supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadMigracion, { onConflict: "id" });
+        } catch (migrErr) {
+          // Si no existe aún la tabla remota, no bloquea el flujo
+        }
+        return normalizadosLegacy;
+      }
     }
 
-    return data;
+    // 3. Respaldo de seguridad dual: recuperar desde LocalStorage
+    const locales = getServiciosLocal();
+    if (locales && locales.length > 0) {
+      // Intentar auto-poblar Supabase en segundo plano con el respaldo local
+      try {
+        const payloadSync = locales.map(normalizarParaInjectedServices);
+        supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadSync, { onConflict: "id" }).then(() => {}).catch(() => {});
+      } catch (_) {}
+      return locales;
+    }
+
+    // 4. Semilla por defecto si no hay nada guardado en ningún medio
+    return SERVICIOS_INICIALES_DEFAULT;
   } catch (e) {
-    console.warn("Excepción al cargar servicios de soporte:", e.message);
-    return getServiciosLocal();
+    console.warn("Excepción al cargar servicios de soporte (usando respaldo local):", e.message);
+    const locales = getServiciosLocal();
+    return locales.length > 0 ? locales : SERVICIOS_INICIALES_DEFAULT;
   }
 }
 
 /**
- * Guarda o actualiza un servicio de soporte técnico en Supabase y localmente.
+ * Guarda o actualiza un servicio con persistencia dual obligatoria:
+ * 1. Respaldo inmediato en LocalStorage (recuperación offline/falla de red garantizada).
+ * 2. Persistencia en Supabase en injected_services y réplica en soporte_servicios.
  */
 export async function guardarServicioSoporte(servicio) {
   const itemConId = {
     id: servicio.id || `serv-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-    numero_caso: servicio.numero_caso || "Sin número",
-    fecha_solicitud: servicio.fecha_solicitud || "",
-    fecha_atencion: servicio.fecha_atencion || "",
-    fecha_finalizacion: servicio.fecha_finalizacion || "",
+    numero_caso: servicio.numero_caso || servicio.case_number || "Sin número",
+    case_number: servicio.case_number || servicio.numero_caso || "Sin número",
+    fecha_solicitud: servicio.fecha_solicitud || servicio.request_date || "",
+    request_date: servicio.request_date || servicio.fecha_solicitud || "",
+    fecha_atencion: servicio.fecha_atencion || servicio.service_date || "",
+    service_date: servicio.service_date || servicio.fecha_atencion || "",
+    fecha_finalizacion: servicio.fecha_finalizacion || servicio.end_date || "",
+    end_date: servicio.end_date || servicio.fecha_finalizacion || "",
     mesa: servicio.mesa || "2",
-    proveedor: servicio.proveedor || "",
-    cliente: servicio.cliente || "Cliente",
-    coordinador: servicio.coordinador || "Oswaldo",
-    valor_servicios: Number(servicio.valor_servicios) || 0,
-    valor_viaticos: Number(servicio.valor_viaticos) || 0,
-    valor_materiales: Number(servicio.valor_materiales) || 0,
+    proveedor: servicio.proveedor || servicio.provider_entity || "",
+    provider_entity: servicio.provider_entity || servicio.proveedor || "",
+    cliente: servicio.cliente || servicio.client || "Cliente",
+    client: servicio.client || servicio.cliente || "Cliente",
+    coordinador: servicio.coordinador || servicio.coordinator || "Oswaldo",
+    coordinator: servicio.coordinator || servicio.coordinador || "Oswaldo",
+    valor_servicios: Number(servicio.valor_servicios != null ? servicio.valor_servicios : servicio.service_value) || 0,
+    service_value: Number(servicio.service_value != null ? servicio.service_value : servicio.valor_servicios) || 0,
+    valor_viaticos: Number(servicio.valor_viaticos != null ? servicio.valor_viaticos : servicio.travel_expenses) || 0,
+    travel_expenses: Number(servicio.travel_expenses != null ? servicio.travel_expenses : servicio.valor_viaticos) || 0,
+    valor_materiales: Number(servicio.valor_materiales != null ? servicio.valor_materiales : servicio.materials) || 0,
+    materials: Number(servicio.materials != null ? servicio.materials : servicio.valor_materiales) || 0,
     sh: servicio.sh || "SOFTWARE - HARDWARE",
     tecnico: servicio.tecnico || "Jhon Alexander Vasquez Reveló",
     medio: servicio.medio || "SITIO",
@@ -197,79 +369,107 @@ export async function guardarServicioSoporte(servicio) {
     solucion: servicio.solucion || "",
     pruebas: servicio.pruebas || "",
     horas: servicio.horas || {},
-    plantilla_completa: servicio.plantilla_completa || "",
-    foto_url: servicio.foto_url || "",
-    payment_status: servicio.payment_status || "confirmed",
-    creado_en: servicio.creado_en || new Date().toISOString(),
+    plantilla_completa: servicio.plantilla_completa || servicio.template_data || "",
+    template_data: servicio.template_data || servicio.plantilla_completa || "",
+    foto_url: servicio.foto_url || servicio.evidence_image || "",
+    evidence_image: servicio.evidence_image || servicio.foto_url || "",
+    payment_status: servicio.payment_status || servicio.status || "confirmed",
+    status: servicio.status || servicio.payment_status || "confirmed",
+    creado_en: servicio.creado_en || servicio.created_at || new Date().toISOString(),
+    created_at: servicio.created_at || servicio.creado_en || new Date().toISOString(),
     actualizado_en: new Date().toISOString()
   };
 
-  // Guardar en Supabase
-  try {
-    const { data, error } = await supabase
-      .from(TABLA_SERVICIOS)
-      .upsert(itemConId, { onConflict: "id" })
-      .select()
-      .single();
+  // 1. Respaldo de seguridad dual inmediato en LocalStorage
+  guardarServicioLocal(itemConId);
 
-    if (!error && data) {
-      guardarServicioLocal(data);
-      return data;
+  // 2. Persistencia remota en injected_services (tabla oficial)
+  try {
+    const payloadInjected = normalizarParaInjectedServices(itemConId);
+    const { data: dataOficial, error: errOficial } = await supabase
+      .from(TABLA_SERVICIOS_OFICIAL)
+      .upsert(payloadInjected, { onConflict: "id" })
+      .select()
+      .maybeSingle();
+
+    if (!errOficial && dataOficial) {
+      const unificado = normalizarServicioUnificado(dataOficial);
+      guardarServicioLocal(unificado);
     }
-  } catch (err) {
-    console.warn("Guardado remoto falló, almacenando en caché local:", err.message);
+  } catch (errInjected) {
+    console.warn("Aviso en injected_services remoto:", errInjected.message);
   }
 
-  // Guardar en almacenamiento local como respaldo garantizado
-  guardarServicioLocal(itemConId);
+  // 3. Réplica de compatibilidad en soporte_servicios (legacy)
+  try {
+    await supabase
+      .from(TABLA_SERVICIOS_LEGACY)
+      .upsert(itemConId, { onConflict: "id" });
+  } catch (errLegacy) {
+    // Si la tabla legacy no existe, no afecta la operación
+  }
+
   return itemConId;
 }
 
 /**
- * Actualiza un servicio de soporte técnico existente en Supabase y localmente.
+ * Actualiza un servicio existente en Supabase (injected_services y réplica) y localmente.
  */
 export async function actualizarServicioSoporte(servicio) {
   const itemActualizado = {
     ...servicio,
-    valor_servicios: Number(servicio.valor_servicios) || 0,
-    valor_viaticos: Number(servicio.valor_viaticos) || 0,
-    valor_materiales: Number(servicio.valor_materiales) || 0,
-    payment_status: servicio.payment_status || "confirmed",
+    valor_servicios: Number(servicio.valor_servicios != null ? servicio.valor_servicios : servicio.service_value) || 0,
+    service_value: Number(servicio.service_value != null ? servicio.service_value : servicio.valor_servicios) || 0,
+    valor_viaticos: Number(servicio.valor_viaticos != null ? servicio.valor_viaticos : servicio.travel_expenses) || 0,
+    travel_expenses: Number(servicio.travel_expenses != null ? servicio.travel_expenses : servicio.valor_viaticos) || 0,
+    valor_materiales: Number(servicio.valor_materiales != null ? servicio.valor_materiales : servicio.materials) || 0,
+    materials: Number(servicio.materials != null ? servicio.materials : servicio.valor_materiales) || 0,
+    payment_status: servicio.payment_status || servicio.status || "confirmed",
+    status: servicio.status || servicio.payment_status || "confirmed",
     actualizado_en: new Date().toISOString()
   };
 
-  try {
-    const { data, error } = await supabase
-      .from(TABLA_SERVICIOS)
-      .upsert(itemActualizado, { onConflict: "id" })
-      .select()
-      .single();
+  // Guardar inmediatamente en localStorage
+  guardarServicioLocal(itemActualizado);
 
-    if (!error && data) {
-      guardarServicioLocal(data);
-      return data;
-    }
+  // Actualizar en injected_services
+  try {
+    const payloadInjected = normalizarParaInjectedServices(itemActualizado);
+    await supabase
+      .from(TABLA_SERVICIOS_OFICIAL)
+      .upsert(payloadInjected, { onConflict: "id" });
   } catch (err) {
-    console.warn("Actualización remota falló, actualizando caché local:", err.message);
+    console.warn("Actualización remota en injected_services:", err.message);
   }
 
-  guardarServicioLocal(itemActualizado);
+  // Réplica en tabla soporte_servicios
+  try {
+    await supabase
+      .from(TABLA_SERVICIOS_LEGACY)
+      .upsert(itemActualizado, { onConflict: "id" });
+  } catch (e) {}
+
   return itemActualizado;
 }
 
 /**
- * Elimina un servicio de soporte técnico.
+ * Elimina un servicio de soporte técnico en Supabase y localmente.
  */
 export async function eliminarServicioSoporte(id) {
-  try {
-    await supabase.from(TABLA_SERVICIOS).delete().eq("id", id);
-  } catch (e) {
-    console.warn("Eliminación remota:", e.message);
-  }
-
-  // Eliminar de almacenamiento local
+  // Eliminar inmediatamente del almacenamiento local
   const items = getServiciosLocal().filter((s) => s.id !== id);
   localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(items));
+
+  // Eliminar remotamente en ambas tablas
+  try {
+    await supabase.from(TABLA_SERVICIOS_OFICIAL).delete().eq("id", id);
+  } catch (e) {
+    console.warn("Eliminación remota en injected_services:", e.message);
+  }
+
+  try {
+    await supabase.from(TABLA_SERVICIOS_LEGACY).delete().eq("id", id);
+  } catch (e) {}
 }
 
 /**
@@ -346,10 +546,17 @@ export async function purgarEvidenciasMensuales(mes, anio) {
     });
     localStorage.setItem(LOCAL_STORAGE_REGISTRO_SERVICIOS, JSON.stringify(regActualizados));
 
-    // 3. Limpieza remota en Supabase si está disponible
+    // 3. Limpieza remota en Supabase si está disponible (ambas tablas)
     try {
+      // injected_services (tabla oficial)
       await supabase
-        .from(TABLA_SERVICIOS)
+        .from(TABLA_SERVICIOS_OFICIAL)
+        .update({ evidence_image: "" })
+        .not("evidence_image", "is", null);
+
+      // soporte_servicios (tabla legacy)
+      await supabase
+        .from(TABLA_SERVICIOS_LEGACY)
         .update({ foto_url: "" })
         .not("foto_url", "is", null);
 
@@ -368,8 +575,18 @@ export async function purgarEvidenciasMensuales(mes, anio) {
   }
 }
 
-// Helpers de persistencia local
-function getServiciosLocal() {
+// Helpers de persistencia dual y sincronización local
+export function sincronizarCacheLocalServicios(serviciosArray) {
+  if (typeof window === "undefined" || !Array.isArray(serviciosArray)) return;
+  try {
+    const limpios = serviciosArray.map(normalizarServicioUnificado);
+    localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(limpios));
+  } catch (e) {
+    console.error("Error sincronizando cache local de servicios:", e);
+  }
+}
+
+export function getServiciosLocal() {
   if (typeof window === "undefined") return SERVICIOS_INICIALES_DEFAULT;
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_SERVICIOS);
@@ -377,23 +594,28 @@ function getServiciosLocal() {
       localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(SERVICIOS_INICIALES_DEFAULT));
       return SERVICIOS_INICIALES_DEFAULT;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map(normalizarServicioUnificado);
+    }
+    return SERVICIOS_INICIALES_DEFAULT;
   } catch (e) {
     return SERVICIOS_INICIALES_DEFAULT;
   }
 }
 
-function guardarServicioLocal(item) {
-  if (typeof window === "undefined") return;
+export function guardarServicioLocal(item) {
+  if (typeof window === "undefined" || !item) return;
   try {
+    const unificado = normalizarServicioUnificado(item);
     const actual = getServiciosLocal();
-    const index = actual.findIndex((s) => s.id === item.id);
+    const index = actual.findIndex((s) => s.id === unificado.id);
     let nuevo;
     if (index >= 0) {
       nuevo = [...actual];
-      nuevo[index] = item;
+      nuevo[index] = unificado;
     } else {
-      nuevo = [...actual, item];
+      nuevo = [...actual, unificado];
     }
     localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(nuevo));
   } catch (e) {

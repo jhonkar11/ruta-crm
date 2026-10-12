@@ -28,6 +28,7 @@ import { isSoporteAuthorized } from "./utils/rbac";
 import { ViewHeader, EmptyState, ConfirmModal, TextInput, Stamp, IconBtn, FiltroChip } from "./components/ui/UIKit";
 
 import VistaProveedorReadOnly from "./components/share/VistaProveedorReadOnly";
+import { inicializarTablaInjectedServices } from "./services/soporteService";
 
 export default function App() {
   const { user, profile: rawProfile, loading: authLoading, logout } = useAuth();
@@ -48,6 +49,11 @@ export default function App() {
 
   const [showMananaModal, setShowMananaModal] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("crm_theme") || "dark");
+
+  // Auto-inicialización y aseguramiento de tabla injected_services en Supabase al arrancar
+  useEffect(() => {
+    inicializarTablaInjectedServices().catch(() => {});
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("crm_view", view);

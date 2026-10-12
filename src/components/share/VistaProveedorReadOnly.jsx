@@ -116,15 +116,53 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                 }
               }
 
-              // Si tiene service_ids exactos, consultar únicamente esos IDs en soporte_servicios
+              // Si tiene service_ids exactos, consultar primero en injected_services, luego soporte_servicios
               if (Array.isArray(auditSnapshot.service_ids) && auditSnapshot.service_ids.length > 0) {
-                const { data: serviciosPorIds, error: idsError } = await supabase
-                  .from("soporte_servicios")
-                  .select("*")
-                  .in("id", auditSnapshot.service_ids)
-                  .order("creado_en", { ascending: true });
+                let serviciosPorIds = null;
 
-                if (!idsError && serviciosPorIds && serviciosPorIds.length > 0) {
+                // Intentar en injected_services primero
+                try {
+                  const { data: idsOficial, error: idsOficialErr } = await supabase
+                    .from("injected_services")
+                    .select("*")
+                    .in("id", auditSnapshot.service_ids)
+                    .order("created_at", { ascending: true });
+
+                  if (!idsOficialErr && idsOficial && idsOficial.length > 0) {
+                    serviciosPorIds = idsOficial.map((r) => ({
+                      ...r,
+                      numero_caso: r.case_number || r.numero_caso || "",
+                      fecha_solicitud: r.request_date || r.fecha_solicitud || "",
+                      fecha_atencion: r.service_date || r.fecha_atencion || "",
+                      fecha_finalizacion: r.end_date || r.fecha_finalizacion || "",
+                      proveedor: r.provider_entity || r.proveedor || "",
+                      cliente: r.client || r.cliente || "",
+                      coordinador: r.coordinator || r.coordinador || "Oswaldo",
+                      valor_servicios: Number(r.service_value != null ? r.service_value : r.valor_servicios) || 0,
+                      valor_viaticos: Number(r.travel_expenses != null ? r.travel_expenses : r.valor_viaticos) || 0,
+                      valor_materiales: Number(r.materials != null ? r.materials : r.valor_materiales) || 0,
+                      plantilla_completa: r.template_data || r.plantilla_completa || "",
+                      foto_url: r.evidence_image || r.foto_url || "",
+                      payment_status: r.status || r.payment_status || "confirmed",
+                      creado_en: r.created_at || r.creado_en || ""
+                    }));
+                  }
+                } catch (_) {}
+
+                // Fallback a soporte_servicios
+                if (!serviciosPorIds || serviciosPorIds.length === 0) {
+                  const { data: idsLegacy, error: idsLegacyErr } = await supabase
+                    .from("soporte_servicios")
+                    .select("*")
+                    .in("id", auditSnapshot.service_ids)
+                    .order("creado_en", { ascending: true });
+
+                  if (!idsLegacyErr && idsLegacy && idsLegacy.length > 0) {
+                    serviciosPorIds = idsLegacy;
+                  }
+                }
+
+                if (serviciosPorIds && serviciosPorIds.length > 0) {
                   if (!cancelado) {
                     setServicios(serviciosPorIds);
                     setEsSnapshotToken(true);
@@ -177,19 +215,52 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           }
         }
 
-        // 3. Consulta general a Supabase para obtener todos los registros del periodo
+        // 3. Consulta general a Supabase: primero injected_services (tabla oficial), luego soporte_servicios (legacy)
         let registrosRemotos = null;
         try {
-          const { data: dbData, error: dbError } = await supabase
-            .from("soporte_servicios")
+          // 3a. Intentar tabla oficial injected_services
+          const { data: dbOficial, error: errOficial } = await supabase
+            .from("injected_services")
             .select("*")
-            .order("creado_en", { ascending: true });
+            .order("created_at", { ascending: true });
 
-          if (!dbError && dbData && dbData.length > 0) {
-            registrosRemotos = dbData;
+          if (!errOficial && dbOficial && dbOficial.length > 0) {
+            registrosRemotos = dbOficial.map((r) => ({
+              ...r,
+              numero_caso: r.case_number || r.numero_caso || "",
+              fecha_solicitud: r.request_date || r.fecha_solicitud || "",
+              fecha_atencion: r.service_date || r.fecha_atencion || "",
+              fecha_finalizacion: r.end_date || r.fecha_finalizacion || "",
+              proveedor: r.provider_entity || r.proveedor || "",
+              cliente: r.client || r.cliente || "",
+              coordinador: r.coordinator || r.coordinador || "Oswaldo",
+              valor_servicios: Number(r.service_value != null ? r.service_value : r.valor_servicios) || 0,
+              valor_viaticos: Number(r.travel_expenses != null ? r.travel_expenses : r.valor_viaticos) || 0,
+              valor_materiales: Number(r.materials != null ? r.materials : r.valor_materiales) || 0,
+              plantilla_completa: r.template_data || r.plantilla_completa || "",
+              foto_url: r.evidence_image || r.foto_url || "",
+              payment_status: r.status || r.payment_status || "confirmed",
+              creado_en: r.created_at || r.creado_en || ""
+            }));
           }
         } catch (queryErr) {
-          console.warn("Consulta general remota a Supabase con aviso:", queryErr);
+          console.warn("Consulta a injected_services con aviso:", queryErr);
+        }
+
+        // 3b. Fallback a soporte_servicios (legacy) si injected_services no tiene datos
+        if (!registrosRemotos || registrosRemotos.length === 0) {
+          try {
+            const { data: dbLegacy, error: dbLegacyErr } = await supabase
+              .from("soporte_servicios")
+              .select("*")
+              .order("creado_en", { ascending: true });
+
+            if (!dbLegacyErr && dbLegacy && dbLegacy.length > 0) {
+              registrosRemotos = dbLegacy;
+            }
+          } catch (legacyErr) {
+            console.warn("Consulta legacy a soporte_servicios con aviso:", legacyErr);
+          }
         }
 
         // 4. Si no trajo datos o falló, recurrir al catálogo general de soporteService (respaldo local garantizado)
