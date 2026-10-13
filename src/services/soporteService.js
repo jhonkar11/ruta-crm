@@ -9,6 +9,37 @@ const LOCAL_STORAGE_SERVICIOS = "CRM_SOPORTE_SERVICIOS_LOCAL";
 const LOCAL_STORAGE_REGISTRO_SERVICIOS = "CRM_SOPORTE_REGISTRO_SERVICIOS_LOCAL";
 
 /**
+ * Genera un UUID v4 estándar RFC4122.
+ */
+export function generarUUIDv4() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    try {
+      return crypto.randomUUID();
+    } catch (_) {}
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+/**
+ * Valida si un string cumple el formato estándar de UUID v4.
+ */
+export function esUUIDValido(str) {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return !!str && uuidRegex.test(String(str).trim());
+}
+
+/**
+ * Asegura que el ID sea estrictamente un UUID válido para PostgreSQL.
+ */
+export function asegurarUUID(str) {
+  return esUUIDValido(str) ? String(str).trim() : generarUUIDv4();
+}
+
+/**
  * Normaliza un registro para el formato oficial injected_services (inglés / snake_case estándar)
  */
 export function normalizarParaInjectedServices(item) {
@@ -37,18 +68,7 @@ export function normalizarParaInjectedServices(item) {
   }
 
   // Generación/validación estricta de UUID para PostgreSQL (evita error 22P02)
-  let idFinal = item.id;
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!idFinal || !uuidRegex.test(String(idFinal).trim())) {
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
-      idFinal = crypto.randomUUID();
-    } else {
-      idFinal = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    }
-  }
+  const idFinal = asegurarUUID(item.id);
 
   return {
     id: idFinal,
@@ -98,8 +118,10 @@ export function normalizarServicioUnificado(raw) {
   const evImg = raw.evidence_image || raw.foto_url || "";
   const crAt = raw.created_at || raw.creado_en || new Date().toISOString();
 
+  const idFinal = asegurarUUID(raw.id);
+
   return {
-    id: raw.id || `serv-${numCaso || Date.now()}`,
+    id: idFinal,
     // Nombres en español (usados en la UI de CRM y generación de Excel)
     numero_caso: numCaso,
     fecha_solicitud: fSol,
@@ -386,9 +408,101 @@ export function coincideProveedorFlexible(provRegistro, provBuscado) {
 }
 
 /**
+ * Extrae mes y año de cualquier formato de fecha soportado (DD/MM/YYYY, YYYY-MM-DD, created_at, etc.)
+ */
+export function extraerMesAnio(s) {
+  if (!s) return null;
+  const fechas = [
+    s.service_date,
+    s.fecha_atencion,
+    s.request_date,
+    s.fecha_solicitud,
+    s.end_date,
+    s.fecha_finalizacion
+  ];
+
+  for (const f of fechas) {
+    if (!f) continue;
+    const str = String(f).trim();
+    if (!str || str === "-") continue;
+
+    // 1. Formato DD/MM/YYYY o DD-MM-YYYY (ej. "08/09/2026", "8/9/2026")
+    const mDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (mDMY) {
+      const mes = parseInt(mDMY[2], 10);
+      const anio = parseInt(mDMY[3], 10);
+      if (mes >= 1 && mes <= 12 && anio > 1990) {
+        return { mes, anio };
+      }
+    }
+
+    // 2. Formato YYYY/MM/DD o YYYY-MM-DD (ej. "2026-09-08")
+    const mYMD = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (mYMD) {
+      const mes = parseInt(mYMD[2], 10);
+      const anio = parseInt(mYMD[1], 10);
+      if (mes >= 1 && mes <= 12 && anio > 1990) {
+        return { mes, anio };
+      }
+    }
+
+    // 3. Formato DD/MM/YY (ej. 15/09/26 -> 2026)
+    const mDM2Y = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+    if (mDM2Y) {
+      const mes = parseInt(mDM2Y[2], 10);
+      const yy = parseInt(mDM2Y[3], 10);
+      const anio = yy < 50 ? 2000 + yy : 1900 + yy;
+      if (mes >= 1 && mes <= 12) {
+        return { mes, anio };
+      }
+    }
+  }
+
+  const creado = s.created_at || s.creado_en;
+  if (creado) {
+    const d = new Date(creado);
+    if (!isNaN(d.getTime())) {
+      return { mes: d.getMonth() + 1, anio: d.getFullYear() };
+    }
+  }
+  return null;
+}
+
+/**
+ * Deduplica automáticamente una lista de servicios basándose en el número de caso o ID único.
+ * Evita repeticiones en pantalla o alteraciones en sumas financieras.
+ */
+export function deduplicarServicios(lista) {
+  if (!Array.isArray(lista) || lista.length === 0) return [];
+  const mapa = new Map();
+
+  for (const item of lista) {
+    if (!item) continue;
+    const caso = String(item.numero_caso || item.case_number || "").trim().toUpperCase().replace(/\s+/g, "");
+    const clave = (caso && caso !== "-" && caso !== "SINNUMERO" && caso !== "SINNÚMERO")
+      ? `CASO:${caso}`
+      : `ID:${String(item.id || "").trim()}`;
+
+    if (!mapa.has(clave)) {
+      mapa.set(clave, item);
+    } else {
+      // Si se detecta un duplicado, conservar el de mayor valor o más completo
+      const previo = mapa.get(clave);
+      const valPrev = Number(previo.valor_servicios || previo.service_value || 0);
+      const valItem = Number(item.valor_servicios || item.service_value || 0);
+      if (valItem > valPrev) {
+        mapa.set(clave, item);
+      }
+    }
+  }
+
+  return Array.from(mapa.values());
+}
+
+/**
  * CONSULTA FRESCA DIRECTA A SUPABASE (SIN CACHÉ / SIN LOCALSTORAGE).
  * Diseñada exclusivamente para la vista pública compartida del proveedor.
- * Consulta la tabla oficial injected_services y garantiza datos 1:1 en tiempo real.
+ * Consulta la tabla oficial injected_services y garantiza datos 1:1 en tiempo real con deduplicación.
  */
 export async function getServiciosFrescos() {
   try {
@@ -406,18 +520,17 @@ export async function getServiciosFrescos() {
       }
     } catch (_) {}
 
-    if (registrosOficiales.length > 0) {
-      console.log(`[SharedView] Fetch fresco: ${registrosOficiales.length} registros oficiales de injected_services (ts: ${timestampCacheBust})`);
-      return registrosOficiales;
+    let lista = registrosOficiales;
+    if (!lista || lista.length === 0) {
+      const locales = getServiciosLocal();
+      if (locales && locales.length > 0) {
+        lista = locales.map(normalizarServicioUnificado);
+      }
     }
 
-    // Fallback a localStorage si Supabase no devolvió filas
-    const locales = getServiciosLocal();
-    if (locales && locales.length > 0) {
-      return locales.map(normalizarServicioUnificado);
-    }
-
-    return [];
+    const unicos = deduplicarServicios(lista);
+    console.log(`[SharedView] Fetch fresco: ${unicos.length} registros oficiales deduplicados (ts: ${timestampCacheBust})`);
+    return unicos;
   } catch (e) {
     console.error("Error en getServiciosFrescos:", e.message);
     return [];
@@ -508,19 +621,17 @@ export async function getServiciosSoporte(opciones = {}) {
       if (clave) mapaUnificados.set(clave, item);
     });
 
-    const listaFinal = Array.from(mapaUnificados.values());
+    const listaFinal = deduplicarServicios(Array.from(mapaUnificados.values()));
 
     if (listaFinal.length > 0) {
       // Sincronizar respaldo dual garantizado en localStorage con la lista consolidada
       sincronizarCacheLocalServicios(listaFinal);
 
-      // Si hay registros legacy que no están en injected_services, respaldarlos en background
-      if (registrosLegacy.length > 0) {
-        try {
-          const payloadMigracion = registrosLegacy.map(normalizarParaInjectedServices);
-          supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadMigracion, { onConflict: "id" }).catch(() => {});
-        } catch (_) {}
-      }
+      // Sincronizar automáticamente registros a injected_services con UUIDs estándar
+      try {
+        const payloadSincronizar = listaFinal.map(normalizarParaInjectedServices);
+        supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadSincronizar, { onConflict: "id" }).catch(() => {});
+      } catch (_) {}
 
       return listaFinal;
     }
@@ -530,7 +641,7 @@ export async function getServiciosSoporte(opciones = {}) {
   } catch (e) {
     console.warn("Excepción al cargar servicios de soporte (usando respaldo local):", e.message);
     const locales = getServiciosLocal();
-    return locales.length > 0 ? locales : SERVICIOS_INICIALES_DEFAULT;
+    return locales.length > 0 ? deduplicarServicios(locales) : SERVICIOS_INICIALES_DEFAULT;
   }
 }
 
@@ -540,8 +651,9 @@ export async function getServiciosSoporte(opciones = {}) {
  * 2. Persistencia en Supabase en injected_services y réplica en soporte_servicios.
  */
 export async function guardarServicioSoporte(servicio) {
+  const idSeguro = asegurarUUID(servicio.id);
   const itemConId = {
-    id: servicio.id || `serv-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    id: idSeguro,
     numero_caso: servicio.numero_caso || servicio.case_number || "Sin número",
     case_number: servicio.case_number || servicio.numero_caso || "Sin número",
     fecha_solicitud: servicio.fecha_solicitud || servicio.request_date || "",
@@ -642,8 +754,10 @@ export async function actualizarServicioSoporte(servicio) {
     }
   }
 
+  const idSeguro = asegurarUUID(servicio.id);
   const itemActualizado = {
     ...servicio,
+    id: idSeguro,
     valor_servicios: Number(servicio.valor_servicios != null ? servicio.valor_servicios : servicio.service_value) || 0,
     service_value: Number(servicio.service_value != null ? servicio.service_value : servicio.valor_servicios) || 0,
     valor_viaticos: Number(servicio.valor_viaticos != null ? servicio.valor_viaticos : servicio.travel_expenses) || 0,

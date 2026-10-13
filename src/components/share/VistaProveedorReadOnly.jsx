@@ -20,7 +20,13 @@ import {
   Maximize2,
   Minimize2
 } from "lucide-react";
-import { getServiciosFrescos, normalizarServicioUnificado, coincideProveedorFlexible } from "../../services/soporteService";
+import {
+  getServiciosFrescos,
+  normalizarServicioUnificado,
+  coincideProveedorFlexible,
+  extraerMesAnio,
+  normalizarTexto
+} from "../../services/soporteService";
 import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
@@ -30,7 +36,7 @@ const NOMBRES_MESES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
-// ── FUNCIONES AUXILIARES PURAS (HOISTING SEGURO A NIVEL DE MÓDULO) ───────────
+// ── MAPA DE SLUGS CONOCIDOS A NOMBRES CANÓNICOS ─────────────────────────────
 const SLUG_MAP = {
   "rs-soluciones": "R&S Soluciones",
   "r-s-soluciones": "R&S Soluciones",
@@ -42,74 +48,6 @@ const SLUG_MAP = {
   "lexmark": "Lexmark",
   "almacenes-exito": "Almacenes Éxito"
 };
-
-function normalizarTexto(str) {
-  return (str || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/&/g, "y")
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
-}
-
-function extraerMesAnio(s) {
-  if (!s) return null;
-  const fechas = [
-    s.service_date,
-    s.fecha_atencion,
-    s.request_date,
-    s.fecha_solicitud,
-    s.end_date,
-    s.fecha_finalizacion
-  ];
-
-  for (const f of fechas) {
-    if (!f) continue;
-    const str = String(f).trim();
-    if (!str || str === "-") continue;
-
-    // 1. Formato DD/MM/YYYY o DD-MM-YYYY (ej. "08/09/2026")
-    const mDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    if (mDMY) {
-      const mes = parseInt(mDMY[2], 10);
-      const anio = parseInt(mDMY[3], 10);
-      if (mes >= 1 && mes <= 12 && anio > 1990) {
-        return { mes, anio };
-      }
-    }
-
-    // 2. Formato YYYY/MM/DD o YYYY-MM-DD (ej. "2026-09-08")
-    const mYMD = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-    if (mYMD) {
-      const mes = parseInt(mYMD[2], 10);
-      const anio = parseInt(mYMD[1], 10);
-      if (mes >= 1 && mes <= 12 && anio > 1990) {
-        return { mes, anio };
-      }
-    }
-
-    // 3. Formato DD/MM/YY (ej. 15/09/26 -> 2026)
-    const mDM2Y = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
-    if (mDM2Y) {
-      const mes = parseInt(mDM2Y[2], 10);
-      const yy = parseInt(mDM2Y[3], 10);
-      const anio = yy < 50 ? 2000 + yy : 1900 + yy;
-      if (mes >= 1 && mes <= 12) {
-        return { mes, anio };
-      }
-    }
-  }
-
-  const creado = s.created_at || s.creado_en;
-  if (creado) {
-    const d = new Date(creado);
-    if (!isNaN(d.getTime())) {
-      return { mes: d.getMonth() + 1, anio: d.getFullYear() };
-    }
-  }
-  return null;
-}
 
 export default function VistaProveedorReadOnly({ theme = "light" }) {
   // FORZAR TEMA CLARO INSTITUCIONAL (FONDO BLANCO):
