@@ -356,17 +356,32 @@ export async function getServiciosFrescos() {
       }
     } catch (_) {}
 
-    // 3. MERGE INTELIGENTE SIN LOCALSTORAGE:
-    // Legacy como base, oficiales sobreescriben (idéntica prioridad que getServiciosSoporte)
+    // 3. DEDUPLICACIÓN ESTRICTA POR NÚMERO DE CASO (case_number / numero_caso):
+    // Los registros de injected_services y soporte_servicios comparten el mismo
+    // numero_caso pero tienen UUIDs (id) diferentes. Usar id como clave de Map
+    // causaba duplicados. La clave correcta es el numero_caso (clave de negocio).
+    // Legacy como base, oficiales sobreescriben.
     const mapaUnificados = new Map();
 
+    // Función para generar clave única de deduplicación basada en numero_caso
+    function claveDedup(item) {
+      // Prioridad: numero_caso limpio (clave de negocio real)
+      const caso = String(item.numero_caso || item.case_number || "").trim().toUpperCase().replace(/\s+/g, "");
+      if (caso && caso !== "-" && caso !== "SIN NÚMERO" && caso !== "SINNUMERO") {
+        return `CASO:${caso}`;
+      }
+      // Fallback: id si no hay numero_caso válido
+      return `ID:${String(item.id || "").trim()}`;
+    }
+
     registrosLegacy.forEach((item) => {
-      const clave = String(item.id || item.numero_caso || "").trim();
+      const clave = claveDedup(item);
       if (clave) mapaUnificados.set(clave, item);
     });
 
+    // Oficiales sobreescriben legacy (mayor prioridad)
     registrosOficiales.forEach((item) => {
-      const clave = String(item.id || item.numero_caso || "").trim();
+      const clave = claveDedup(item);
       if (clave) mapaUnificados.set(clave, item);
     });
 
