@@ -25,7 +25,9 @@ import {
   normalizarServicioUnificado,
   coincideProveedorFlexible,
   extraerMesAnio,
-  normalizarTexto
+  normalizarTexto,
+  ordenarServiciosPorFechaDescendente,
+  deduplicarServicios
 } from "../../services/soporteService";
 import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
@@ -173,8 +175,9 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   }, [serviciosProveedor]);
 
   // Filtrado final en tiempo real por periodo (mes y año) y búsqueda
+  // Aplica deduplicación estricta y ordenamiento cronológico descendente (mayor a menor fecha)
   const serviciosFiltrados = useMemo(() => {
-    return serviciosProveedor.filter((s) => {
+    const filtrados = serviciosProveedor.filter((s) => {
       // 1. Búsqueda por número de caso
       if (busqueda.trim()) {
         const q = busqueda.trim().toLowerCase();
@@ -197,6 +200,8 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
       return true;
     });
+
+    return ordenarServiciosPorFechaDescendente(deduplicarServicios(filtrados));
   }, [serviciosProveedor, busqueda, filtroMes, filtroAnio]);
 
   // Cálculos de liquidación

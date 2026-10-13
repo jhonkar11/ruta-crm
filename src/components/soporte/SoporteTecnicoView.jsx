@@ -61,7 +61,9 @@ import {
   depurarRegistrosServiciosPorMes,
   subirImagenTemporalSoporte,
   purgarImagenesTemporales,
-  purgarEvidenciasMensuales
+  purgarEvidenciasMensuales,
+  ordenarServiciosPorFechaDescendente,
+  deduplicarServicios
 } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { supabase } from "../../services/supabaseClient";
@@ -1190,36 +1192,41 @@ const handleGenerarPlantilla = async () => {
   });
 
   // Servicios filtrados según el periodo activo (mes y año o todos), proveedor y búsqueda en tiempo real por N° de Caso
-  const serviciosFiltrados = servicios.filter((s) => {
-    // 0. Búsqueda rápida en tiempo real por N° de Caso (actualiza tabla y subtotales instantáneamente)
-    if (busquedaCasoCuenta && busquedaCasoCuenta.trim()) {
-      const q = busquedaCasoCuenta.trim().toLowerCase();
-      const numCaso = String(s.numero_caso || "").toLowerCase();
-      const qClean = q.replace(/[^a-z0-9]/g, "");
-      const numClean = numCaso.replace(/[^a-z0-9]/g, "");
-      const coincide = numCaso.includes(q) || (qClean.length > 0 && numClean.includes(qClean));
-      if (!coincide) {
-        return false;
-      }
-    }
+  // Se aplican deduplicación estricta y ordenamiento cronológico descendente (mayor a menor por fecha)
+  const serviciosFiltrados = ordenarServiciosPorFechaDescendente(
+    deduplicarServicios(
+      servicios.filter((s) => {
+        // 0. Búsqueda rápida en tiempo real por N° de Caso (actualiza tabla y subtotales instantáneamente)
+        if (busquedaCasoCuenta && busquedaCasoCuenta.trim()) {
+          const q = busquedaCasoCuenta.trim().toLowerCase();
+          const numCaso = String(s.numero_caso || "").toLowerCase();
+          const qClean = q.replace(/[^a-z0-9]/g, "");
+          const numClean = numCaso.replace(/[^a-z0-9]/g, "");
+          const coincide = numCaso.includes(q) || (qClean.length > 0 && numClean.includes(qClean));
+          if (!coincide) {
+            return false;
+          }
+        }
 
-    // 1. Filtrado Flexible por Proveedor / Entidad
-    if (filtroProveedor && !coincideProveedorFlexible(s.proveedor, filtroProveedor)) {
-      return false;
-    }
+        // 1. Filtrado Flexible por Proveedor / Entidad
+        if (filtroProveedor && !coincideProveedorFlexible(s.proveedor, filtroProveedor)) {
+          return false;
+        }
 
-    // 2. Filtrado por Periodo (Mes y Año)
-    if (mostrarTodos) return true;
-    const info = extraerMesAnio(s);
-    if (!info) return false;
+        // 2. Filtrado por Periodo (Mes y Año)
+        if (mostrarTodos) return true;
+        const info = extraerMesAnio(s);
+        if (!info) return false;
 
-    // Si filtroAnio es 'todos', sólo evaluamos el mes
-    if (String(filtroAnio) === "todos") {
-      return info.mes === Number(filtroMes);
-    }
+        // Si filtroAnio es 'todos', sólo evaluamos el mes
+        if (String(filtroAnio) === "todos") {
+          return info.mes === Number(filtroMes);
+        }
 
-    return info.mes === Number(filtroMes) && info.anio === Number(filtroAnio);
-  });
+        return info.mes === Number(filtroMes) && info.anio === Number(filtroAnio);
+      })
+    )
+  );
 
   // Años disponibles para el Registro de Servicios
   const aniosDisponiblesReg = Array.from(

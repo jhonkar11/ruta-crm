@@ -469,8 +469,78 @@ export function extraerMesAnio(s) {
 }
 
 /**
- * Deduplica automáticamente una lista de servicios basándose en el número de caso o ID único.
- * Evita repeticiones en pantalla o alteraciones en sumas financieras.
+ * Obtiene el timestamp numérico más preciso de un servicio para propósitos de ordenamiento cronológico.
+ * Evalúa fechas de atención, solicitud, finalización o creado_en.
+ */
+export function parsearTimestampServicio(s) {
+  if (!s) return 0;
+  const candidatos = [
+    s.service_date,
+    s.fecha_atencion,
+    s.request_date,
+    s.fecha_solicitud,
+    s.end_date,
+    s.fecha_finalizacion
+  ];
+
+  for (const c of candidatos) {
+    if (!c) continue;
+    const str = String(c).trim();
+    if (!str || str === "-") continue;
+
+    // DD/MM/YYYY o DD-MM-YYYY
+    const mDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (mDMY) {
+      const d = parseInt(mDMY[1], 10);
+      const m = parseInt(mDMY[2], 10);
+      const y = parseInt(mDMY[3], 10);
+      if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y > 1990) {
+        return new Date(y, m - 1, d).getTime();
+      }
+    }
+
+    // YYYY/MM/DD o YYYY-MM-DD
+    const mYMD = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (mYMD) {
+      const y = parseInt(mYMD[1], 10);
+      const m = parseInt(mYMD[2], 10);
+      const d = parseInt(mYMD[3], 10);
+      if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y > 1990) {
+        return new Date(y, m - 1, d).getTime();
+      }
+    }
+  }
+
+  const creado = s.created_at || s.creado_en;
+  if (creado) {
+    const t = new Date(creado).getTime();
+    if (!isNaN(t)) return t;
+  }
+  return 0;
+}
+
+/**
+ * Ordena un conjunto de servicios de manera descendente (del más reciente al más antiguo).
+ * Garantiza que el último servicio ingresado aparezca siempre de primero.
+ */
+export function ordenarServiciosPorFechaDescendente(lista) {
+  if (!Array.isArray(lista) || lista.length <= 1) return lista || [];
+  return [...lista].sort((a, b) => {
+    const timeA = parsearTimestampServicio(a);
+    const timeB = parsearTimestampServicio(b);
+    if (timeB !== timeA) {
+      return timeB - timeA;
+    }
+    // Desempate por timestamp de creación/inyección en base de datos
+    const createdA = new Date(a.created_at || a.creado_en || 0).getTime() || 0;
+    const createdB = new Date(b.created_at || b.creado_en || 0).getTime() || 0;
+    return createdB - createdA;
+  });
+}
+
+/**
+ * Deduplica automáticamente una lista de servicios basándose en la llave de unicidad estricta
+ * del ID único (UUID de Supabase) y número de caso para evitar repeticiones en pantalla o alteraciones en sumas.
  */
 export function deduplicarServicios(lista) {
   if (!Array.isArray(lista) || lista.length === 0) return [];
@@ -478,10 +548,15 @@ export function deduplicarServicios(lista) {
 
   for (const item of lista) {
     if (!item) continue;
+    // Llave de unicidad primaria por UUID
+    const idUnico = String(item.id || "").trim().toLowerCase();
     const caso = String(item.numero_caso || item.case_number || "").trim().toUpperCase().replace(/\s+/g, "");
-    const clave = (caso && caso !== "-" && caso !== "SINNUMERO" && caso !== "SINNÚMERO")
-      ? `CASO:${caso}`
-      : `ID:${String(item.id || "").trim()}`;
+
+    const clave = (idUnico && idUnico !== "undefined" && idUnico !== "null")
+      ? `ID:${idUnico}`
+      : ((caso && caso !== "-" && caso !== "SINNUMERO" && caso !== "SINNÚMERO")
+          ? `CASO:${caso}`
+          : `RANDOM:${Math.random()}`);
 
     if (!mapa.has(clave)) {
       mapa.set(clave, item);
@@ -496,13 +571,33 @@ export function deduplicarServicios(lista) {
     }
   }
 
-  return Array.from(mapa.values());
+  // Deduplicación secundaria por número de caso limpio si el caso no es genérico
+  const mapaPorCaso = new Map();
+  for (const item of mapa.values()) {
+    const caso = String(item.numero_caso || item.case_number || "").trim().toUpperCase().replace(/\s+/g, "");
+    if (caso && caso !== "-" && caso !== "SINNUMERO" && caso !== "SINNÚMERO") {
+      if (!mapaPorCaso.has(caso)) {
+        mapaPorCaso.set(caso, item);
+      } else {
+        const previo = mapaPorCaso.get(caso);
+        const valPrev = Number(previo.valor_servicios || previo.service_value || 0);
+        const valItem = Number(item.valor_servicios || item.service_value || 0);
+        if (valItem > valPrev) {
+          mapaPorCaso.set(caso, item);
+        }
+      }
+    } else {
+      mapaPorCaso.set(`ITEM_${item.id}`, item);
+    }
+  }
+
+  return ordenarServiciosPorFechaDescendente(Array.from(mapaPorCaso.values()));
 }
 
 /**
  * CONSULTA FRESCA DIRECTA A SUPABASE (SIN CACHÉ / SIN LOCALSTORAGE OBSOLETO).
  * Diseñada para obtener siempre la verdad más reciente de Supabase (injected_services).
- * Consulta la tabla oficial injected_services y garantiza datos 1:1 en tiempo real con deduplicación.
+ * Consulta la tabla oficial injected_services y garantiza datos 1:1 en tiempo real con orden descendente.
  */
 export async function getServiciosFrescos() {
   try {
@@ -520,7 +615,7 @@ export async function getServiciosFrescos() {
         // Actualizar cache local con la verdad remota fresca
         sincronizarCacheLocalServicios(registrosOficiales);
         const unicos = deduplicarServicios(registrosOficiales);
-        console.log(`[SharedView] Fetch fresco: ${unicos.length} registros oficiales deduplicados desde Supabase (ts: ${timestampCacheBust})`);
+        console.log(`[SharedView] Fetch fresco: ${unicos.length} registros oficiales ordenados descendente desde Supabase (ts: ${timestampCacheBust})`);
         return unicos;
       }
     } catch (errQ) {
