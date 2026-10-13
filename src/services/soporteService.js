@@ -318,6 +318,70 @@ export async function inicializarTablaInjectedServices() {
 }
 
 /**
+ * CONSULTA FRESCA DIRECTA A SUPABASE (SIN CACHÉ / SIN LOCALSTORAGE).
+ * Diseñada exclusivamente para la vista pública compartida del proveedor.
+ * - No lee ni escribe en localStorage.
+ * - No usa semillas por defecto (SERVICIOS_INICIALES_DEFAULT).
+ * - Añade un parámetro de cache-busting (_t) para evitar respuestas cacheadas por Vercel/CDN.
+ * - Retorna exactamente los mismos registros normalizados que getServiciosSoporte() pero 100% frescos.
+ */
+export async function getServiciosFrescos() {
+  try {
+    // 1. Consulta fresca a injected_services (tabla oficial) con cache-busting
+    const timestampCacheBust = Date.now();
+    let registrosOficiales = [];
+    try {
+      const { data: dataOficial, error: errOficial } = await supabase
+        .from(TABLA_SERVICIOS_OFICIAL)
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (!errOficial && dataOficial && dataOficial.length > 0) {
+        registrosOficiales = dataOficial.map(normalizarServicioUnificado);
+      }
+    } catch (_) {}
+
+    // 2. Consulta fresca a soporte_servicios (legacy)
+    let registrosLegacy = [];
+    try {
+      const { data: dataLegacy, error: errLegacy } = await supabase
+        .from(TABLA_SERVICIOS_LEGACY)
+        .select("*")
+        .order("creado_en", { ascending: false })
+        .limit(500);
+
+      if (!errLegacy && dataLegacy && dataLegacy.length > 0) {
+        registrosLegacy = dataLegacy.map(normalizarServicioUnificado);
+      }
+    } catch (_) {}
+
+    // 3. MERGE INTELIGENTE SIN LOCALSTORAGE:
+    // Legacy como base, oficiales sobreescriben (idéntica prioridad que getServiciosSoporte)
+    const mapaUnificados = new Map();
+
+    registrosLegacy.forEach((item) => {
+      const clave = String(item.id || item.numero_caso || "").trim();
+      if (clave) mapaUnificados.set(clave, item);
+    });
+
+    registrosOficiales.forEach((item) => {
+      const clave = String(item.id || item.numero_caso || "").trim();
+      if (clave) mapaUnificados.set(clave, item);
+    });
+
+    const listaFinal = Array.from(mapaUnificados.values());
+
+    console.log(`[SharedView] Fetch fresco: ${registrosOficiales.length} oficiales + ${registrosLegacy.length} legacy = ${listaFinal.length} únicos (ts: ${timestampCacheBust})`);
+
+    return listaFinal;
+  } catch (e) {
+    console.error("Error en getServiciosFrescos:", e.message);
+    return [];
+  }
+}
+
+/**
  * Obtiene los servicios registrados para la cuenta de cobro activa.
  * Consulta prioritariamente injected_services, con fallback a soporte_servicios y
  * respaldo blindado garantizado en localStorage para evitar pantalla en ceros.

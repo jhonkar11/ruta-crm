@@ -20,7 +20,7 @@ import {
   Maximize2,
   Minimize2
 } from "lucide-react";
-import { getServiciosSoporte, normalizarServicioUnificado } from "../../services/soporteService";
+import { getServiciosFrescos, normalizarServicioUnificado } from "../../services/soporteService";
 import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
@@ -166,14 +166,12 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   useEffect(() => {
     let cancelado = false;
 
-    // FUENTE DE VERDAD ÚNICA: Usa exactamente la misma función getServiciosSoporte()
-    // que utiliza el CRM principal (SoporteTecnicoView), sin argumentos de proveedor,
-    // para obtener la lista completa con idéntica lógica de merge y deduplicación.
-    // El filtrado por proveedor/mes se aplica después en el lado del cliente (serviciosProveedor/serviciosFiltrados).
+    // FUENTE DE VERDAD FRESCA: Consulta directa a Supabase sin localStorage ni caché.
+    // Garantiza que el proveedor siempre vea datos 100% actualizados.
     async function cargarTiempoReal() {
       setLoading(true);
       try {
-        const data = await getServiciosSoporte();
+        const data = await getServiciosFrescos();
         if (!cancelado) {
           setServicios(data || []);
         }
