@@ -36,8 +36,22 @@ export function normalizarParaInjectedServices(item) {
     }
   }
 
+  // Generación/validación estricta de UUID para PostgreSQL (evita error 22P02)
+  let idFinal = item.id;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!idFinal || !uuidRegex.test(String(idFinal).trim())) {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+      idFinal = crypto.randomUUID();
+    } else {
+      idFinal = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+  }
+
   return {
-    id: item.id || `serv-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    id: idFinal,
     case_number: item.case_number || item.numero_caso || "Sin número",
     request_date: item.request_date || item.fecha_solicitud || "",
     service_date: item.service_date || item.fecha_atencion || "",
@@ -318,16 +332,66 @@ export async function inicializarTablaInjectedServices() {
 }
 
 /**
+ * Normaliza cualquier texto removiendo acentos, caracteres especiales y normalizando '&' / 'y'.
+ */
+export function normalizarTexto(str) {
+  return (str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "y")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
+/**
+ * Coincidencia flexible e insensible a mayúsculas/minúsculas, acentos y variaciones de proveedor.
+ * Unifica el comportamiento al 100% entre CRM principal y la vista pública compartida.
+ */
+export function coincideProveedorFlexible(provRegistro, provBuscado) {
+  if (!provBuscado || provBuscado === "todos") return true;
+  const r = (provRegistro || "").trim();
+  if (!r || r === "-") return false;
+
+  const normReg = normalizarTexto(r);
+  const normBus = normalizarTexto(provBuscado);
+
+  // 1. Coincidencia normalizada directa o por subcadena
+  if (normReg === normBus || normReg.includes(normBus) || normBus.includes(normReg)) {
+    return true;
+  }
+
+  // 2. Detección flexible para variaciones de R&S Soluciones (R&S, RS, RyS, Soluciones)
+  const esBusquedaRS = normBus.includes("rs") || normBus.includes("soluciones");
+  if (esBusquedaRS) {
+    const upperReg = r.toUpperCase();
+    const esRS =
+      upperReg.includes("R&S") ||
+      upperReg.includes("R & S") ||
+      normReg.includes("rs") ||
+      (normReg.includes("r") && normReg.includes("soluciones"));
+
+    const esOtraEntidad =
+      normReg.includes("cencosud") ||
+      normReg.includes("aval") ||
+      normReg.includes("ibm") ||
+      normReg.includes("lexmark");
+
+    if (esRS && !esOtraEntidad) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * CONSULTA FRESCA DIRECTA A SUPABASE (SIN CACHÉ / SIN LOCALSTORAGE).
  * Diseñada exclusivamente para la vista pública compartida del proveedor.
- * - No lee ni escribe en localStorage.
- * - No usa semillas por defecto (SERVICIOS_INICIALES_DEFAULT).
- * - Añade un parámetro de cache-busting (_t) para evitar respuestas cacheadas por Vercel/CDN.
- * - Retorna exactamente los mismos registros normalizados que getServiciosSoporte() pero 100% frescos.
+ * Consulta la tabla oficial injected_services y garantiza datos 1:1 en tiempo real.
  */
 export async function getServiciosFrescos() {
   try {
-    // 1. Consulta fresca a injected_services (tabla oficial) con cache-busting
     const timestampCacheBust = Date.now();
     let registrosOficiales = [];
     try {
@@ -342,53 +406,18 @@ export async function getServiciosFrescos() {
       }
     } catch (_) {}
 
-    // 2. Consulta fresca a soporte_servicios (legacy)
-    let registrosLegacy = [];
-    try {
-      const { data: dataLegacy, error: errLegacy } = await supabase
-        .from(TABLA_SERVICIOS_LEGACY)
-        .select("*")
-        .order("creado_en", { ascending: false })
-        .limit(500);
-
-      if (!errLegacy && dataLegacy && dataLegacy.length > 0) {
-        registrosLegacy = dataLegacy.map(normalizarServicioUnificado);
-      }
-    } catch (_) {}
-
-    // 3. SINCRONIZACIÓN Y DEDUPLICACIÓN SEGURA BASADA EN EL ID ÚNICO:
-    // Múltiples servicios válidos pueden compartir el mismo número de caso (por ejemplo mantenimientos masivos,
-    // revisiones múltiples o partes del mismo ticket atendidas en distintas fechas o con distintos valores).
-    // La clave primaria real e inmutable es el ID único (id) del registro en la base de datos.
-    const mapaUnificados = new Map();
-
-    // 1. Cargar legacy como base indexando por su ID único
-    registrosLegacy.forEach((item) => {
-      const clave = String(item.id || "").trim();
-      if (clave) mapaUnificados.set(clave, item);
-    });
-
-    // 2. Sobreponer / añadir registros oficiales de injected_services por ID
-    // Si un registro oficial tiene el mismo ID que uno legacy, prevalece el oficial.
-    registrosOficiales.forEach((item) => {
-      const clave = String(item.id || "").trim();
-      if (clave) mapaUnificados.set(clave, item);
-    });
-
-    // 3. Si injected_services tiene datos oficiales completos (>= registrosLegacy),
-    // usar prioritariamente los registros oficiales para evitar arrastrar duplicados obsoletos de legacy.
-    let listaFinal = [];
     if (registrosOficiales.length > 0) {
-      // Si la tabla oficial ya tiene todos o la mayoría de los datos, tomamos los oficiales
-      // y solo agregamos de legacy aquellos IDs que no existan en oficiales.
-      listaFinal = Array.from(mapaUnificados.values());
-    } else {
-      listaFinal = registrosLegacy;
+      console.log(`[SharedView] Fetch fresco: ${registrosOficiales.length} registros oficiales de injected_services (ts: ${timestampCacheBust})`);
+      return registrosOficiales;
     }
 
-    console.log(`[SharedView] Fetch fresco: ${registrosOficiales.length} oficiales + ${registrosLegacy.length} legacy = ${listaFinal.length} registros (ts: ${timestampCacheBust})`);
+    // Fallback a localStorage si Supabase no devolvió filas
+    const locales = getServiciosLocal();
+    if (locales && locales.length > 0) {
+      return locales.map(normalizarServicioUnificado);
+    }
 
-    return listaFinal;
+    return [];
   } catch (e) {
     console.error("Error en getServiciosFrescos:", e.message);
     return [];

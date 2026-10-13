@@ -20,7 +20,7 @@ import {
   Maximize2,
   Minimize2
 } from "lucide-react";
-import { getServiciosFrescos, normalizarServicioUnificado } from "../../services/soporteService";
+import { getServiciosFrescos, normalizarServicioUnificado, coincideProveedorFlexible } from "../../services/soporteService";
 import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
@@ -208,9 +208,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   }, []);
 
   // REGLA DE INTEGRIDAD Y FILTRADO FLEXIBLE:
-  // - Si los servicios vienen directamente del snapshot por token (shared_audits),
-  //   se utilizan exactamente esos registros garantizando 100% de coincidencia inmutable.
-  // - De lo contrario, se aplica la normalización flexible sobre el catálogo general.
+  // Usa exactamente coincideProveedorFlexible() idéntico al CRM principal (SoporteTecnicoView)
   const serviciosProveedor = useMemo(() => {
     if (!proveedorParam || proveedorParam === "todos") {
       return servicios.filter((s) => {
@@ -220,43 +218,12 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     }
 
     return servicios.filter((s) => {
-      const p = (s.proveedor || "").trim();
-      if (!p || p === "-") return false;
-
-      const normP = normalizarTexto(p);
-
-      // 1. Coincidencia exacta normalizada
-      if (normP === provNorm || normP === rawNorm) return true;
-
-      // 2. Coincidencia flexible para R&S Soluciones
-      if (esBusquedaRS) {
-        const pUpper = p.toUpperCase();
-        const coincideRS =
-          pUpper.includes("R&S") ||
-          pUpper.includes("R & S") ||
-          normP.includes("rs") ||
-          (normP.includes("r") && normP.includes("soluciones"));
-
-        // Asegurar que no sea de otra entidad distinta
-        const esOtraEntidad =
-          normP.includes("cencosud") ||
-          normP.includes("aval") ||
-          normP.includes("ibm") ||
-          normP.includes("lexmark");
-
-        if (coincideRS && !esOtraEntidad) {
-          return true;
-        }
-      }
-
-      // 3. Coincidencia por subcadena para otros proveedores
-      if (normP.includes(provNorm) || provNorm.includes(normP)) {
-        return true;
-      }
-
-      return false;
+      return (
+        coincideProveedorFlexible(s.proveedor, proveedorParam) ||
+        coincideProveedorFlexible(s.proveedor, _provRaw)
+      );
     });
-  }, [servicios, proveedorParam, provNorm, rawNorm, esBusquedaRS]);
+  }, [servicios, proveedorParam, _provRaw]);
 
   // Años disponibles en los servicios del proveedor
   const aniosDisponibles = useMemo(() => {
