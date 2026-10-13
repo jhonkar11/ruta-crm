@@ -30,28 +30,94 @@ const NOMBRES_MESES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
 ];
 
+// ── FUNCIONES AUXILIARES PURAS (HOISTING SEGURO A NIVEL DE MÓDULO) ───────────
+const SLUG_MAP = {
+  "rs-soluciones": "R&S Soluciones",
+  "r-s-soluciones": "R&S Soluciones",
+  "rssoluciones": "R&S Soluciones",
+  "rys-soluciones": "R&S Soluciones",
+  "cencosud": "Cencosud",
+  "grupo-aval": "Grupo Aval",
+  "ibm-colombia": "IBM Colombia",
+  "lexmark": "Lexmark",
+  "almacenes-exito": "Almacenes Éxito"
+};
+
+function normalizarTexto(str) {
+  return (str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "y")
+    .replace(/[^a-z0-9]/g, "")
+    .trim();
+}
+
+function extraerMesAnio(s) {
+  if (!s) return null;
+  const fechas = [
+    s.service_date,
+    s.fecha_atencion,
+    s.request_date,
+    s.fecha_solicitud,
+    s.end_date,
+    s.fecha_finalizacion
+  ];
+
+  for (const f of fechas) {
+    if (!f) continue;
+    const str = String(f).trim();
+    if (!str || str === "-") continue;
+
+    // 1. Formato DD/MM/YYYY o DD-MM-YYYY (ej. "08/09/2026")
+    const mDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (mDMY) {
+      const mes = parseInt(mDMY[2], 10);
+      const anio = parseInt(mDMY[3], 10);
+      if (mes >= 1 && mes <= 12 && anio > 1990) {
+        return { mes, anio };
+      }
+    }
+
+    // 2. Formato YYYY/MM/DD o YYYY-MM-DD (ej. "2026-09-08")
+    const mYMD = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (mYMD) {
+      const mes = parseInt(mYMD[2], 10);
+      const anio = parseInt(mYMD[1], 10);
+      if (mes >= 1 && mes <= 12 && anio > 1990) {
+        return { mes, anio };
+      }
+    }
+
+    // 3. Formato DD/MM/YY (ej. 15/09/26 -> 2026)
+    const mDM2Y = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+    if (mDM2Y) {
+      const mes = parseInt(mDM2Y[2], 10);
+      const yy = parseInt(mDM2Y[3], 10);
+      const anio = yy < 50 ? 2000 + yy : 1900 + yy;
+      if (mes >= 1 && mes <= 12) {
+        return { mes, anio };
+      }
+    }
+  }
+
+  const creado = s.created_at || s.creado_en;
+  if (creado) {
+    const d = new Date(creado);
+    if (!isNaN(d.getTime())) {
+      return { mes: d.getMonth() + 1, anio: d.getFullYear() };
+    }
+  }
+  return null;
+}
+
 export default function VistaProveedorReadOnly({ theme = "light" }) {
   // FORZAR TEMA CLARO INSTITUCIONAL (FONDO BLANCO):
-  // Elimina cualquier herencia de modo oscuro en la vista compartida.
-  // Garantiza que la página pública siempre se visualice con fondo blanco y texto oscuro en cualquier dispositivo o móvil.
   const isDark = false;
 
   // ── Parámetros de la URL ─────────────────────────────────────────────────────
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const _provRaw = params.get("prov") || params.get("proveedor") || "";
-
-  // Mapa de slugs conocidos a nombres canónicos
-  const SLUG_MAP = {
-    "rs-soluciones": "R&S Soluciones",
-    "r-s-soluciones": "R&S Soluciones",
-    "rssoluciones": "R&S Soluciones",
-    "rys-soluciones": "R&S Soluciones",
-    "cencosud": "Cencosud",
-    "grupo-aval": "Grupo Aval",
-    "ibm-colombia": "IBM Colombia",
-    "lexmark": "Lexmark",
-    "almacenes-exito": "Almacenes Éxito"
-  };
 
   const proveedorParam = useMemo(() => {
     let raw = "";
@@ -68,7 +134,19 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
   const mesParam = params.get("mes");   // número o "todos"
   const anioParam = params.get("anio"); // número o "todos"
-  const rawPayload = params.get("data");
+
+  const provNorm = useMemo(() => normalizarTexto(proveedorParam), [proveedorParam]);
+  const rawNorm = useMemo(() => normalizarTexto(_provRaw), [_provRaw]);
+
+  // Determinar si el proveedor buscado es R&S Soluciones o similar (declarado ANTES del useEffect)
+  const esBusquedaRS = useMemo(() => {
+    return (
+      provNorm.includes("rs") ||
+      provNorm.includes("soluciones") ||
+      rawNorm.includes("rs") ||
+      rawNorm.includes("soluciones")
+    );
+  }, [provNorm, rawNorm]);
 
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,9 +162,6 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   const [copiadoPlantilla, setCopiadoPlantilla] = useState(false);
   const [imagenZoomModal, setImagenZoomModal] = useState(null); // { url, titulo }
   const [zoomNivel, setZoomNivel] = useState(1);
-
-  const tokenParam = params.get("token");
-  const [esSnapshotToken, setEsSnapshotToken] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
@@ -156,7 +231,6 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     cargarTiempoReal();
 
     // 4. SUSCRIPCIÓN EN TIEMPO REAL CON SUPABASE CHANNELS
-    // Si el administrador agrega, edita o elimina servicios en el CRM, el proveedor ve la actualización al 100% al instante
     const canalRealtime = supabase
       .channel("injected_services_realtime_shared")
       .on(
@@ -175,86 +249,6 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
       } catch (_) {}
     };
   }, [proveedorParam, esBusquedaRS]);
-
-  // Helper infalible de extracción de mes y año (DD/MM/YYYY, YYYY-MM-DD, etc.)
-  const extraerMesAnio = (s) => {
-    if (!s) return null;
-    const fechas = [
-      s.service_date,
-      s.fecha_atencion,
-      s.request_date,
-      s.fecha_solicitud,
-      s.end_date,
-      s.fecha_finalizacion
-    ];
-
-    for (const f of fechas) {
-      if (!f) continue;
-      const str = String(f).trim();
-      if (!str || str === "-") continue;
-
-      // 1. Formato DD/MM/YYYY o DD-MM-YYYY (ej. "08/09/2026")
-      const mDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-      if (mDMY) {
-        const mes = parseInt(mDMY[2], 10);
-        const anio = parseInt(mDMY[3], 10);
-        if (mes >= 1 && mes <= 12 && anio > 1990) {
-          return { mes, anio };
-        }
-      }
-
-      // 2. Formato YYYY/MM/DD o YYYY-MM-DD (ej. "2026-09-08")
-      const mYMD = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-      if (mYMD) {
-        const mes = parseInt(mYMD[2], 10);
-        const anio = parseInt(mYMD[1], 10);
-        if (mes >= 1 && mes <= 12 && anio > 1990) {
-          return { mes, anio };
-        }
-      }
-
-      // 3. Formato DD/MM/YY (ej. 15/09/26 -> 2026)
-      const mDM2Y = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
-      if (mDM2Y) {
-        const mes = parseInt(mDM2Y[2], 10);
-        const yy = parseInt(mDM2Y[3], 10);
-        const anio = yy < 50 ? 2000 + yy : 1900 + yy;
-        if (mes >= 1 && mes <= 12) {
-          return { mes, anio };
-        }
-      }
-    }
-
-    const creado = s.created_at || s.creado_en;
-    if (creado) {
-      const d = new Date(creado);
-      if (!isNaN(d.getTime())) {
-        return { mes: d.getMonth() + 1, anio: d.getFullYear() };
-      }
-    }
-    return null;
-  };
-
-  // ── NORMALIZACIÓN Y FILTRADO FLEXIBLE DEL LADO DEL CLIENTE ──────────────────
-  // Limpia espacios, acentos, caracteres especiales y normaliza 'y'/'&'
-  const normalizarTexto = (str) =>
-    (str || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/&/g, "y")
-      .replace(/[^a-z0-9]/g, "")
-      .trim();
-
-  const provNorm = normalizarTexto(proveedorParam);
-  const rawNorm = normalizarTexto(_provRaw);
-
-  // Determinar si el proveedor buscado es R&S Soluciones o similar
-  const esBusquedaRS =
-    provNorm.includes("rs") ||
-    provNorm.includes("soluciones") ||
-    rawNorm.includes("rs") ||
-    rawNorm.includes("soluciones");
 
   // REGLA DE INTEGRIDAD Y FILTRADO FLEXIBLE:
   // - Si los servicios vienen directamente del snapshot por token (shared_audits),
