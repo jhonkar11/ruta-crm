@@ -356,38 +356,37 @@ export async function getServiciosFrescos() {
       }
     } catch (_) {}
 
-    // 3. DEDUPLICACIÓN ESTRICTA POR NÚMERO DE CASO (case_number / numero_caso):
-    // Los registros de injected_services y soporte_servicios comparten el mismo
-    // numero_caso pero tienen UUIDs (id) diferentes. Usar id como clave de Map
-    // causaba duplicados. La clave correcta es el numero_caso (clave de negocio).
-    // Legacy como base, oficiales sobreescriben.
+    // 3. SINCRONIZACIÓN Y DEDUPLICACIÓN SEGURA BASADA EN EL ID ÚNICO:
+    // Múltiples servicios válidos pueden compartir el mismo número de caso (por ejemplo mantenimientos masivos,
+    // revisiones múltiples o partes del mismo ticket atendidas en distintas fechas o con distintos valores).
+    // La clave primaria real e inmutable es el ID único (id) del registro en la base de datos.
     const mapaUnificados = new Map();
 
-    // Función para generar clave única de deduplicación basada en numero_caso
-    function claveDedup(item) {
-      // Prioridad: numero_caso limpio (clave de negocio real)
-      const caso = String(item.numero_caso || item.case_number || "").trim().toUpperCase().replace(/\s+/g, "");
-      if (caso && caso !== "-" && caso !== "SIN NÚMERO" && caso !== "SINNUMERO") {
-        return `CASO:${caso}`;
-      }
-      // Fallback: id si no hay numero_caso válido
-      return `ID:${String(item.id || "").trim()}`;
+    // 1. Cargar legacy como base indexando por su ID único
+    registrosLegacy.forEach((item) => {
+      const clave = String(item.id || "").trim();
+      if (clave) mapaUnificados.set(clave, item);
+    });
+
+    // 2. Sobreponer / añadir registros oficiales de injected_services por ID
+    // Si un registro oficial tiene el mismo ID que uno legacy, prevalece el oficial.
+    registrosOficiales.forEach((item) => {
+      const clave = String(item.id || "").trim();
+      if (clave) mapaUnificados.set(clave, item);
+    });
+
+    // 3. Si injected_services tiene datos oficiales completos (>= registrosLegacy),
+    // usar prioritariamente los registros oficiales para evitar arrastrar duplicados obsoletos de legacy.
+    let listaFinal = [];
+    if (registrosOficiales.length > 0) {
+      // Si la tabla oficial ya tiene todos o la mayoría de los datos, tomamos los oficiales
+      // y solo agregamos de legacy aquellos IDs que no existan en oficiales.
+      listaFinal = Array.from(mapaUnificados.values());
+    } else {
+      listaFinal = registrosLegacy;
     }
 
-    registrosLegacy.forEach((item) => {
-      const clave = claveDedup(item);
-      if (clave) mapaUnificados.set(clave, item);
-    });
-
-    // Oficiales sobreescriben legacy (mayor prioridad)
-    registrosOficiales.forEach((item) => {
-      const clave = claveDedup(item);
-      if (clave) mapaUnificados.set(clave, item);
-    });
-
-    const listaFinal = Array.from(mapaUnificados.values());
-
-    console.log(`[SharedView] Fetch fresco: ${registrosOficiales.length} oficiales + ${registrosLegacy.length} legacy = ${listaFinal.length} únicos (ts: ${timestampCacheBust})`);
+    console.log(`[SharedView] Fetch fresco: ${registrosOficiales.length} oficiales + ${registrosLegacy.length} legacy = ${listaFinal.length} registros (ts: ${timestampCacheBust})`);
 
     return listaFinal;
   } catch (e) {
@@ -660,11 +659,10 @@ export async function eliminarServicioSoporte(id, numeroCaso = "") {
   if (!id && !numeroCaso) return { ok: false };
 
   // 1. Eliminar inmediatamente del almacenamiento local (Cuenta de Cobro)
+  // Solo eliminar la fila exacta por id, NUNCA por numero_caso (podría borrar filas válidas)
   try {
     const items = getServiciosLocal().filter((s) => {
-      const coincideId = id && s.id === id;
-      const coincideCaso = numeroCaso && (s.numero_caso || s.case_number || "").trim() === numeroCaso.trim();
-      return !coincideId && !coincideCaso;
+      return s.id !== id;
     });
     localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(items));
   } catch (localErr) {
@@ -672,6 +670,8 @@ export async function eliminarServicioSoporte(id, numeroCaso = "") {
   }
 
   // 2. Borrado real y directo en Supabase (injected_services - tabla oficial)
+  // CRÍTICO: Borrar ÚNICAMENTE por UUID (id), NUNCA por case_number
+  // ya que múltiples registros válidos pueden compartir el mismo número de caso.
   try {
     if (id) {
       const { error: errId } = await supabase
@@ -680,36 +680,23 @@ export async function eliminarServicioSoporte(id, numeroCaso = "") {
         .eq("id", id);
       if (errId) console.warn("Aviso delete injected_services por ID:", errId.message);
     }
-
-    if (numeroCaso) {
-      await supabase
-        .from(TABLA_SERVICIOS_OFICIAL)
-        .delete()
-        .eq("case_number", numeroCaso);
-    }
   } catch (e) {
     console.error("Error en eliminación directa en injected_services:", e);
   }
 
-  // 3. Borrado real y directo en Supabase (soporte_servicios - tabla legacy)
+  // 3. Borrado en Supabase (soporte_servicios - tabla legacy) solo por ID
   try {
     if (id) {
       await supabase.from(TABLA_SERVICIOS_LEGACY).delete().eq("id", id);
-    }
-    if (numeroCaso) {
-      await supabase.from(TABLA_SERVICIOS_LEGACY).delete().eq("numero_caso", numeroCaso);
     }
   } catch (e) {
     // Si la tabla legacy no existe o falla, no bloquea el flujo
   }
 
-  // 4. Borrado sincronizado en Registro General de Servicios si aplica
+  // 4. Borrado sincronizado en Registro General de Servicios solo por ID
   try {
     if (id) {
       await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("id", id);
-    }
-    if (numeroCaso) {
-      await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("numero_caso", numeroCaso);
     }
   } catch (_) {}
 
@@ -1059,34 +1046,24 @@ export async function guardarRegistroServicio(registro) {
  * Elimina un registro individual del historial de servicios y sincroniza con injected_services.
  */
 export async function eliminarRegistroServicio(id, numeroCaso = "") {
-  // 1. Borrado directo en supabase.from('soporte_registro_servicios')
+  // 1. Borrado directo en supabase.from('soporte_registro_servicios') SOLO por UUID
   try {
     if (id) {
       await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("id", id);
-    }
-    if (numeroCaso) {
-      await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("numero_caso", numeroCaso);
     }
   } catch (e) {
     console.warn("Eliminación remota de registro de servicio:", e.message);
   }
 
-  // 2. Borrado sincronizado en injected_services
+  // 2. Borrado sincronizado en injected_services SOLO por UUID
   try {
     if (id) {
       await supabase.from(TABLA_SERVICIOS_OFICIAL).delete().eq("id", id);
     }
-    if (numeroCaso) {
-      await supabase.from(TABLA_SERVICIOS_OFICIAL).delete().eq("case_number", numeroCaso);
-    }
   } catch (_) {}
 
-  // 3. Borrado local
-  const items = getRegistrosServiciosLocal().filter((r) => {
-    const coincideId = id && r.id === id;
-    const coincideCaso = numeroCaso && (r.numero_caso || "").trim() === numeroCaso.trim();
-    return !coincideId && !coincideCaso;
-  });
+  // 3. Borrado local únicamente por ID
+  const items = getRegistrosServiciosLocal().filter((r) => r.id !== id);
   localStorage.setItem(LOCAL_STORAGE_REGISTRO_SERVICIOS, JSON.stringify(items));
 }
 

@@ -863,7 +863,6 @@ const handleGenerarPlantilla = async () => {
     }
   };
 
-  // 3b. Handlers para el Módulo Independiente de Registro de Servicios
   const handleEliminarRegistroServicio = async (id) => {
     const regAEliminar = registrosServicios.find((r) => r.id === id);
     const numCaso = regAEliminar?.numero_caso?.trim();
@@ -871,10 +870,8 @@ const handleGenerarPlantilla = async () => {
     if (confirm(`¿Estás seguro de eliminar este registro (${numCaso || "Sin número"}) del historial y de la base de datos?`)) {
       await eliminarRegistroServicio(id, numCaso);
       setRegistrosServicios((prev) => prev.filter((r) => r.id !== id));
-      // También refrescar la tabla de servicios si estaba vinculado
-      if (numCaso) {
-        setServicios((prev) => prev.filter((s) => (s.numero_caso || s.case_number || "").trim() !== numCaso && s.id !== id));
-      }
+      // También refrescar la tabla de servicios si estaba vinculado (únicamente por ID)
+      setServicios((prev) => prev.filter((s) => s.id !== id));
     }
   };
 
@@ -947,17 +944,13 @@ const handleGenerarPlantilla = async () => {
 
     if (confirm(`¿Estás seguro de eliminar este servicio (${numeroCaso || "Sin número"}) de la cuenta de cobro?\n\nEsta acción ejecutará un borrado permanente en Supabase (injected_services) y removerá el registro de la base de datos y de la interfaz.`)) {
       try {
-        // A. Eliminar de la base de datos de Supabase y del almacenamiento local
+        // A. Eliminar de la base de datos de Supabase y del almacenamiento local (únicamente por ID)
         await eliminarServicioSoporte(id, numeroCaso);
-        setServicios((prev) => prev.filter((s) => s.id !== id && (numeroCaso ? (s.numero_caso || s.case_number || "").trim() !== numeroCaso : true)));
+        setServicios((prev) => prev.filter((s) => s.id !== id));
 
         // B. Eliminación en Cascada: buscar y eliminar en registrosServicios e historial de plantillas
         if (numeroCaso) {
-          const numLimpio = numeroCaso.toLowerCase();
-          const registroCoincidente = registrosServicios.find((r) => {
-            const casoReg = (r.numero_caso || "").trim().toLowerCase();
-            return casoReg === numLimpio || (r.id === id);
-          });
+          const registroCoincidente = registrosServicios.find((r) => r.id === id);
 
           if (registroCoincidente) {
             await eliminarRegistroServicio(registroCoincidente.id, numeroCaso);
