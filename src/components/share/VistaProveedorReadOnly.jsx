@@ -166,92 +166,20 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   useEffect(() => {
     let cancelado = false;
 
+    // FUENTE DE VERDAD ÚNICA: Usa exactamente la misma función getServiciosSoporte()
+    // que utiliza el CRM principal (SoporteTecnicoView), sin argumentos de proveedor,
+    // para obtener la lista completa con idéntica lógica de merge y deduplicación.
+    // El filtrado por proveedor/mes se aplica después en el lado del cliente (serviciosProveedor/serviciosFiltrados).
     async function cargarTiempoReal() {
       setLoading(true);
       try {
-        // 1. Consulta directa en tiempo real a Supabase a la tabla injected_services con orden descendente y límite holgado (200)
-        let registrosOficiales = [];
-        try {
-          let queryOficial = supabase
-            .from("injected_services")
-            .select("*");
-
-          // Si el proveedor solicitado es R&S Soluciones, usar ilike flexible
-          if (esBusquedaRS) {
-            queryOficial = queryOficial.ilike("provider_entity", "%R%S%");
-          } else if (proveedorParam && proveedorParam !== "todos") {
-            queryOficial = queryOficial.ilike("provider_entity", `%${proveedorParam.trim()}%`);
-          }
-
-          const { data: dbOficial, error: errOficial } = await queryOficial
-            .order("created_at", { ascending: false })
-            .limit(200);
-
-          if (!errOficial && dbOficial && dbOficial.length > 0) {
-            registrosOficiales = dbOficial.map(normalizarServicioUnificado);
-          }
-        } catch (queryErr) {
-          console.warn("Consulta en tiempo real a injected_services:", queryErr);
-        }
-
-        // 2. Consulta complementaria a soporte_servicios (legacy) con límite holgado (200)
-        let registrosLegacy = [];
-        try {
-          let queryLegacy = supabase
-            .from("soporte_servicios")
-            .select("*");
-
-          if (esBusquedaRS) {
-            queryLegacy = queryLegacy.ilike("proveedor", "%R%S%");
-          } else if (proveedorParam && proveedorParam !== "todos") {
-            queryLegacy = queryLegacy.ilike("proveedor", `%${proveedorParam.trim()}%`);
-          }
-
-          const { data: dbLegacy, error: dbLegacyErr } = await queryLegacy
-            .order("creado_en", { ascending: false })
-            .limit(200);
-
-          if (!dbLegacyErr && dbLegacy && dbLegacy.length > 0) {
-            registrosLegacy = dbLegacy.map(normalizarServicioUnificado);
-          }
-        } catch (legacyErr) {
-          console.warn("Consulta legacy a soporte_servicios:", legacyErr);
-        }
-
-        // 3. Fallback y sincronización con getServiciosSoporte (localStorage y caché unificado)
-        let registrosFallback = [];
-        try {
-          registrosFallback = await getServiciosSoporte({ proveedor: proveedorParam });
-        } catch (_) {}
-
-        // 4. MERGE INTELIGENTE DE FUENTES:
-        // Combinar sin duplicados por ID o número de caso garantizando que ningún registro quede por fuera
-        const mapaUnificados = new Map();
-
-        (registrosFallback || []).forEach((item) => {
-          const clave = String(item.id || item.numero_caso || "").trim();
-          if (clave) mapaUnificados.set(clave, item);
-        });
-
-        registrosLegacy.forEach((item) => {
-          const clave = String(item.id || item.numero_caso || "").trim();
-          if (clave) mapaUnificados.set(clave, item);
-        });
-
-        registrosOficiales.forEach((item) => {
-          const clave = String(item.id || item.numero_caso || "").trim();
-          if (clave) mapaUnificados.set(clave, item);
-        });
-
-        const listaFinal = Array.from(mapaUnificados.values());
-
+        const data = await getServiciosSoporte();
         if (!cancelado) {
-          setServicios(listaFinal || []);
+          setServicios(data || []);
         }
       } catch (err) {
         console.error("Error cargando servicios en tiempo real:", err);
-        const fallback = await getServiciosSoporte({ proveedor: proveedorParam });
-        if (!cancelado) setServicios(fallback || []);
+        if (!cancelado) setServicios([]);
       } finally {
         if (!cancelado) setLoading(false);
       }
@@ -259,7 +187,9 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
     cargarTiempoReal();
 
-    // 4. SUSCRIPCIÓN EN TIEMPO REAL CON SUPABASE CHANNELS
+    // SUSCRIPCIÓN EN TIEMPO REAL CON SUPABASE CHANNELS
+    // Si el administrador agrega, edita o elimina servicios en el CRM,
+    // el proveedor ve la actualización al instante.
     const canalRealtime = supabase
       .channel("injected_services_realtime_shared")
       .on(
@@ -277,7 +207,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
         supabase.removeChannel(canalRealtime);
       } catch (_) {}
     };
-  }, [proveedorParam, esBusquedaRS]);
+  }, []);
 
   // REGLA DE INTEGRIDAD Y FILTRADO FLEXIBLE:
   // - Si los servicios vienen directamente del snapshot por token (shared_audits),
