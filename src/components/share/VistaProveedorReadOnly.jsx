@@ -169,8 +169,8 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     async function cargarTiempoReal() {
       setLoading(true);
       try {
-        // 1. Consulta directa en tiempo real a Supabase a la tabla injected_services
-        let registros = null;
+        // 1. Consulta directa en tiempo real a Supabase a la tabla injected_services con orden descendente y límite holgado (200)
+        let registrosOficiales = [];
         try {
           let queryOficial = supabase
             .from("injected_services")
@@ -179,45 +179,74 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           // Si el proveedor solicitado es R&S Soluciones, usar ilike flexible
           if (esBusquedaRS) {
             queryOficial = queryOficial.ilike("provider_entity", "%R%S%");
+          } else if (proveedorParam && proveedorParam !== "todos") {
+            queryOficial = queryOficial.ilike("provider_entity", `%${proveedorParam.trim()}%`);
           }
 
-          const { data: dbOficial, error: errOficial } = await queryOficial.order("created_at", { ascending: true });
+          const { data: dbOficial, error: errOficial } = await queryOficial
+            .order("created_at", { ascending: false })
+            .limit(200);
 
           if (!errOficial && dbOficial && dbOficial.length > 0) {
-            registros = dbOficial.map(normalizarServicioUnificado);
+            registrosOficiales = dbOficial.map(normalizarServicioUnificado);
           }
         } catch (queryErr) {
           console.warn("Consulta en tiempo real a injected_services:", queryErr);
         }
 
-        // 2. Fallback a soporte_servicios (legacy) si injected_services no tiene datos
-        if (!registros || registros.length === 0) {
-          try {
-            let queryLegacy = supabase
-              .from("soporte_servicios")
-              .select("*");
+        // 2. Consulta complementaria a soporte_servicios (legacy) con límite holgado (200)
+        let registrosLegacy = [];
+        try {
+          let queryLegacy = supabase
+            .from("soporte_servicios")
+            .select("*");
 
-            if (esBusquedaRS) {
-              queryLegacy = queryLegacy.ilike("proveedor", "%R%S%");
-            }
-
-            const { data: dbLegacy, error: dbLegacyErr } = await queryLegacy.order("creado_en", { ascending: true });
-
-            if (!dbLegacyErr && dbLegacy && dbLegacy.length > 0) {
-              registros = dbLegacy.map(normalizarServicioUnificado);
-            }
-          } catch (legacyErr) {
-            console.warn("Consulta legacy a soporte_servicios:", legacyErr);
+          if (esBusquedaRS) {
+            queryLegacy = queryLegacy.ilike("proveedor", "%R%S%");
+          } else if (proveedorParam && proveedorParam !== "todos") {
+            queryLegacy = queryLegacy.ilike("proveedor", `%${proveedorParam.trim()}%`);
           }
+
+          const { data: dbLegacy, error: dbLegacyErr } = await queryLegacy
+            .order("creado_en", { ascending: false })
+            .limit(200);
+
+          if (!dbLegacyErr && dbLegacy && dbLegacy.length > 0) {
+            registrosLegacy = dbLegacy.map(normalizarServicioUnificado);
+          }
+        } catch (legacyErr) {
+          console.warn("Consulta legacy a soporte_servicios:", legacyErr);
         }
 
-        // 3. Fallback a soporteService / localStorage garantizado
-        if (!registros || registros.length === 0) {
-          registros = await getServiciosSoporte({ proveedor: proveedorParam });
-        }
+        // 3. Fallback y sincronización con getServiciosSoporte (localStorage y caché unificado)
+        let registrosFallback = [];
+        try {
+          registrosFallback = await getServiciosSoporte({ proveedor: proveedorParam });
+        } catch (_) {}
+
+        // 4. MERGE INTELIGENTE DE FUENTES:
+        // Combinar sin duplicados por ID o número de caso garantizando que ningún registro quede por fuera
+        const mapaUnificados = new Map();
+
+        (registrosFallback || []).forEach((item) => {
+          const clave = String(item.id || item.numero_caso || "").trim();
+          if (clave) mapaUnificados.set(clave, item);
+        });
+
+        registrosLegacy.forEach((item) => {
+          const clave = String(item.id || item.numero_caso || "").trim();
+          if (clave) mapaUnificados.set(clave, item);
+        });
+
+        registrosOficiales.forEach((item) => {
+          const clave = String(item.id || item.numero_caso || "").trim();
+          if (clave) mapaUnificados.set(clave, item);
+        });
+
+        const listaFinal = Array.from(mapaUnificados.values());
 
         if (!cancelado) {
-          setServicios(registros || []);
+          setServicios(listaFinal || []);
         }
       } catch (err) {
         console.error("Error cargando servicios en tiempo real:", err);
@@ -692,7 +721,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                             type="button"
                             onClick={() => {
                               setBusqueda("");
-                              setEsSnapshotToken(false);
+                              setFiltroMes("todos");
                             }}
                             style={{
                               background: "#f1f5f9",

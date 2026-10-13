@@ -342,7 +342,9 @@ export async function getServiciosSoporte(opciones = {}) {
       }
     }
 
-    const { data: dataOficial, error: errOficial } = await queryOficial;
+    const { data: dataOficial, error: errOficial } = await queryOficial
+      .order("created_at", { ascending: false })
+      .limit(200);
 
     // 1. Consultar injected_services (tabla oficial)
     let registrosOficiales = [];
@@ -364,7 +366,9 @@ export async function getServiciosSoporte(opciones = {}) {
       }
     }
 
-    const { data: dataLegacy, error: errLegacy } = await queryLegacy;
+    const { data: dataLegacy, error: errLegacy } = await queryLegacy
+      .order("creado_en", { ascending: false })
+      .limit(200);
     let registrosLegacy = [];
     if (!errLegacy && dataLegacy && dataLegacy.length > 0) {
       registrosLegacy = dataLegacy.map(normalizarServicioUnificado);
