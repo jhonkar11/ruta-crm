@@ -865,9 +865,16 @@ const handleGenerarPlantilla = async () => {
 
   // 3b. Handlers para el Módulo Independiente de Registro de Servicios
   const handleEliminarRegistroServicio = async (id) => {
-    if (confirm("¿Estás seguro de eliminar este registro del historial de plantillas? La cuenta de cobro financiera permanecerá intacta.")) {
-      await eliminarRegistroServicio(id);
+    const regAEliminar = registrosServicios.find((r) => r.id === id);
+    const numCaso = regAEliminar?.numero_caso?.trim();
+
+    if (confirm(`¿Estás seguro de eliminar este registro (${numCaso || "Sin número"}) del historial y de la base de datos?`)) {
+      await eliminarRegistroServicio(id, numCaso);
       setRegistrosServicios((prev) => prev.filter((r) => r.id !== id));
+      // También refrescar la tabla de servicios si estaba vinculado
+      if (numCaso) {
+        setServicios((prev) => prev.filter((s) => (s.numero_caso || s.case_number || "").trim() !== numCaso && s.id !== id));
+      }
     }
   };
 
@@ -933,16 +940,16 @@ const handleGenerarPlantilla = async () => {
     }
   };
 
-  // 5. Eliminar servicio con Eliminación en Cascada (Sincronizada)
+  // 5. Eliminar servicio con Eliminación en Cascada (Sincronizada) y Borrado Real en Supabase
   const handleEliminarServicio = async (id) => {
     const servAEliminar = servicios.find((s) => s.id === id);
     const numeroCaso = servAEliminar?.numero_caso?.trim();
 
-    if (confirm(`¿Estás seguro de eliminar este servicio (${numeroCaso || "Sin número"}) de la cuenta de cobro?\n\nEsta acción también eliminará de forma sincronizada el registro correspondiente en el Historial de Plantillas IT.`)) {
+    if (confirm(`¿Estás seguro de eliminar este servicio (${numeroCaso || "Sin número"}) de la cuenta de cobro?\n\nEsta acción ejecutará un borrado permanente en Supabase (injected_services) y removerá el registro de la base de datos y de la interfaz.`)) {
       try {
-        // A. Eliminar de la tabla de servicios / cuenta de cobro
-        await eliminarServicioSoporte(id);
-        setServicios((prev) => prev.filter((s) => s.id !== id));
+        // A. Eliminar de la base de datos de Supabase y del almacenamiento local
+        await eliminarServicioSoporte(id, numeroCaso);
+        setServicios((prev) => prev.filter((s) => s.id !== id && (numeroCaso ? (s.numero_caso || s.case_number || "").trim() !== numeroCaso : true)));
 
         // B. Eliminación en Cascada: buscar y eliminar en registrosServicios e historial de plantillas
         if (numeroCaso) {
@@ -953,7 +960,7 @@ const handleGenerarPlantilla = async () => {
           });
 
           if (registroCoincidente) {
-            await eliminarRegistroServicio(registroCoincidente.id);
+            await eliminarRegistroServicio(registroCoincidente.id, numeroCaso);
             setRegistrosServicios((prev) => prev.filter((r) => r.id !== registroCoincidente.id));
           }
         }
@@ -1306,19 +1313,31 @@ const handleGenerarPlantilla = async () => {
   // Handler para iniciar la edición de un registro
   const handleAbrirEditarServicio = (servicio) => {
     setEditandoServicio(servicio);
+
+    // Buscar si existe plantilla asociada en el servicio o en el registro de servicios
+    let plantillaInicial = servicio.template_data || servicio.plantilla_completa || "";
+    if (!plantillaInicial && servicio.numero_caso) {
+      const regCoincidente = registrosServicios.find(
+        (r) => (r.numero_caso || "").trim().toLowerCase() === (servicio.numero_caso || "").trim().toLowerCase()
+      );
+      if (regCoincidente?.plantilla_completa) {
+        plantillaInicial = regCoincidente.plantilla_completa;
+      }
+    }
+
     setEditFormData({
       id: servicio.id,
-      numero_caso: servicio.numero_caso || "",
-      fecha_solicitud: servicio.fecha_solicitud || "",
-      fecha_atencion: servicio.fecha_atencion || "",
-      fecha_finalizacion: servicio.fecha_finalizacion || "",
+      numero_caso: servicio.numero_caso || servicio.case_number || "",
+      fecha_solicitud: servicio.fecha_solicitud || servicio.request_date || "",
+      fecha_atencion: servicio.fecha_atencion || servicio.service_date || "",
+      fecha_finalizacion: servicio.fecha_finalizacion || servicio.end_date || "",
       mesa: servicio.mesa || "2",
-      proveedor: servicio.proveedor || "",
-      cliente: servicio.cliente || "",
-      coordinador: servicio.coordinador || "",
-      valor_servicios: servicio.valor_servicios ?? 0,
-      valor_viaticos: servicio.valor_viaticos ?? 0,
-      valor_materiales: servicio.valor_materiales ?? 0,
+      proveedor: servicio.proveedor || servicio.provider_entity || "",
+      cliente: servicio.cliente || servicio.client || "",
+      coordinador: servicio.coordinador || servicio.coordinator || "",
+      valor_servicios: servicio.valor_servicios ?? (servicio.service_value ?? 0),
+      valor_viaticos: servicio.valor_viaticos ?? (servicio.travel_expenses ?? 0),
+      valor_materiales: servicio.valor_materiales ?? (servicio.materials ?? 0),
       sh: servicio.sh || "SOFTWARE - HARDWARE",
       tecnico: servicio.tecnico || "Jhon Alexander Vasquez Reveló",
       medio: servicio.medio || "SITIO",
@@ -1328,9 +1347,10 @@ const handleGenerarPlantilla = async () => {
       solucion: servicio.solucion || "",
       pruebas: servicio.pruebas || "",
       horas: servicio.horas || {},
-      plantilla_completa: servicio.plantilla_completa || "",
-      foto_url: servicio.foto_url || "",
-      creado_en: servicio.creado_en
+      plantilla_completa: plantillaInicial,
+      template_data: plantillaInicial,
+      foto_url: servicio.foto_url || servicio.evidence_image || "",
+      creado_en: servicio.creado_en || servicio.created_at
     });
   };
 
@@ -4797,6 +4817,183 @@ const handleGenerarPlantilla = async () => {
                 gap: 16
               }}
             >
+              {/* SELECTOR Y PRECARGA DE PLANTILLA CORPORATIVA IT */}
+              <div
+                style={{
+                  background: isDark ? "rgba(14, 165, 233, 0.12)" : "#f0f9ff",
+                  border: isDark ? "1px solid rgba(56, 189, 248, 0.35)" : "1px solid #bae6fd",
+                  borderRadius: 12,
+                  padding: "12px 14px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <FileText size={16} color={isDark ? "#38bdf8" : "#0284c7"} />
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: textTitle }}>
+                      Plantilla Corporativa / Formato Oficial IT
+                    </span>
+                  </div>
+
+                  {/* Botones de acción rápida de plantilla */}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const generada = generarPlantillaSolucion({
+                          ...editFormData,
+                          numero_caso: editFormData.numero_caso || "",
+                          fecha_atencion: editFormData.fecha_atencion || "",
+                          fecha_solicitud: editFormData.fecha_solicitud || "",
+                          proveedor: editFormData.proveedor || "",
+                          cliente: editFormData.cliente || "",
+                          mesa: editFormData.mesa || "2",
+                          coordinador: editFormData.coordinador || "Oswaldo",
+                          equipo: editFormData.equipo || "",
+                          falla: editFormData.falla || "",
+                          causa: editFormData.causa || "",
+                          solucion: editFormData.solucion || "",
+                          pruebas: editFormData.pruebas || "",
+                          tecnico: editFormData.tecnico || "Jhon Alexander Vasquez Reveló"
+                        }, plantillaInstitucional || "");
+
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          plantilla_completa: generada,
+                          template_data: generada
+                        }));
+                      }}
+                      title="Generar formato estructurado oficial con los datos actuales"
+                      style={{
+                        background: isDark ? "rgba(56, 189, 248, 0.25)" : "#e0f2fe",
+                        border: isDark ? "1px solid #38bdf8" : "1px solid #7dd3fc",
+                        color: isDark ? "#38bdf8" : "#0284c7",
+                        borderRadius: 6,
+                        padding: "4px 8px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4
+                      }}
+                    >
+                      <Sparkles size={12} /> Auto-Generar Formato
+                    </button>
+
+                    {editFormData.plantilla_completa && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(editFormData.plantilla_completa);
+                          alert("Plantilla copiada al portapapeles.");
+                        }}
+                        title="Copiar texto de la plantilla"
+                        style={{
+                          background: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9",
+                          border: "1px solid #cbd5e1",
+                          color: textSub,
+                          borderRadius: 6,
+                          padding: "4px 8px",
+                          fontSize: 11,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4
+                        }}
+                      >
+                        <Copy size={11} /> Copiar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Selector Desplegable de Plantillas Disponibles */}
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <label style={{ fontSize: 11, color: textSub, fontWeight: 600 }}>
+                    Cargar desde historial o modelo:
+                  </label>
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!val) return;
+                      if (val === "default_enter") {
+                        const plantillaDefault = generarPlantillaSolucion(editFormData, "");
+                        setEditFormData((prev) => ({
+                          ...prev,
+                          plantilla_completa: plantillaDefault,
+                          template_data: plantillaDefault
+                        }));
+                      } else {
+                        const reg = registrosServicios.find((r) => r.id === val);
+                        if (reg?.plantilla_completa) {
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            plantilla_completa: reg.plantilla_completa,
+                            template_data: reg.plantilla_completa,
+                            falla: prev.falla || reg.falla || "",
+                            equipo: prev.equipo || reg.equipo || "",
+                            causa: prev.causa || reg.causa || "",
+                            solucion: prev.solucion || reg.solucion || "",
+                            pruebas: prev.pruebas || reg.pruebas || ""
+                          }));
+                        }
+                      }
+                      e.target.value = "";
+                    }}
+                    style={{
+                      flex: 1,
+                      minWidth: 200,
+                      background: inputBg,
+                      border: inputBorder,
+                      color: inputText,
+                      borderRadius: 6,
+                      padding: "5px 8px",
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      cursor: "pointer"
+                    }}
+                  >
+                    <option value="">-- Seleccionar o precargar plantilla IT --</option>
+                    <option value="default_enter">📌 Formato Estándar Corporativo ENTER Ltda.</option>
+                    {registrosServicios.filter((r) => r.plantilla_completa).slice(0, 15).map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.numero_caso ? `Caso ${r.numero_caso}` : "Registro"} - {r.cliente || r.proveedor || "Plantilla IT"} ({r.fecha_atencion || "S/F"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Área de Visualización y Edición de Plantilla */}
+                <textarea
+                  rows={4}
+                  value={editFormData.plantilla_completa || ""}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      plantilla_completa: e.target.value,
+                      template_data: e.target.value
+                    })
+                  }
+                  placeholder="Aquí se almacena el contenido de la plantilla corporativa (se guardará en la columna template_data de Supabase)..."
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    background: inputBg,
+                    border: inputBorder,
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                    color: inputText,
+                    fontSize: 11.5,
+                    fontFamily: "monospace",
+                    lineHeight: "1.4"
+                  }}
+                />
+              </div>
+
               <div
                 style={{
                   display: "grid",

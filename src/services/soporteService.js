@@ -12,7 +12,30 @@ const LOCAL_STORAGE_REGISTRO_SERVICIOS = "CRM_SOPORTE_REGISTRO_SERVICIOS_LOCAL";
  * Normaliza un registro para el formato oficial injected_services (inglés / snake_case estándar)
  */
 export function normalizarParaInjectedServices(item) {
-  if (!item) return null;
+  // Serialización y empaquetado seguro de template_data (JSON o string estructurado)
+  let templateDataFinal = "";
+  if (item.template_data != null) {
+    if (typeof item.template_data === "object") {
+      try {
+        templateDataFinal = JSON.stringify(item.template_data);
+      } catch (_) {
+        templateDataFinal = String(item.template_data);
+      }
+    } else {
+      templateDataFinal = String(item.template_data);
+    }
+  } else if (item.plantilla_completa != null) {
+    if (typeof item.plantilla_completa === "object") {
+      try {
+        templateDataFinal = JSON.stringify(item.plantilla_completa);
+      } catch (_) {
+        templateDataFinal = String(item.plantilla_completa);
+      }
+    } else {
+      templateDataFinal = String(item.plantilla_completa);
+    }
+  }
+
   return {
     id: item.id || `serv-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
     case_number: item.case_number || item.numero_caso || "Sin número",
@@ -27,7 +50,7 @@ export function normalizarParaInjectedServices(item) {
     travel_expenses: Number(item.travel_expenses != null ? item.travel_expenses : item.valor_viaticos) || 0,
     materials: Number(item.materials != null ? item.materials : item.valor_materiales) || 0,
     status: item.status || item.payment_status || "confirmed",
-    template_data: item.template_data || item.plantilla_completa || "",
+    template_data: templateDataFinal,
     evidence_image: item.evidence_image || item.foto_url || "",
     created_at: item.created_at || item.creado_en || new Date().toISOString()
   };
@@ -485,6 +508,29 @@ export async function guardarServicioSoporte(servicio) {
  * Actualiza un servicio existente en Supabase (injected_services y réplica) y localmente.
  */
 export async function actualizarServicioSoporte(servicio) {
+  let templateDataFinal = "";
+  if (servicio.template_data != null) {
+    if (typeof servicio.template_data === "object") {
+      try {
+        templateDataFinal = JSON.stringify(servicio.template_data);
+      } catch (_) {
+        templateDataFinal = String(servicio.template_data);
+      }
+    } else {
+      templateDataFinal = String(servicio.template_data);
+    }
+  } else if (servicio.plantilla_completa != null) {
+    if (typeof servicio.plantilla_completa === "object") {
+      try {
+        templateDataFinal = JSON.stringify(servicio.plantilla_completa);
+      } catch (_) {
+        templateDataFinal = String(servicio.plantilla_completa);
+      }
+    } else {
+      templateDataFinal = String(servicio.plantilla_completa);
+    }
+  }
+
   const itemActualizado = {
     ...servicio,
     valor_servicios: Number(servicio.valor_servicios != null ? servicio.valor_servicios : servicio.service_value) || 0,
@@ -493,6 +539,8 @@ export async function actualizarServicioSoporte(servicio) {
     travel_expenses: Number(servicio.travel_expenses != null ? servicio.travel_expenses : servicio.valor_viaticos) || 0,
     valor_materiales: Number(servicio.valor_materiales != null ? servicio.valor_materiales : servicio.materials) || 0,
     materials: Number(servicio.materials != null ? servicio.materials : servicio.valor_materiales) || 0,
+    template_data: templateDataFinal,
+    plantilla_completa: templateDataFinal,
     payment_status: servicio.payment_status || servicio.status || "confirmed",
     status: servicio.status || servicio.payment_status || "confirmed",
     actualizado_en: new Date().toISOString()
@@ -522,23 +570,67 @@ export async function actualizarServicioSoporte(servicio) {
 }
 
 /**
- * Elimina un servicio de soporte técnico en Supabase y localmente.
+ * Elimina un servicio de soporte técnico con borrado real, directo y permanente
+ * en Supabase (injected_services, soporte_servicios) y en el estado/caché local (localStorage).
  */
-export async function eliminarServicioSoporte(id) {
-  // Eliminar inmediatamente del almacenamiento local
-  const items = getServiciosLocal().filter((s) => s.id !== id);
-  localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(items));
+export async function eliminarServicioSoporte(id, numeroCaso = "") {
+  if (!id && !numeroCaso) return { ok: false };
 
-  // Eliminar remotamente en ambas tablas
+  // 1. Eliminar inmediatamente del almacenamiento local (Cuenta de Cobro)
   try {
-    await supabase.from(TABLA_SERVICIOS_OFICIAL).delete().eq("id", id);
-  } catch (e) {
-    console.warn("Eliminación remota en injected_services:", e.message);
+    const items = getServiciosLocal().filter((s) => {
+      const coincideId = id && s.id === id;
+      const coincideCaso = numeroCaso && (s.numero_caso || s.case_number || "").trim() === numeroCaso.trim();
+      return !coincideId && !coincideCaso;
+    });
+    localStorage.setItem(LOCAL_STORAGE_SERVICIOS, JSON.stringify(items));
+  } catch (localErr) {
+    console.warn("Aviso al remover de cache local de servicios:", localErr);
   }
 
+  // 2. Borrado real y directo en Supabase (injected_services - tabla oficial)
   try {
-    await supabase.from(TABLA_SERVICIOS_LEGACY).delete().eq("id", id);
-  } catch (e) {}
+    if (id) {
+      const { error: errId } = await supabase
+        .from(TABLA_SERVICIOS_OFICIAL)
+        .delete()
+        .eq("id", id);
+      if (errId) console.warn("Aviso delete injected_services por ID:", errId.message);
+    }
+
+    if (numeroCaso) {
+      await supabase
+        .from(TABLA_SERVICIOS_OFICIAL)
+        .delete()
+        .eq("case_number", numeroCaso);
+    }
+  } catch (e) {
+    console.error("Error en eliminación directa en injected_services:", e);
+  }
+
+  // 3. Borrado real y directo en Supabase (soporte_servicios - tabla legacy)
+  try {
+    if (id) {
+      await supabase.from(TABLA_SERVICIOS_LEGACY).delete().eq("id", id);
+    }
+    if (numeroCaso) {
+      await supabase.from(TABLA_SERVICIOS_LEGACY).delete().eq("numero_caso", numeroCaso);
+    }
+  } catch (e) {
+    // Si la tabla legacy no existe o falla, no bloquea el flujo
+  }
+
+  // 4. Borrado sincronizado en Registro General de Servicios si aplica
+  try {
+    if (id) {
+      await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("id", id);
+    }
+    if (numeroCaso) {
+      await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("numero_caso", numeroCaso);
+    }
+  } catch (_) {}
+
+  return { ok: true, id, numeroCaso };
 }
 
 /**
@@ -881,16 +973,37 @@ export async function guardarRegistroServicio(registro) {
 }
 
 /**
- * Elimina un registro individual del historial de servicios.
+ * Elimina un registro individual del historial de servicios y sincroniza con injected_services.
  */
-export async function eliminarRegistroServicio(id) {
+export async function eliminarRegistroServicio(id, numeroCaso = "") {
+  // 1. Borrado directo en supabase.from('soporte_registro_servicios')
   try {
-    await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("id", id);
+    if (id) {
+      await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("id", id);
+    }
+    if (numeroCaso) {
+      await supabase.from(TABLA_REGISTRO_SERVICIOS).delete().eq("numero_caso", numeroCaso);
+    }
   } catch (e) {
     console.warn("Eliminación remota de registro de servicio:", e.message);
   }
 
-  const items = getRegistrosServiciosLocal().filter((r) => r.id !== id);
+  // 2. Borrado sincronizado en injected_services
+  try {
+    if (id) {
+      await supabase.from(TABLA_SERVICIOS_OFICIAL).delete().eq("id", id);
+    }
+    if (numeroCaso) {
+      await supabase.from(TABLA_SERVICIOS_OFICIAL).delete().eq("case_number", numeroCaso);
+    }
+  } catch (_) {}
+
+  // 3. Borrado local
+  const items = getRegistrosServiciosLocal().filter((r) => {
+    const coincideId = id && r.id === id;
+    const coincideCaso = numeroCaso && (r.numero_caso || "").trim() === numeroCaso.trim();
+    return !coincideId && !coincideCaso;
+  });
   localStorage.setItem(LOCAL_STORAGE_REGISTRO_SERVICIOS, JSON.stringify(items));
 }
 
