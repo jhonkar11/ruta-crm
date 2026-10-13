@@ -20,7 +20,7 @@ import {
   Maximize2,
   Minimize2
 } from "lucide-react";
-import { getServiciosSoporte } from "../../services/soporteService";
+import { getServiciosSoporte, normalizarServicioUnificado } from "../../services/soporteService";
 import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
@@ -129,23 +129,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                     .order("created_at", { ascending: true });
 
                   if (!idsOficialErr && idsOficial && idsOficial.length > 0) {
-                    serviciosPorIds = idsOficial.map((r) => ({
-                      ...r,
-                      numero_caso: r.case_number || r.numero_caso || "",
-                      fecha_solicitud: r.request_date || r.fecha_solicitud || "",
-                      fecha_atencion: r.service_date || r.fecha_atencion || "",
-                      fecha_finalizacion: r.end_date || r.fecha_finalizacion || "",
-                      proveedor: r.provider_entity || r.proveedor || "",
-                      cliente: r.client || r.cliente || "",
-                      coordinador: r.coordinator || r.coordinador || "Oswaldo",
-                      valor_servicios: Number(r.service_value != null ? r.service_value : r.valor_servicios) || 0,
-                      valor_viaticos: Number(r.travel_expenses != null ? r.travel_expenses : r.valor_viaticos) || 0,
-                      valor_materiales: Number(r.materials != null ? r.materials : r.valor_materiales) || 0,
-                      plantilla_completa: r.template_data || r.plantilla_completa || "",
-                      foto_url: r.evidence_image || r.foto_url || "",
-                      payment_status: r.status || r.payment_status || "confirmed",
-                      creado_en: r.created_at || r.creado_en || ""
-                    }));
+                    serviciosPorIds = idsOficial.map(normalizarServicioUnificado);
                   }
                 } catch (_) {}
 
@@ -158,7 +142,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                     .order("creado_en", { ascending: true });
 
                   if (!idsLegacyErr && idsLegacy && idsLegacy.length > 0) {
-                    serviciosPorIds = idsLegacy;
+                    serviciosPorIds = idsLegacy.map(normalizarServicioUnificado);
                   }
                 }
 
@@ -219,29 +203,19 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
         let registrosRemotos = null;
         try {
           // 3a. Intentar tabla oficial injected_services
-          const { data: dbOficial, error: errOficial } = await supabase
+          let queryOficial = supabase
             .from("injected_services")
-            .select("*")
-            .order("created_at", { ascending: true });
+            .select("*");
+
+          // Si el proveedor solicitado es R&S Soluciones, usar ilike flexible
+          if (esBusquedaRS) {
+            queryOficial = queryOficial.ilike("provider_entity", "%R%S%");
+          }
+
+          const { data: dbOficial, error: errOficial } = await queryOficial.order("created_at", { ascending: true });
 
           if (!errOficial && dbOficial && dbOficial.length > 0) {
-            registrosRemotos = dbOficial.map((r) => ({
-              ...r,
-              numero_caso: r.case_number || r.numero_caso || "",
-              fecha_solicitud: r.request_date || r.fecha_solicitud || "",
-              fecha_atencion: r.service_date || r.fecha_atencion || "",
-              fecha_finalizacion: r.end_date || r.fecha_finalizacion || "",
-              proveedor: r.provider_entity || r.proveedor || "",
-              cliente: r.client || r.cliente || "",
-              coordinador: r.coordinator || r.coordinador || "Oswaldo",
-              valor_servicios: Number(r.service_value != null ? r.service_value : r.valor_servicios) || 0,
-              valor_viaticos: Number(r.travel_expenses != null ? r.travel_expenses : r.valor_viaticos) || 0,
-              valor_materiales: Number(r.materials != null ? r.materials : r.valor_materiales) || 0,
-              plantilla_completa: r.template_data || r.plantilla_completa || "",
-              foto_url: r.evidence_image || r.foto_url || "",
-              payment_status: r.status || r.payment_status || "confirmed",
-              creado_en: r.created_at || r.creado_en || ""
-            }));
+            registrosRemotos = dbOficial.map(normalizarServicioUnificado);
           }
         } catch (queryErr) {
           console.warn("Consulta a injected_services con aviso:", queryErr);
@@ -250,13 +224,18 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
         // 3b. Fallback a soporte_servicios (legacy) si injected_services no tiene datos
         if (!registrosRemotos || registrosRemotos.length === 0) {
           try {
-            const { data: dbLegacy, error: dbLegacyErr } = await supabase
+            let queryLegacy = supabase
               .from("soporte_servicios")
-              .select("*")
-              .order("creado_en", { ascending: true });
+              .select("*");
+
+            if (esBusquedaRS) {
+              queryLegacy = queryLegacy.ilike("proveedor", "%R%S%");
+            }
+
+            const { data: dbLegacy, error: dbLegacyErr } = await queryLegacy.order("creado_en", { ascending: true });
 
             if (!dbLegacyErr && dbLegacy && dbLegacy.length > 0) {
-              registrosRemotos = dbLegacy;
+              registrosRemotos = dbLegacy.map(normalizarServicioUnificado);
             }
           } catch (legacyErr) {
             console.warn("Consulta legacy a soporte_servicios con aviso:", legacyErr);
@@ -265,7 +244,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
         // 4. Si no trajo datos o falló, recurrir al catálogo general de soporteService (respaldo local garantizado)
         if (!registrosRemotos || registrosRemotos.length === 0) {
-          registrosRemotos = await getServiciosSoporte();
+          registrosRemotos = await getServiciosSoporte({ proveedor: proveedorParam });
         }
 
         if (!cancelado) {
@@ -283,20 +262,61 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     return () => { cancelado = true; };
   }, [rawPayload, tokenParam]);
 
-  // Helper de extracción de mes y año
+  // Helper infalible de extracción de mes y año (DD/MM/YYYY, YYYY-MM-DD, etc.)
   const extraerMesAnio = (s) => {
-    const fechas = [s.fecha_atencion, s.fecha_solicitud, s.fecha_finalizacion];
+    if (!s) return null;
+    const fechas = [
+      s.service_date,
+      s.fecha_atencion,
+      s.request_date,
+      s.fecha_solicitud,
+      s.end_date,
+      s.fecha_finalizacion
+    ];
+
     for (const f of fechas) {
-      if (!f || typeof f !== "string") continue;
-      const fTrim = f.trim();
-      const mYMD = fTrim.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
-      if (mYMD) return { mes: parseInt(mYMD[2], 10), anio: parseInt(mYMD[1], 10) };
-      const mDMY = fTrim.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-      if (mDMY) return { mes: parseInt(mDMY[2], 10), anio: parseInt(mDMY[3], 10) };
+      if (!f) continue;
+      const str = String(f).trim();
+      if (!str || str === "-") continue;
+
+      // 1. Formato DD/MM/YYYY o DD-MM-YYYY (ej. "08/09/2026")
+      const mDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (mDMY) {
+        const mes = parseInt(mDMY[2], 10);
+        const anio = parseInt(mDMY[3], 10);
+        if (mes >= 1 && mes <= 12 && anio > 1990) {
+          return { mes, anio };
+        }
+      }
+
+      // 2. Formato YYYY/MM/DD o YYYY-MM-DD (ej. "2026-09-08")
+      const mYMD = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+      if (mYMD) {
+        const mes = parseInt(mYMD[2], 10);
+        const anio = parseInt(mYMD[1], 10);
+        if (mes >= 1 && mes <= 12 && anio > 1990) {
+          return { mes, anio };
+        }
+      }
+
+      // 3. Formato DD/MM/YY (ej. 15/09/26 -> 2026)
+      const mDM2Y = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+      if (mDM2Y) {
+        const mes = parseInt(mDM2Y[2], 10);
+        const yy = parseInt(mDM2Y[3], 10);
+        const anio = yy < 50 ? 2000 + yy : 1900 + yy;
+        if (mes >= 1 && mes <= 12) {
+          return { mes, anio };
+        }
+      }
     }
-    if (s.creado_en) {
-      const d = new Date(s.creado_en);
-      if (!isNaN(d.getTime())) return { mes: d.getMonth() + 1, anio: d.getFullYear() };
+
+    const creado = s.created_at || s.creado_en;
+    if (creado) {
+      const d = new Date(creado);
+      if (!isNaN(d.getTime())) {
+        return { mes: d.getMonth() + 1, anio: d.getFullYear() };
+      }
     }
     return null;
   };

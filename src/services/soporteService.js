@@ -36,33 +36,45 @@ export function normalizarParaInjectedServices(item) {
 /**
  * Normaliza cualquier fila proveniente de la base de datos (sea injected_services o soporte_servicios)
  * al formato unificado de la interfaz de React para compatibilidad total bidireccional.
+ * Mapea exhaustivamente: case_number, request_date, service_date, end_date, mesa,
+ * provider_entity, client, coordinator, service_value, travel_expenses, materials, status.
  */
 export function normalizarServicioUnificado(raw) {
   if (!raw) return null;
+
+  // Extracción robusta de campos primarios con soporte para formatos en inglés y español
+  const numCaso = raw.case_number != null ? String(raw.case_number) : (raw.numero_caso != null ? String(raw.numero_caso) : "");
+  const fSol = raw.request_date != null ? String(raw.request_date) : (raw.fecha_solicitud != null ? String(raw.fecha_solicitud) : "");
+  const fAten = raw.service_date != null ? String(raw.service_date) : (raw.fecha_atencion != null ? String(raw.fecha_atencion) : "");
+  const fFin = raw.end_date != null ? String(raw.end_date) : (raw.fecha_finalizacion != null ? String(raw.fecha_finalizacion) : "");
+  const prov = raw.provider_entity != null ? String(raw.provider_entity) : (raw.proveedor != null ? String(raw.proveedor) : "");
+  const cli = raw.client != null ? String(raw.client) : (raw.cliente != null ? String(raw.cliente) : "");
+  const coord = raw.coordinator != null ? String(raw.coordinator) : (raw.coordinador != null ? String(raw.coordinador) : "Oswaldo");
+  const mesaVal = raw.mesa != null ? String(raw.mesa) : "2";
+
+  const vServ = Number(raw.service_value != null ? raw.service_value : raw.valor_servicios) || 0;
+  const vViat = Number(raw.travel_expenses != null ? raw.travel_expenses : raw.valor_viaticos) || 0;
+  const vMat = Number(raw.materials != null ? raw.materials : raw.valor_materiales) || 0;
+
+  const st = raw.status || raw.payment_status || "confirmed";
+  const plant = raw.template_data || raw.plantilla_completa || "";
+  const evImg = raw.evidence_image || raw.foto_url || "";
+  const crAt = raw.created_at || raw.creado_en || new Date().toISOString();
+
   return {
-    id: raw.id,
-    // Compatibilidad dual de nombres de campo (UI y cálculos financieros)
-    numero_caso: raw.case_number || raw.numero_caso || "",
-    case_number: raw.case_number || raw.numero_caso || "",
-    fecha_solicitud: raw.request_date || raw.fecha_solicitud || "",
-    request_date: raw.request_date || raw.fecha_solicitud || "",
-    fecha_atencion: raw.service_date || raw.fecha_atencion || "",
-    service_date: raw.service_date || raw.fecha_atencion || "",
-    fecha_finalizacion: raw.end_date || raw.fecha_finalizacion || "",
-    end_date: raw.end_date || raw.fecha_finalizacion || "",
-    mesa: raw.mesa || "2",
-    proveedor: raw.provider_entity || raw.proveedor || "",
-    provider_entity: raw.provider_entity || raw.proveedor || "",
-    cliente: raw.client || raw.cliente || "",
-    client: raw.client || raw.cliente || "",
-    coordinador: raw.coordinator || raw.coordinador || "Oswaldo",
-    coordinator: raw.coordinator || raw.coordinador || "Oswaldo",
-    valor_servicios: Number(raw.service_value != null ? raw.service_value : raw.valor_servicios) || 0,
-    service_value: Number(raw.service_value != null ? raw.service_value : raw.valor_servicios) || 0,
-    valor_viaticos: Number(raw.travel_expenses != null ? raw.travel_expenses : raw.valor_viaticos) || 0,
-    travel_expenses: Number(raw.travel_expenses != null ? raw.travel_expenses : raw.valor_viaticos) || 0,
-    valor_materiales: Number(raw.materials != null ? raw.materials : raw.valor_materiales) || 0,
-    materials: Number(raw.materials != null ? raw.materials : raw.valor_materiales) || 0,
+    id: raw.id || `serv-${numCaso || Date.now()}`,
+    // Nombres en español (usados en la UI de CRM y generación de Excel)
+    numero_caso: numCaso,
+    fecha_solicitud: fSol,
+    fecha_atencion: fAten,
+    fecha_finalizacion: fFin,
+    mesa: mesaVal,
+    proveedor: prov,
+    cliente: cli,
+    coordinador: coord,
+    valor_servicios: vServ,
+    valor_viaticos: vViat,
+    valor_materiales: vMat,
     sh: raw.sh || "SOFTWARE - HARDWARE",
     tecnico: raw.tecnico || "Jhon Alexander Vasquez Reveló",
     medio: raw.medio || "SITIO",
@@ -72,14 +84,26 @@ export function normalizarServicioUnificado(raw) {
     solucion: raw.solucion || "",
     pruebas: raw.pruebas || "",
     horas: raw.horas || {},
-    plantilla_completa: raw.template_data || raw.plantilla_completa || "",
-    template_data: raw.template_data || raw.plantilla_completa || "",
-    foto_url: raw.evidence_image || raw.foto_url || "",
-    evidence_image: raw.evidence_image || raw.foto_url || "",
-    payment_status: raw.status || raw.payment_status || "confirmed",
-    status: raw.status || raw.payment_status || "confirmed",
-    creado_en: raw.created_at || raw.creado_en || new Date().toISOString(),
-    created_at: raw.created_at || raw.creado_en || new Date().toISOString()
+    plantilla_completa: plant,
+    foto_url: evImg,
+    payment_status: st,
+    creado_en: crAt,
+
+    // Nombres oficiales en inglés (columnas exactas de injected_services)
+    case_number: numCaso,
+    request_date: fSol,
+    service_date: fAten,
+    end_date: fFin,
+    provider_entity: prov,
+    client: cli,
+    coordinator: coord,
+    service_value: vServ,
+    travel_expenses: vViat,
+    materials: vMat,
+    status: st,
+    template_data: plant,
+    evidence_image: evImg,
+    created_at: crAt
   };
 }
 
@@ -274,55 +298,100 @@ export async function inicializarTablaInjectedServices() {
  * Obtiene los servicios registrados para la cuenta de cobro activa.
  * Consulta prioritariamente injected_services, con fallback a soporte_servicios y
  * respaldo blindado garantizado en localStorage para evitar pantalla en ceros.
+ * Permite filtrar opcionalmente por proveedor con búsqueda flexible (ilike).
  */
-export async function getServiciosSoporte() {
+export async function getServiciosSoporte(opciones = {}) {
+  const { proveedor = null, mes = null, anio = null } = opciones;
+
   try {
-    // 1. Intentar consultar la tabla oficial injected_services
-    const { data: dataOficial, error: errOficial } = await supabase
+    // 1. Construir consulta a la tabla oficial injected_services
+    let queryOficial = supabase
       .from(TABLA_SERVICIOS_OFICIAL)
-      .select("*")
-      .order("created_at", { ascending: true });
+      .select("*");
 
-    if (!errOficial && dataOficial && dataOficial.length > 0) {
-      const normalizados = dataOficial.map(normalizarServicioUnificado);
-      // Sincronizar respaldo de seguridad dual en localStorage
-      sincronizarCacheLocalServicios(normalizados);
-      return normalizados;
-    }
-
-    // 2. Si la tabla oficial no existe o no tiene registros, consultar tabla soporte_servicios
-    if (errOficial || !dataOficial || dataOficial.length === 0) {
-      const { data: dataLegacy, error: errLegacy } = await supabase
-        .from(TABLA_SERVICIOS_LEGACY)
-        .select("*")
-        .order("creado_en", { ascending: true });
-
-      if (!errLegacy && dataLegacy && dataLegacy.length > 0) {
-        const normalizadosLegacy = dataLegacy.map(normalizarServicioUnificado);
-        sincronizarCacheLocalServicios(normalizadosLegacy);
-        // Si la tabla oficial injected_services está vacía o recién creada, sembrar estos registros
-        try {
-          const payloadMigracion = normalizadosLegacy.map(normalizarParaInjectedServices);
-          await supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadMigracion, { onConflict: "id" });
-        } catch (migrErr) {
-          // Si no existe aún la tabla remota, no bloquea el flujo
-        }
-        return normalizadosLegacy;
+    // Si se especifica proveedor y es R&S, usar ilike para capturar variaciones
+    if (proveedor && proveedor !== "todos") {
+      const pUpper = proveedor.toUpperCase();
+      if (pUpper.includes("R&S") || pUpper.includes("RS") || pUpper.includes("SOLUCIONES")) {
+        queryOficial = queryOficial.ilike("provider_entity", "%R%S%");
+      } else {
+        queryOficial = queryOficial.ilike("provider_entity", `%${proveedor.trim()}%`);
       }
     }
 
-    // 3. Respaldo de seguridad dual: recuperar desde LocalStorage
-    const locales = getServiciosLocal();
-    if (locales && locales.length > 0) {
-      // Intentar auto-poblar Supabase en segundo plano con el respaldo local
-      try {
-        const payloadSync = locales.map(normalizarParaInjectedServices);
-        supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadSync, { onConflict: "id" }).then(() => {}).catch(() => {});
-      } catch (_) {}
-      return locales;
+    const { data: dataOficial, error: errOficial } = await queryOficial;
+
+    // 1. Consultar injected_services (tabla oficial)
+    let registrosOficiales = [];
+    if (!errOficial && dataOficial && dataOficial.length > 0) {
+      registrosOficiales = dataOficial.map(normalizarServicioUnificado);
     }
 
-    // 4. Semilla por defecto si no hay nada guardado en ningún medio
+    // 2. Consultar soporte_servicios (tabla legacy / complementaria)
+    let queryLegacy = supabase
+      .from(TABLA_SERVICIOS_LEGACY)
+      .select("*");
+
+    if (proveedor && proveedor !== "todos") {
+      const pUpper = proveedor.toUpperCase();
+      if (pUpper.includes("R&S") || pUpper.includes("RS") || pUpper.includes("SOLUCIONES")) {
+        queryLegacy = queryLegacy.ilike("proveedor", "%R%S%");
+      } else {
+        queryLegacy = queryLegacy.ilike("proveedor", `%${proveedor.trim()}%`);
+      }
+    }
+
+    const { data: dataLegacy, error: errLegacy } = await queryLegacy;
+    let registrosLegacy = [];
+    if (!errLegacy && dataLegacy && dataLegacy.length > 0) {
+      registrosLegacy = dataLegacy.map(normalizarServicioUnificado);
+    }
+
+    // 3. Obtener respaldo de localStorage
+    const locales = getServiciosLocal();
+
+    // 4. MERGE INTELIGENTE DE FUENTES:
+    // Combinar sin duplicados por ID o número de caso. Los datos remotos oficiales tienen prioridad.
+    const mapaUnificados = new Map();
+
+    // Primero registrar semillas/locales como base
+    if (Array.isArray(locales)) {
+      locales.forEach((item) => {
+        const clave = String(item.id || item.numero_caso || "").trim();
+        if (clave) mapaUnificados.set(clave, item);
+      });
+    }
+
+    // Luego incorporar legacy
+    registrosLegacy.forEach((item) => {
+      const clave = String(item.id || item.numero_caso || "").trim();
+      if (clave) mapaUnificados.set(clave, item);
+    });
+
+    // Finalmente sobreescribir con registros oficiales de injected_services
+    registrosOficiales.forEach((item) => {
+      const clave = String(item.id || item.numero_caso || "").trim();
+      if (clave) mapaUnificados.set(clave, item);
+    });
+
+    const listaFinal = Array.from(mapaUnificados.values());
+
+    if (listaFinal.length > 0) {
+      // Sincronizar respaldo dual garantizado en localStorage con la lista consolidada
+      sincronizarCacheLocalServicios(listaFinal);
+
+      // Si hay registros legacy que no están en injected_services, respaldarlos en background
+      if (registrosLegacy.length > 0) {
+        try {
+          const payloadMigracion = registrosLegacy.map(normalizarParaInjectedServices);
+          supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadMigracion, { onConflict: "id" }).catch(() => {});
+        } catch (_) {}
+      }
+
+      return listaFinal;
+    }
+
+    // 5. Semilla por defecto si no hay nada guardado en ningún medio
     return SERVICIOS_INICIALES_DEFAULT;
   } catch (e) {
     console.warn("Excepción al cargar servicios de soporte (usando respaldo local):", e.message);

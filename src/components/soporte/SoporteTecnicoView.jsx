@@ -1038,35 +1038,60 @@ const handleGenerarPlantilla = async () => {
     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
   ];
 
-  // Helper para extraer mes y año de cualquier formato de fecha del servicio
+  // Helper infalible para extraer mes y año de cualquier formato de fecha del servicio (DD/MM/YYYY, YYYY-MM-DD, etc.)
   const extraerMesAnio = (s) => {
-    const fechas = [s.fecha_atencion, s.fecha_solicitud, s.fecha_finalizacion];
+    if (!s) return null;
+    const fechas = [
+      s.service_date,
+      s.fecha_atencion,
+      s.request_date,
+      s.fecha_solicitud,
+      s.end_date,
+      s.fecha_finalizacion
+    ];
+
     for (const f of fechas) {
-      if (!f || typeof f !== "string") continue;
-      const fTrim = f.trim();
+      if (!f) continue;
+      const str = String(f).trim();
+      if (!str || str === "-") continue;
 
-      // Formato DD/MM/YYYY o DD-MM-YYYY
-      const mDMY = fTrim.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      // 1. Formato DD/MM/YYYY o DD-MM-YYYY (ej. "08/09/2026", "8/9/2026", "08/09/2026 10:00")
+      // Segundo segmento = Mes, Tercer segmento = Año
+      const mDMY = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
       if (mDMY) {
-        return { mes: parseInt(mDMY[2], 10), anio: parseInt(mDMY[3], 10) };
+        const mes = parseInt(mDMY[2], 10);
+        const anio = parseInt(mDMY[3], 10);
+        if (mes >= 1 && mes <= 12 && anio > 1990) {
+          return { mes, anio };
+        }
       }
 
-      // Formato YYYY/MM/DD o YYYY-MM-DD
-      const mYMD = fTrim.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+      // 2. Formato YYYY/MM/DD o YYYY-MM-DD (ej. "2026-09-08", "2026/09/08T...")
+      const mYMD = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
       if (mYMD) {
-        return { mes: parseInt(mYMD[2], 10), anio: parseInt(mYMD[1], 10) };
+        const mes = parseInt(mYMD[2], 10);
+        const anio = parseInt(mYMD[1], 10);
+        if (mes >= 1 && mes <= 12 && anio > 1990) {
+          return { mes, anio };
+        }
       }
 
-      // Formato DD/MM/YY (ej. 15/09/24 -> 2024)
-      const mDM2Y = fTrim.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+      // 3. Formato DD/MM/YY (ej. 15/09/26 -> 2026)
+      const mDM2Y = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
       if (mDM2Y) {
+        const mes = parseInt(mDM2Y[2], 10);
         const yy = parseInt(mDM2Y[3], 10);
-        const anioCompleto = yy < 50 ? 2000 + yy : 1900 + yy;
-        return { mes: parseInt(mDM2Y[2], 10), anio: anioCompleto };
+        const anio = yy < 50 ? 2000 + yy : 1900 + yy;
+        if (mes >= 1 && mes <= 12) {
+          return { mes, anio };
+        }
       }
     }
-    if (s.creado_en) {
-      const d = new Date(s.creado_en);
+
+    // 4. Fallback con created_at o creado_en
+    const creado = s.created_at || s.creado_en;
+    if (creado) {
+      const d = new Date(creado);
       if (!isNaN(d.getTime())) {
         return { mes: d.getMonth() + 1, anio: d.getFullYear() };
       }
@@ -3348,7 +3373,7 @@ const handleGenerarPlantilla = async () => {
                 const numMes = idx + 1;
                 const esActivo = !mostrarTodos && filtroMes === numMes;
                 const conteo = servicios.filter((s) => {
-                  if (filtroProveedor && (s.proveedor || "").trim().toLowerCase() !== filtroProveedor.trim().toLowerCase()) {
+                  if (filtroProveedor && !coincideProveedorFlexible(s.proveedor, filtroProveedor)) {
                     return false;
                   }
                   const info = extraerMesAnio(s);
