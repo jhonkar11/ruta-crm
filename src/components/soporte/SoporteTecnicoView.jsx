@@ -51,6 +51,7 @@ import {
 } from "../../services/localTemplateMapper";
 import {
   getServiciosSoporte,
+  getServiciosFrescos,
   guardarServicioSoporte,
   eliminarServicioSoporte,
   actualizarServicioSoporte,
@@ -292,14 +293,35 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const cargarServicios = async () => {
     setLoadingServicios(true);
     try {
-      const data = await getServiciosSoporte();
+      // Obtener siempre la información más reciente directamente de Supabase
+      const data = await getServiciosFrescos();
       setServicios(data || []);
     } catch (e) {
-      console.error("Error al cargar servicios:", e);
+      console.error("Error al cargar servicios frescos:", e);
     } finally {
       setLoadingServicios(false);
     }
   };
+
+  // Sincronización en tiempo real entre dispositivos (móvil y PC) vía Supabase Realtime
+  useEffect(() => {
+    const canalRealtime = supabase
+      .channel("injected_services_soporte_sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "injected_services" },
+        () => {
+          cargarServicios();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        supabase.removeChannel(canalRealtime);
+      } catch (_) {}
+    };
+  }, []);
 
   const cargarRegistrosServicios = async () => {
     setLoadingRegistros(true);

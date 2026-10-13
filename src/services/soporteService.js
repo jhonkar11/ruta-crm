@@ -500,8 +500,8 @@ export function deduplicarServicios(lista) {
 }
 
 /**
- * CONSULTA FRESCA DIRECTA A SUPABASE (SIN CACHÉ / SIN LOCALSTORAGE).
- * Diseñada exclusivamente para la vista pública compartida del proveedor.
+ * CONSULTA FRESCA DIRECTA A SUPABASE (SIN CACHÉ / SIN LOCALSTORAGE OBSOLETO).
+ * Diseñada para obtener siempre la verdad más reciente de Supabase (injected_services).
  * Consulta la tabla oficial injected_services y garantiza datos 1:1 en tiempo real con deduplicación.
  */
 export async function getServiciosFrescos() {
@@ -517,19 +517,20 @@ export async function getServiciosFrescos() {
 
       if (!errOficial && dataOficial && dataOficial.length > 0) {
         registrosOficiales = dataOficial.map(normalizarServicioUnificado);
+        // Actualizar cache local con la verdad remota fresca
+        sincronizarCacheLocalServicios(registrosOficiales);
+        const unicos = deduplicarServicios(registrosOficiales);
+        console.log(`[SharedView] Fetch fresco: ${unicos.length} registros oficiales deduplicados desde Supabase (ts: ${timestampCacheBust})`);
+        return unicos;
       }
-    } catch (_) {}
-
-    let lista = registrosOficiales;
-    if (!lista || lista.length === 0) {
-      const locales = getServiciosLocal();
-      if (locales && locales.length > 0) {
-        lista = locales.map(normalizarServicioUnificado);
-      }
+    } catch (errQ) {
+      console.warn("Aviso consultando injected_services en getServiciosFrescos:", errQ.message);
     }
 
+    // Fallback de contingencia sólo si Supabase está fuera de línea
+    const locales = getServiciosLocal();
+    const lista = (locales && locales.length > 0) ? locales.map(normalizarServicioUnificado) : [];
     const unicos = deduplicarServicios(lista);
-    console.log(`[SharedView] Fetch fresco: ${unicos.length} registros oficiales deduplicados (ts: ${timestampCacheBust})`);
     return unicos;
   } catch (e) {
     console.error("Error en getServiciosFrescos:", e.message);
@@ -539,107 +540,36 @@ export async function getServiciosFrescos() {
 
 /**
  * Obtiene los servicios registrados para la cuenta de cobro activa.
- * Consulta prioritariamente injected_services, con fallback a soporte_servicios y
- * respaldo blindado garantizado en localStorage para evitar pantalla en ceros.
- * Permite filtrar opcionalmente por proveedor con búsqueda flexible (ilike).
+ * Consulta prioritariamente y de forma directa injected_services en Supabase.
+ * Ignora el almacenamiento local obsoleto para evitar que datos viejos desincronicen dispositivos.
  */
 export async function getServiciosSoporte(opciones = {}) {
   const { proveedor = null, mes = null, anio = null } = opciones;
 
   try {
-    // 1. Construir consulta a la tabla oficial injected_services
-    let queryOficial = supabase
-      .from(TABLA_SERVICIOS_OFICIAL)
-      .select("*");
+    // 1. Siempre obtener los registros frescos directamente de injected_services
+    const datosFrescos = await getServiciosFrescos();
 
-    // Si se especifica proveedor y es R&S, usar ilike para capturar variaciones
-    if (proveedor && proveedor !== "todos") {
-      const pUpper = proveedor.toUpperCase();
-      if (pUpper.includes("R&S") || pUpper.includes("RS") || pUpper.includes("SOLUCIONES")) {
-        queryOficial = queryOficial.ilike("provider_entity", "%R%S%");
-      } else {
-        queryOficial = queryOficial.ilike("provider_entity", `%${proveedor.trim()}%`);
+    if (datosFrescos && datosFrescos.length > 0) {
+      let resultado = datosFrescos;
+
+      // Filtrado opcional por proveedor si fue solicitado
+      if (proveedor && proveedor !== "todos") {
+        resultado = resultado.filter((s) => coincideProveedorFlexible(s.proveedor || s.provider_entity, proveedor));
       }
+
+      return resultado;
     }
 
-    const { data: dataOficial, error: errOficial } = await queryOficial
-      .order("created_at", { ascending: false })
-      .limit(200);
-
-    // 1. Consultar injected_services (tabla oficial)
-    let registrosOficiales = [];
-    if (!errOficial && dataOficial && dataOficial.length > 0) {
-      registrosOficiales = dataOficial.map(normalizarServicioUnificado);
-    }
-
-    // 2. Consultar soporte_servicios (tabla legacy / complementaria)
-    let queryLegacy = supabase
-      .from(TABLA_SERVICIOS_LEGACY)
-      .select("*");
-
-    if (proveedor && proveedor !== "todos") {
-      const pUpper = proveedor.toUpperCase();
-      if (pUpper.includes("R&S") || pUpper.includes("RS") || pUpper.includes("SOLUCIONES")) {
-        queryLegacy = queryLegacy.ilike("proveedor", "%R%S%");
-      } else {
-        queryLegacy = queryLegacy.ilike("proveedor", `%${proveedor.trim()}%`);
-      }
-    }
-
-    const { data: dataLegacy, error: errLegacy } = await queryLegacy
-      .order("creado_en", { ascending: false })
-      .limit(200);
-    let registrosLegacy = [];
-    if (!errLegacy && dataLegacy && dataLegacy.length > 0) {
-      registrosLegacy = dataLegacy.map(normalizarServicioUnificado);
-    }
-
-    // 3. Obtener respaldo de localStorage
+    // Fallback secundario si Supabase no arrojó resultados o está inaccesible
     const locales = getServiciosLocal();
-
-    // 4. MERGE INTELIGENTE DE FUENTES:
-    // Combinar sin duplicados por ID o número de caso. Los datos remotos oficiales tienen prioridad.
-    const mapaUnificados = new Map();
-
-    // Primero registrar semillas/locales como base
-    if (Array.isArray(locales)) {
-      locales.forEach((item) => {
-        const clave = String(item.id || item.numero_caso || "").trim();
-        if (clave) mapaUnificados.set(clave, item);
-      });
+    if (locales && locales.length > 0) {
+      return deduplicarServicios(locales);
     }
 
-    // Luego incorporar legacy
-    registrosLegacy.forEach((item) => {
-      const clave = String(item.id || item.numero_caso || "").trim();
-      if (clave) mapaUnificados.set(clave, item);
-    });
-
-    // Finalmente sobreescribir con registros oficiales de injected_services
-    registrosOficiales.forEach((item) => {
-      const clave = String(item.id || item.numero_caso || "").trim();
-      if (clave) mapaUnificados.set(clave, item);
-    });
-
-    const listaFinal = deduplicarServicios(Array.from(mapaUnificados.values()));
-
-    if (listaFinal.length > 0) {
-      // Sincronizar respaldo dual garantizado en localStorage con la lista consolidada
-      sincronizarCacheLocalServicios(listaFinal);
-
-      // Sincronizar automáticamente registros a injected_services con UUIDs estándar
-      try {
-        const payloadSincronizar = listaFinal.map(normalizarParaInjectedServices);
-        supabase.from(TABLA_SERVICIOS_OFICIAL).upsert(payloadSincronizar, { onConflict: "id" }).catch(() => {});
-      } catch (_) {}
-
-      return listaFinal;
-    }
-
-    // 5. Semilla por defecto si no hay nada guardado en ningún medio
     return SERVICIOS_INICIALES_DEFAULT;
   } catch (e) {
-    console.warn("Excepción al cargar servicios de soporte (usando respaldo local):", e.message);
+    console.warn("Excepción al cargar servicios de soporte:", e.message);
     const locales = getServiciosLocal();
     return locales.length > 0 ? deduplicarServicios(locales) : SERVICIOS_INICIALES_DEFAULT;
   }
@@ -774,24 +704,39 @@ export async function actualizarServicioSoporte(servicio) {
   // Guardar inmediatamente en localStorage
   guardarServicioLocal(itemActualizado);
 
-  // Actualizar en injected_services
+  // Actualizar en injected_services (obligatorio directo en Supabase)
+  let itemFinalPersistido = itemActualizado;
   try {
     const payloadInjected = normalizarParaInjectedServices(itemActualizado);
-    await supabase
+    const { data: dataActualizada, error: errSupabase } = await supabase
       .from(TABLA_SERVICIOS_OFICIAL)
-      .upsert(payloadInjected, { onConflict: "id" });
+      .upsert(payloadInjected, { onConflict: "id" })
+      .select()
+      .maybeSingle();
+
+    if (errSupabase) {
+      console.error("Error en UPSERT de injected_services:", errSupabase.message);
+      throw new Error("Error guardando en base de datos remota: " + errSupabase.message);
+    }
+
+    if (dataActualizada) {
+      itemFinalPersistido = normalizarServicioUnificado(dataActualizada);
+      // Mantener localStorage actualizado con el dato fresco remoto
+      guardarServicioLocal(itemFinalPersistido);
+    }
   } catch (err) {
-    console.warn("Actualización remota en injected_services:", err.message);
+    console.error("Error crítico en sincronización remota de injected_services:", err.message);
+    throw err;
   }
 
-  // Réplica en tabla soporte_servicios
+  // Réplica complementaria en tabla soporte_servicios (legacy) si está disponible
   try {
     await supabase
       .from(TABLA_SERVICIOS_LEGACY)
-      .upsert(itemActualizado, { onConflict: "id" });
+      .upsert(itemFinalPersistido, { onConflict: "id" });
   } catch (e) {}
 
-  return itemActualizado;
+  return itemFinalPersistido;
 }
 
 /**
