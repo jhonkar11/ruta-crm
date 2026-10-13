@@ -90,119 +90,13 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
   useEffect(() => {
     let cancelado = false;
-    async function cargar() {
+
+    async function cargarTiempoReal() {
       setLoading(true);
       try {
-        // 1. Si viene un token, consultar prioritariamente la tabla shared_audits de Supabase
-        if (tokenParam) {
-          try {
-            // Intentar recuperar de Supabase
-            const { data: auditSnapshot, error: auditError } = await supabase
-              .from("shared_audits")
-              .select("*")
-              .eq("token", tokenParam)
-              .maybeSingle();
-
-            if (!auditError && auditSnapshot) {
-              // Si el snapshot contiene los servicios embebidos completos
-              if (Array.isArray(auditSnapshot.services_snapshot) && auditSnapshot.services_snapshot.length > 0) {
-                if (!cancelado) {
-                  setServicios(auditSnapshot.services_snapshot);
-                  setEsSnapshotToken(true);
-                  if (auditSnapshot.month && auditSnapshot.month !== "todos") setFiltroMes(Number(auditSnapshot.month) || auditSnapshot.month);
-                  if (auditSnapshot.year && auditSnapshot.year !== "todos") setFiltroAnio(Number(auditSnapshot.year) || auditSnapshot.year);
-                  setLoading(false);
-                  return;
-                }
-              }
-
-              // Si tiene service_ids exactos, consultar primero en injected_services, luego soporte_servicios
-              if (Array.isArray(auditSnapshot.service_ids) && auditSnapshot.service_ids.length > 0) {
-                let serviciosPorIds = null;
-
-                // Intentar en injected_services primero
-                try {
-                  const { data: idsOficial, error: idsOficialErr } = await supabase
-                    .from("injected_services")
-                    .select("*")
-                    .in("id", auditSnapshot.service_ids)
-                    .order("created_at", { ascending: true });
-
-                  if (!idsOficialErr && idsOficial && idsOficial.length > 0) {
-                    serviciosPorIds = idsOficial.map(normalizarServicioUnificado);
-                  }
-                } catch (_) {}
-
-                // Fallback a soporte_servicios
-                if (!serviciosPorIds || serviciosPorIds.length === 0) {
-                  const { data: idsLegacy, error: idsLegacyErr } = await supabase
-                    .from("soporte_servicios")
-                    .select("*")
-                    .in("id", auditSnapshot.service_ids)
-                    .order("creado_en", { ascending: true });
-
-                  if (!idsLegacyErr && idsLegacy && idsLegacy.length > 0) {
-                    serviciosPorIds = idsLegacy.map(normalizarServicioUnificado);
-                  }
-                }
-
-                if (serviciosPorIds && serviciosPorIds.length > 0) {
-                  if (!cancelado) {
-                    setServicios(serviciosPorIds);
-                    setEsSnapshotToken(true);
-                    if (auditSnapshot.month && auditSnapshot.month !== "todos") setFiltroMes(Number(auditSnapshot.month) || auditSnapshot.month);
-                    if (auditSnapshot.year && auditSnapshot.year !== "todos") setFiltroAnio(Number(auditSnapshot.year) || auditSnapshot.year);
-                    setLoading(false);
-                    return;
-                  }
-                }
-              }
-            }
-
-            // Respaldo secundario: snapshot en localStorage guardado durante la generación
-            try {
-              const localSnapRaw = localStorage.getItem(`SHARED_SNAPSHOT_${tokenParam}`);
-              if (localSnapRaw) {
-                const localSnap = JSON.parse(localSnapRaw);
-                if (Array.isArray(localSnap.services_snapshot) && localSnap.services_snapshot.length > 0) {
-                  if (!cancelado) {
-                    setServicios(localSnap.services_snapshot);
-                    setEsSnapshotToken(true);
-                    if (localSnap.month && localSnap.month !== "todos") setFiltroMes(Number(localSnap.month) || localSnap.month);
-                    if (localSnap.year && localSnap.year !== "todos") setFiltroAnio(Number(localSnap.year) || localSnap.year);
-                    setLoading(false);
-                    return;
-                  }
-                }
-              }
-            } catch (snapLocalErr) {
-              console.warn("Aviso al leer snapshot local:", snapLocalErr);
-            }
-          } catch (tokenErr) {
-            console.warn("Aviso al consultar snapshot en shared_audits:", tokenErr);
-          }
-        }
-
-        // 2. Si viene snapshot comprimido en la URL
-        if (rawPayload) {
-          try {
-            const parsed = JSON.parse(decodeURIComponent(escape(atob(rawPayload))));
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              if (!cancelado) {
-                setServicios(parsed);
-                setLoading(false);
-                return;
-              }
-            }
-          } catch (e) {
-            console.warn("No se pudo decodificar snapshot en URL:", e);
-          }
-        }
-
-        // 3. Consulta general a Supabase: primero injected_services (tabla oficial), luego soporte_servicios (legacy)
-        let registrosRemotos = null;
+        // 1. Consulta directa en tiempo real a Supabase a la tabla injected_services
+        let registros = null;
         try {
-          // 3a. Intentar tabla oficial injected_services
           let queryOficial = supabase
             .from("injected_services")
             .select("*");
@@ -215,14 +109,14 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           const { data: dbOficial, error: errOficial } = await queryOficial.order("created_at", { ascending: true });
 
           if (!errOficial && dbOficial && dbOficial.length > 0) {
-            registrosRemotos = dbOficial.map(normalizarServicioUnificado);
+            registros = dbOficial.map(normalizarServicioUnificado);
           }
         } catch (queryErr) {
-          console.warn("Consulta a injected_services con aviso:", queryErr);
+          console.warn("Consulta en tiempo real a injected_services:", queryErr);
         }
 
-        // 3b. Fallback a soporte_servicios (legacy) si injected_services no tiene datos
-        if (!registrosRemotos || registrosRemotos.length === 0) {
+        // 2. Fallback a soporte_servicios (legacy) si injected_services no tiene datos
+        if (!registros || registros.length === 0) {
           try {
             let queryLegacy = supabase
               .from("soporte_servicios")
@@ -235,32 +129,52 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
             const { data: dbLegacy, error: dbLegacyErr } = await queryLegacy.order("creado_en", { ascending: true });
 
             if (!dbLegacyErr && dbLegacy && dbLegacy.length > 0) {
-              registrosRemotos = dbLegacy.map(normalizarServicioUnificado);
+              registros = dbLegacy.map(normalizarServicioUnificado);
             }
           } catch (legacyErr) {
-            console.warn("Consulta legacy a soporte_servicios con aviso:", legacyErr);
+            console.warn("Consulta legacy a soporte_servicios:", legacyErr);
           }
         }
 
-        // 4. Si no trajo datos o falló, recurrir al catálogo general de soporteService (respaldo local garantizado)
-        if (!registrosRemotos || registrosRemotos.length === 0) {
-          registrosRemotos = await getServiciosSoporte({ proveedor: proveedorParam });
+        // 3. Fallback a soporteService / localStorage garantizado
+        if (!registros || registros.length === 0) {
+          registros = await getServiciosSoporte({ proveedor: proveedorParam });
         }
 
         if (!cancelado) {
-          setServicios(registrosRemotos || []);
+          setServicios(registros || []);
         }
       } catch (err) {
-        console.error("Error cargando servicios para vista de proveedor:", err);
-        const locales = await getServiciosSoporte();
-        if (!cancelado) setServicios(locales || []);
+        console.error("Error cargando servicios en tiempo real:", err);
+        const fallback = await getServiciosSoporte({ proveedor: proveedorParam });
+        if (!cancelado) setServicios(fallback || []);
       } finally {
         if (!cancelado) setLoading(false);
       }
     }
-    cargar();
-    return () => { cancelado = true; };
-  }, [rawPayload, tokenParam]);
+
+    cargarTiempoReal();
+
+    // 4. SUSCRIPCIÓN EN TIEMPO REAL CON SUPABASE CHANNELS
+    // Si el administrador agrega, edita o elimina servicios en el CRM, el proveedor ve la actualización al 100% al instante
+    const canalRealtime = supabase
+      .channel("injected_services_realtime_shared")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "injected_services" },
+        () => {
+          cargarTiempoReal();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelado = true;
+      try {
+        supabase.removeChannel(canalRealtime);
+      } catch (_) {}
+    };
+  }, [proveedorParam, esBusquedaRS]);
 
   // Helper infalible de extracción de mes y año (DD/MM/YYYY, YYYY-MM-DD, etc.)
   const extraerMesAnio = (s) => {
@@ -347,10 +261,6 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   //   se utilizan exactamente esos registros garantizando 100% de coincidencia inmutable.
   // - De lo contrario, se aplica la normalización flexible sobre el catálogo general.
   const serviciosProveedor = useMemo(() => {
-    if (esSnapshotToken) {
-      return servicios;
-    }
-
     if (!proveedorParam || proveedorParam === "todos") {
       return servicios.filter((s) => {
         const p = (s.proveedor || "").trim();
@@ -406,7 +316,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     return Array.from(years).sort((a, b) => b - a);
   }, [serviciosProveedor]);
 
-  // Filtrado final por periodo y búsqueda
+  // Filtrado final en tiempo real por periodo (mes y año) y búsqueda
   const serviciosFiltrados = useMemo(() => {
     return serviciosProveedor.filter((s) => {
       // 1. Búsqueda por número de caso
@@ -416,12 +326,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
         if (!caso.includes(q)) return false;
       }
 
-      // Si viene por snapshot exacto de token y el usuario no ha cambiado filtros manualmente
-      if (esSnapshotToken) {
-        return true;
-      }
-
-      // 2. Filtrado por mes y año
+      // 2. Filtrado estricto por mes y año
       if (filtroMes === "todos" && filtroAnio === "todos") return true;
 
       const info = extraerMesAnio(s);
@@ -436,7 +341,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
       return true;
     });
-  }, [serviciosProveedor, busqueda, filtroMes, filtroAnio, esSnapshotToken]);
+  }, [serviciosProveedor, busqueda, filtroMes, filtroAnio]);
 
   // Cálculos de liquidación
   const totalServicios = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_servicios) || 0), 0);

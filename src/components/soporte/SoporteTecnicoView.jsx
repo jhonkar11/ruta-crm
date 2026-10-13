@@ -1242,7 +1242,7 @@ const handleGenerarPlantilla = async () => {
   const granTotal = totalServicios + totalViaticos + totalMateriales;
   const textoEnLetras = numeroALetras(granTotal);
 
-  // ── Generador y persistencia de Snapshot por Token Único (shared_audits) ─────
+  // ── Generador y enlace de vista compartida en tiempo real ─────
   const handleAbrirCompartirConSnapshot = async () => {
     const provElegido = filtroProveedor || "R&S Soluciones";
     setProveedorACompartir(provElegido);
@@ -1266,9 +1266,7 @@ const handleGenerarPlantilla = async () => {
       const tokenHash = Math.random().toString(36).substring(2, 8);
       const tokenUnico = `tk_${provSlug.slice(0, 10)}_${mesStr}_${anioStr}_${tokenHash}`;
 
-      const idsVisibles = serviciosFiltrados.map((s) => s.id || s.numero_caso).filter(Boolean);
-
-      // Intentar persistir en la tabla shared_audits de Supabase
+      // Registro opcional en shared_audits como bitácora de auditoría
       try {
         await supabase.from("shared_audits").upsert({
           token: tokenUnico,
@@ -1276,35 +1274,15 @@ const handleGenerarPlantilla = async () => {
           month: mesStr,
           year: anioStr,
           total_amount: granTotal,
-          service_ids: idsVisibles,
-          services_snapshot: serviciosFiltrados,
           updated_at: new Date().toISOString()
         });
       } catch (dbErr) {
-        console.warn("Aviso al guardar snapshot remoto (fallback local activo):", dbErr);
-      }
-
-      // Respaldo en localStorage por si no hay conexión
-      try {
-        localStorage.setItem(
-          `SHARED_SNAPSHOT_${tokenUnico}`,
-          JSON.stringify({
-            token: tokenUnico,
-            provider_entity: provElegido,
-            month: mesStr,
-            year: anioStr,
-            total_amount: granTotal,
-            service_ids: idsVisibles,
-            services_snapshot: serviciosFiltrados
-          })
-        );
-      } catch (localErr) {
-        console.warn("Aviso guardando snapshot local:", localErr);
+        console.warn("Aviso al guardar auditoría de compartición:", dbErr);
       }
 
       setSharedTokenGenerado(tokenUnico);
     } catch (e) {
-      console.error("Error al preparar snapshot para compartir:", e);
+      console.error("Error al preparar enlace para compartir:", e);
     } finally {
       setGenerandoTokenShare(false);
     }
@@ -5871,14 +5849,14 @@ const handleGenerarPlantilla = async () => {
           return `tk_${provSlug.slice(0, 10)}_${mesElegido}_${anioElegido}_${tokenHash}`;
         })();
 
-        // Construir URL limpia basada en el token único
+        // Construir URL limpia en tiempo real: prov, mes y anio sin depender de tokens estáticos
         const baseOrigin = window.location.origin;
         const urlParams = new URLSearchParams();
         urlParams.set("view", "shared");
-        urlParams.set("token", tokenActivo);
         urlParams.set("prov", provSlug);
         if (mesElegido !== "todos") urlParams.set("mes", String(mesElegido));
         if (anioElegido !== "todos") urlParams.set("anio", String(anioElegido));
+        if (tokenActivo) urlParams.set("ref", tokenActivo);
 
         const urlCompartida = `${baseOrigin}/?${urlParams.toString()}`;
 
