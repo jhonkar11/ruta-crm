@@ -72,7 +72,8 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     return raw;
   }, [_provRaw]);
 
-  const mesParam = params.get("mes");   // número o "todos"
+  // Soporta tanto "meses=9,10" (múltiples meses) como legado "mes=9"
+  const mesParamRaw = params.get("meses") || params.get("mes");
   const anioParam = params.get("anio"); // número o "todos"
 
   const provNorm = useMemo(() => normalizarTexto(proveedorParam), [proveedorParam]);
@@ -91,9 +92,13 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [filtroMes, setFiltroMes] = useState(
-    mesParam ? (mesParam === "todos" ? "todos" : Number(mesParam)) : "todos"
-  );
+  // Parsear parámetro de múltiples meses: "9,10" → Set([9,10]), "todos" → "todos"
+  const parsarMesesParam = (raw) => {
+    if (!raw || raw === "todos") return "todos";
+    const nums = raw.split(",").map(Number).filter((n) => n >= 1 && n <= 12);
+    return nums.length > 0 ? new Set(nums) : "todos";
+  };
+  const [filtroMeses, setFiltroMeses] = useState(() => parsarMesesParam(mesParamRaw));
   const [filtroAnio, setFiltroAnio] = useState(
     anioParam ? (anioParam === "todos" ? "todos" : Number(anioParam)) : "todos"
   );
@@ -185,16 +190,18 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
         if (!caso.includes(q)) return false;
       }
 
-      // 2. Filtrado estricto por mes y año
-      if (filtroMes === "todos" && filtroAnio === "todos") return true;
+      // 2. Filtrado estricto por mes(es) y año
+      const esTodosLosMeses = filtroMeses === "todos";
+      const esTodosLosAnios = filtroAnio === "todos";
+      if (esTodosLosMeses && esTodosLosAnios) return true;
 
       const info = extraerMesAnio(s);
       if (!info) return false;
 
-      if (filtroAnio !== "todos" && info.anio !== Number(filtroAnio)) {
+      if (!esTodosLosAnios && info.anio !== Number(filtroAnio)) {
         return false;
       }
-      if (filtroMes !== "todos" && info.mes !== Number(filtroMes)) {
+      if (!esTodosLosMeses && !filtroMeses.has(info.mes)) {
         return false;
       }
 
@@ -202,7 +209,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     });
 
     return ordenarServiciosPorFechaDescendente(deduplicarServicios(filtrados));
-  }, [serviciosProveedor, busqueda, filtroMes, filtroAnio]);
+  }, [serviciosProveedor, busqueda, filtroMeses, filtroAnio]);
 
   // Cálculos de liquidación
   const totalServicios = serviciosFiltrados.reduce((acc, s) => acc + (Number(s.valor_servicios) || 0), 0);
@@ -211,9 +218,9 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   const granTotal = totalServicios + totalViaticos + totalMateriales;
   const textoEnLetras = numeroALetras(granTotal);
 
-  const periodoTexto = filtroMes === "todos"
+  const periodoTexto = filtroMeses === "todos"
     ? (filtroAnio === "todos" ? "Consolidado Histórico" : `Año ${filtroAnio}`)
-    : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio === "todos" ? "" : filtroAnio}`;
+    : `${Array.from(filtroMeses).sort((a, b) => a - b).map((m) => NOMBRES_MESES[m - 1]).join(" + ")} ${filtroAnio === "todos" ? "" : filtroAnio}`.trim();
 
   const handleDescargarExcel = async () => {
     if (serviciosFiltrados.length === 0) return;
@@ -221,7 +228,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
       setExportandoExcel(true);
       const buffer = await generarExcelCuentaCobro({
         servicios: serviciosFiltrados,
-        mes: filtroMes === "todos" ? "Historico" : NOMBRES_MESES[filtroMes - 1],
+        mes: filtroMeses === "todos" ? "Historico" : Array.from(filtroMeses).sort((a, b) => a - b).map((m) => NOMBRES_MESES[m - 1]).join("_"),
         anio: filtroAnio === "todos" ? "Todos" : filtroAnio,
         proveedor: proveedorParam !== "todos" ? proveedorParam : "General"
       });
@@ -458,8 +465,14 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: isDark ? "#94a3b8" : "#64748b" }}>Mes:</span>
               <select
-                value={filtroMes}
-                onChange={(e) => setFiltroMes(e.target.value === "todos" ? "todos" : Number(e.target.value))}
+                value={filtroMeses === "todos" ? "todos" : (filtroMeses.size === 1 ? Array.from(filtroMeses)[0] : "multi")}
+                onChange={(e) => {
+                  if (e.target.value === "todos") {
+                    setFiltroMeses("todos");
+                  } else {
+                    setFiltroMeses(new Set([Number(e.target.value)]));
+                  }
+                }}
                 style={{
                   background: isDark ? "#1e293b" : "#f8fafc",
                   border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
@@ -471,6 +484,11 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                 }}
               >
                 <option value="todos">Todos los meses</option>
+                {filtroMeses !== "todos" && filtroMeses.size > 1 && (
+                  <option value="multi">
+                    {Array.from(filtroMeses).sort((a, b) => a - b).map((m) => NOMBRES_MESES[m - 1]).join(" + ")}
+                  </option>
+                )}
                 {NOMBRES_MESES.map((nom, idx) => (
                   <option key={idx + 1} value={idx + 1}>{nom}</option>
                 ))}
@@ -559,7 +577,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                             type="button"
                             onClick={() => {
                               setBusqueda("");
-                              setFiltroMes("todos");
+                              setFiltroMeses("todos");
                             }}
                             style={{
                               background: "#f1f5f9",
@@ -577,7 +595,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
                           <button
                             type="button"
                             onClick={() => {
-                              setFiltroMes("todos");
+                              setFiltroMeses("todos");
                               setFiltroAnio("todos");
                             }}
                             style={{

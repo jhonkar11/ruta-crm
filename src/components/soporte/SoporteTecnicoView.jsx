@@ -82,7 +82,7 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   // Por defecto se acota estrictamente al periodo en curso (mes y año actual).
   // La tabla y los totales reflejan exclusivamente el mes seleccionado.
   const ahora = new Date();
-  const [filtroMes, setFiltroMes] = useState(ahora.getMonth() + 1); // 1–12
+  const [filtroMeses, setFiltroMeses] = useState(new Set([ahora.getMonth() + 1])); // Set de meses 1–12
   const [filtroAnio, setFiltroAnio] = useState(ahora.getFullYear());
   const [mostrarTodos, setMostrarTodos] = useState(false); // ← false: acota al periodo actual por defecto
   const [filtroProveedor, setFiltroProveedor] = useState(""); // "" = todos los proveedores
@@ -934,7 +934,7 @@ const handleGenerarPlantilla = async () => {
   const handleDescargarExcel = async () => {
     if (serviciosFiltrados.length === 0) {
       alert("No hay servicios para exportar con los filtros seleccionados (Mes: " + 
-        (mostrarTodos ? "Histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`) +
+        (mostrarTodos ? "Histórico" : `${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join("_")} ${filtroAnio}`) +
         (filtroProveedor ? `, Proveedor: ${filtroProveedor}` : "") + ").");
       return;
     }
@@ -949,7 +949,7 @@ const handleGenerarPlantilla = async () => {
       const proveedorNombre = filtroProveedor ? filtroProveedor.replace(/[\/\\:*?"<>|]/g, "_") : "R&S Soluciones";
       const periodoTexto = mostrarTodos
         ? "Consolidado_Historico"
-        : `${NOMBRES_MESES[filtroMes - 1]}_${filtroAnio}`;
+        : `${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join("_")}_${filtroAnio}`;
       descargarExcelEnNavegador(
         buffer,
         `Cuenta de Cobro - ${proveedorNombre} (${periodoTexto} - ${listaAExportar.length} casos).xlsx`
@@ -1188,7 +1188,7 @@ const handleGenerarPlantilla = async () => {
       return false;
     }
     const info = extraerMesAnio(s);
-    return info && info.mes === Number(filtroMes) && info.anio !== Number(filtroAnio);
+    return info && filtroMeses.has(info.mes) && info.anio !== Number(filtroAnio);
   });
 
   // Servicios filtrados según el periodo activo (mes y año o todos), proveedor y búsqueda en tiempo real por N° de Caso
@@ -1220,10 +1220,10 @@ const handleGenerarPlantilla = async () => {
 
         // Si filtroAnio es 'todos', sólo evaluamos el mes
         if (String(filtroAnio) === "todos") {
-          return info.mes === Number(filtroMes);
+          return filtroMeses.has(info.mes);
         }
 
-        return info.mes === Number(filtroMes) && info.anio === Number(filtroAnio);
+        return filtroMeses.has(info.mes) && info.anio === Number(filtroAnio);
       })
     )
   );
@@ -1283,10 +1283,11 @@ const handleGenerarPlantilla = async () => {
           .replace(/^-|-$/g, "");
 
       const provSlug = normalizarSlug(provElegido) || "rs-soluciones";
-      const mesStr = mostrarTodos ? "todos" : String(filtroMes);
+      const mesesArr = mostrarTodos ? [] : Array.from(filtroMeses).sort((a, b) => a - b);
+      const mesStr = mostrarTodos ? "todos" : mesesArr.join(",");
       const anioStr = mostrarTodos ? "todos" : String(filtroAnio);
       const tokenHash = Math.random().toString(36).substring(2, 8);
-      const tokenUnico = `tk_${provSlug.slice(0, 10)}_${mesStr}_${anioStr}_${tokenHash}`;
+      const tokenUnico = `tk_${provSlug.slice(0, 10)}_${mesStr.replace(/,/g,"")}_${anioStr}_${tokenHash}`;
 
       // Registro opcional en shared_audits como bitácora de auditoría
       try {
@@ -3116,7 +3117,7 @@ const handleGenerarPlantilla = async () => {
                   <p style={{ margin: 0, fontSize: 12, color: textSub }}>
                     {mostrarTodos
                       ? `Visualizando consolidado histórico ${filtroProveedor ? `filtrado por "${filtroProveedor}"` : "de todos los proveedores"}`
-                      : `Liquidación activa: ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}${filtroProveedor ? ` · Entidad: ${filtroProveedor}` : " · Todos los proveedores"}`}
+                      : `Liquidación activa: ${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}${filtroProveedor ? ` · Entidad: ${filtroProveedor}` : " · Todos los proveedores"}`}
                   </p>
                 </div>
               </div>
@@ -3278,12 +3279,13 @@ const handleGenerarPlantilla = async () => {
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 12, color: labelColor, fontWeight: 600 }}>Mes:</span>
                   <select
-                    value={mostrarTodos ? "todos" : filtroMes}
+                    value={mostrarTodos ? "todos" : (filtroMeses.size === 1 ? Array.from(filtroMeses)[0] : "multi")}
                     onChange={(e) => {
                       if (e.target.value === "todos") {
                         setMostrarTodos(true);
                       } else {
-                        setFiltroMes(Number(e.target.value));
+                        const m = Number(e.target.value);
+                        setFiltroMeses(new Set([m]));
                         setMostrarTodos(false);
                       }
                     }}
@@ -3302,6 +3304,11 @@ const handleGenerarPlantilla = async () => {
                     <option value="todos" style={{ background: isDark ? "#0f172a" : "#fff" }}>
                       Todos los periodos (Histórico)
                     </option>
+                    {filtroMeses.size > 1 && !mostrarTodos && (
+                      <option value="multi" style={{ background: isDark ? "#0f172a" : "#fff" }}>
+                        {Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")}
+                      </option>
+                    )}
                     {NOMBRES_MESES.map((nom, idx) => (
                       <option key={idx + 1} value={idx + 1} style={{ background: isDark ? "#0f172a" : "#fff" }}>
                         {nom} {String(filtroAnio) === "todos" ? "(Todos los años)" : filtroAnio}
@@ -3313,7 +3320,14 @@ const handleGenerarPlantilla = async () => {
                 {/* Botón Ver Todo */}
                 <button
                   type="button"
-                  onClick={() => setMostrarTodos(!mostrarTodos)}
+                  onClick={() => {
+                    if (!mostrarTodos) {
+                      setMostrarTodos(true);
+                    } else {
+                      setMostrarTodos(false);
+                      setFiltroMeses(new Set([ahora.getMonth() + 1]));
+                    }
+                  }}
                   style={{
                     background: mostrarTodos
                       ? (isDark ? "rgba(16, 185, 129, 0.25)" : "rgba(16, 185, 129, 0.15)")
@@ -3355,7 +3369,7 @@ const handleGenerarPlantilla = async () => {
                   <AlertTriangle size={16} style={{ flexShrink: 0, color: "#f59e0b" }} />
                   <span>
                     Existen <strong>{serviciosMesOtrosAnios.length}</strong> registro(s) de{" "}
-                    <strong>{NOMBRES_MESES[filtroMes - 1]}</strong> en otros años históricos (ej. 2024) que están ocultos por el filtro actual ({filtroAnio}).
+                    <strong>{Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")}</strong> en otros años históricos (ej. 2024) que están ocultos por el filtro actual ({filtroAnio}).
                   </span>
                 </div>
                 <button
@@ -3373,7 +3387,7 @@ const handleGenerarPlantilla = async () => {
                     flexShrink: 0
                   }}
                 >
-                  Ver todos los años para {NOMBRES_MESES[filtroMes - 1]}
+                  Ver todos los años para {Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")}
                 </button>
               </div>
             )}
@@ -3391,7 +3405,7 @@ const handleGenerarPlantilla = async () => {
             >
               {NOMBRES_MESES.map((nomMes, idx) => {
                 const numMes = idx + 1;
-                const esActivo = !mostrarTodos && filtroMes === numMes;
+                const esActivo = !mostrarTodos && filtroMeses.has(numMes);
                 const conteo = servicios.filter((s) => {
                   if (filtroProveedor && !coincideProveedorFlexible(s.proveedor, filtroProveedor)) {
                     return false;
@@ -3407,8 +3421,16 @@ const handleGenerarPlantilla = async () => {
                     key={numMes}
                     type="button"
                     onClick={() => {
-                      setFiltroMes(numMes);
                       setMostrarTodos(false);
+                      setFiltroMeses(prev => {
+                        const next = new Set(prev);
+                        if (next.has(numMes)) {
+                          if (next.size > 1) next.delete(numMes); // no dejar vac�o
+                        } else {
+                          next.add(numMes);
+                        }
+                        return next;
+                      });
                     }}
                     style={{
                       flexShrink: 0,
@@ -3472,7 +3494,7 @@ const handleGenerarPlantilla = async () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
               <div>
                 <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  Formato de Cuenta de Cobro Oficial · {mostrarTodos ? "Consolidado Histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                  Formato de Cuenta de Cobro Oficial · {mostrarTodos ? "Consolidado Histórico" : `${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}`}
                 </div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: textTitle, marginTop: 2 }}>
                   DEBE A: Jhon Alexander Vasquez Reveló
@@ -3535,7 +3557,7 @@ const handleGenerarPlantilla = async () => {
                   <span>
                     {exportandoExcel
                       ? "Generando Excel..."
-                      : `Descargar Excel ${filtroProveedor ? `${filtroProveedor} - ` : ""}${mostrarTodos ? "Histórico" : NOMBRES_MESES[filtroMes - 1]} (.xlsx)`}
+                      : `Descargar Excel ${filtroProveedor ? `${filtroProveedor} - ` : ""}${mostrarTodos ? "Histórico" : Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} (.xlsx)`}
                   </span>
                 </button>
               </div>
@@ -3562,7 +3584,7 @@ const handleGenerarPlantilla = async () => {
               </div>
               <div>
                 <div style={{ fontSize: 12, color: isDark ? "#94a3b8" : "#64748b", fontWeight: 600 }}>
-                  SON (TOTAL {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "GENERAL" : NOMBRES_MESES[filtroMes - 1].toUpperCase()}):
+                  SON (TOTAL {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "GENERAL" : Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1].toUpperCase()).join(" + ")}):
                 </div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: textTitle, fontFamily: "'IBM Plex Mono', monospace" }}>
                   {formatearMonedaCOP(granTotal)}
@@ -3591,14 +3613,14 @@ const handleGenerarPlantilla = async () => {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
-                  Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {busquedaCasoCuenta ? `coincidentes con "${busquedaCasoCuenta}" ` : ""}{filtroProveedor ? `para "${filtroProveedor}" ` : ""}{mostrarTodos ? "totales" : `en ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`} a partir de fila 24)
+                  Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {busquedaCasoCuenta ? `coincidentes con "${busquedaCasoCuenta}" ` : ""}{filtroProveedor ? `para "${filtroProveedor}" ` : ""}{mostrarTodos ? "totales" : `en ${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}`} a partir de fila 24)
                 </h3>
                 <span style={{ fontSize: 11.5, color: textSub }}>
                   {busquedaCasoCuenta
                     ? `Filtrando en tiempo real por N° de Caso "${busquedaCasoCuenta}". La tabla y los subtotales se actualizan instantáneamente.`
                     : (mostrarTodos
                         ? `Listando todos los registros sin filtrado de fecha${filtroProveedor ? ` para ${filtroProveedor}` : ""}`
-                        : `Mostrando exclusivamente los servicios de ${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}${filtroProveedor ? ` para la entidad "${filtroProveedor}"` : ""}`)}
+                        : `Mostrando exclusivamente los servicios de ${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}${filtroProveedor ? ` para la entidad "${filtroProveedor}"` : ""}`)}
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -3747,7 +3769,7 @@ const handleGenerarPlantilla = async () => {
                           <>
                             <CalendarDays size={32} style={{ opacity: 0.4 }} />
                             <div style={{ fontSize: 14, fontWeight: 600 }}>
-                              No hay servicios registrados {filtroProveedor ? `para la entidad "${filtroProveedor}" ` : ""}en {mostrarTodos ? "el consolidado histórico" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                              No hay servicios registrados {filtroProveedor ? `para la entidad "${filtroProveedor}" ` : ""}en {mostrarTodos ? "el consolidado histórico" : `${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}`}
                             </div>
                             <div style={{ fontSize: 12 }}>
                               {filtroProveedor 
@@ -4033,7 +4055,7 @@ const handleGenerarPlantilla = async () => {
                 {/* Fila de Total General */}
                 <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.7)" : "#cbd5e1", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 900, textAlign: "right" }}>
                   <td colSpan={8} style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", textAlign: "center", fontSize: 12 }}>
-                    TOTAL CUENTA DE COBRO {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "HISTÓRICO" : `(${NOMBRES_MESES[filtroMes - 1].toUpperCase()} ${filtroAnio})`}
+                    TOTAL CUENTA DE COBRO {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "HISTÓRICO" : `(${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1].toUpperCase()).join(" + ")} ${filtroAnio})`}
                   </td>
                   <td colSpan={3} style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", color: isDark ? "#6ee7b7" : "#047857", fontSize: 13.5, textAlign: "right", fontFamily: "'IBM Plex Mono', monospace" }}>
                     {formatearMonedaCOP(granTotal)}
@@ -5849,7 +5871,8 @@ const handleGenerarPlantilla = async () => {
       {/* MODAL 2: GENERADOR DE ENLACE DE COMPARTICIÓN EXTERNA (MODO SOLO LECTURA PARA PROVEEDORES) */}
       {showCompartirModal && (() => {
         const provElegido = proveedorACompartir || filtroProveedor || "R&S Soluciones";
-        const mesElegido = mostrarTodos ? "todos" : filtroMes;
+        const mesesArr = Array.from(filtroMeses).sort((a, b) => a - b);
+        const mesElegido = mostrarTodos ? "todos" : (mesesArr.length === 1 ? String(mesesArr[0]) : mesesArr.join(","));
         const anioElegido = mostrarTodos ? "todos" : filtroAnio;
 
         // Normalizar prov a un slug seguro
@@ -5868,7 +5891,7 @@ const handleGenerarPlantilla = async () => {
         // Usar el token único generado y guardado en shared_audits
         const tokenActivo = sharedTokenGenerado || (() => {
           const tokenHash = Math.random().toString(36).substring(2, 8);
-          return `tk_${provSlug.slice(0, 10)}_${mesElegido}_${anioElegido}_${tokenHash}`;
+          return `tk_${provSlug.slice(0, 10)}_${mesElegido.replace(/,/g, "-")}_${anioElegido}_${tokenHash}`;
         })();
 
         // Construir URL limpia en tiempo real: prov, mes y anio sin depender de tokens estáticos
@@ -5876,7 +5899,13 @@ const handleGenerarPlantilla = async () => {
         const urlParams = new URLSearchParams();
         urlParams.set("view", "shared");
         urlParams.set("prov", provSlug);
-        if (mesElegido !== "todos") urlParams.set("mes", String(mesElegido));
+        if (mesElegido !== "todos") {
+          if (mesesArr.length > 1) {
+            urlParams.set("meses", mesElegido);
+          } else {
+            urlParams.set("mes", mesElegido);
+          }
+        }
         if (anioElegido !== "todos") urlParams.set("anio", String(anioElegido));
         if (tokenActivo) urlParams.set("ref", tokenActivo);
 
@@ -6013,7 +6042,7 @@ const handleGenerarPlantilla = async () => {
                         fontWeight: 600
                       }}
                     >
-                      {mostrarTodos ? "Histórico Completo" : `${NOMBRES_MESES[filtroMes - 1]} ${filtroAnio}`}
+                      {mostrarTodos ? "Histórico Completo" : `${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}`}
                     </div>
                   </div>
                 </div>
