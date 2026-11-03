@@ -55,6 +55,51 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
   // FORZAR TEMA CLARO INSTITUCIONAL (FONDO BLANCO):
   const isDark = false;
 
+  // ── Metadatos Open Graph / SEO dinámicos para compartir en redes ──────────────
+  // Se actualizan al montar la vista de la cuenta de cobro para que el título y la
+  // descripción que aparezcan al compartir por WhatsApp sean los oficiales.
+  useEffect(() => {
+    const previousTitle = document.title;
+    const previousOgTitle =
+      document.querySelector('meta[property="og:title"]')?.getAttribute("content") || "";
+    const previousOgDescription =
+      document.querySelector('meta[property="og:description"]')?.getAttribute("content") || "";
+    const previousMetaDescription =
+      document.querySelector('meta[name="description"]')?.getAttribute("content") || "";
+
+    const TITLE = "Cuenta de Cobro Oficial • Jhon Alexander Vasquez Revelo";
+    const DESCRIPTION =
+      "Portal de liquidación y servicios técnicos profesionales para proveedores. Consulta de cuentas de cobro y soportes en línea.";
+
+    document.title = TITLE;
+
+    const setMeta = (selector, attr, attrName, value) => {
+      let el = document.querySelector(selector);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, attrName);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", value);
+    };
+
+    setMeta('meta[property="og:title"]', "property", "og:title", TITLE);
+    setMeta('meta[property="og:description"]', "property", "og:description", DESCRIPTION);
+    setMeta('meta[name="description"]', "name", "description", DESCRIPTION);
+    setMeta('meta[name="twitter:title"]', "name", "twitter:title", TITLE);
+    setMeta('meta[name="twitter:description"]', "name", "twitter:description", DESCRIPTION);
+
+    return () => {
+      document.title = previousTitle;
+      const ogTitleEl = document.querySelector('meta[property="og:title"]');
+      if (ogTitleEl) ogTitleEl.setAttribute("content", previousOgTitle);
+      const ogDescEl = document.querySelector('meta[property="og:description"]');
+      if (ogDescEl) ogDescEl.setAttribute("content", previousOgDescription);
+      const metaDescEl = document.querySelector('meta[name="description"]');
+      if (metaDescEl) metaDescEl.setAttribute("content", previousMetaDescription);
+    };
+  }, []);
+
   // ── Parámetros de la URL ─────────────────────────────────────────────────────
   const params = useMemo(() => new URLSearchParams(window.location.search), []);
   const _provRaw = params.get("prov") || params.get("proveedor") || "";
