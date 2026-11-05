@@ -32,6 +32,7 @@ import {
 import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { exportarCuentaCobroPDF } from "../../services/pdfExportService";
+import { obtenerDatosProveedor } from "../../utils/proveedoresData";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 
 const NOMBRES_MESES = [
@@ -298,6 +299,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
         fileName: nombreArchivo,
         periodo: periodoTexto,
         proveedor: proveedorParam !== "todos" ? proveedorParam : "General",
+        metadata: { proveedor: proveedorParam !== "todos" ? proveedorParam : "General" },
         numeroCuenta: typeof filtroMeses === "object" && filtroMeses.size ? Array.from(filtroMeses)[0] : 5
       });
     } catch (err) {

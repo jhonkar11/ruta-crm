@@ -67,6 +67,7 @@ import {
 } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { exportarCuentaCobroPDF } from "../../services/pdfExportService";
+import { obtenerDatosProveedor } from "../../utils/proveedoresData";
 import { supabase } from "../../services/supabaseClient";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 import AutoResizeTextarea from "./AutoResizeTextarea";
@@ -1002,6 +1003,7 @@ const handleGenerarPlantilla = async () => {
       await exportarCuentaCobroPDF(serviciosFiltrados, {
         fileName,
         proveedor: filtroProveedor || "R&S Soluciones",
+        metadata: { proveedor: filtroProveedor || "R&S Soluciones" },
         periodo: mostrarTodos
           ? "Consolidado Histórico"
           : `${Array.from(filtroMeses)

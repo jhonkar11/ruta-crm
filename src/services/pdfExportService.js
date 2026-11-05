@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { numeroALetras } from "../utils/numeroALetras";
+import { obtenerDatosProveedor } from "../utils/proveedoresData";
 
 /**
  * Formatea valores numéricos a formato COP formal ($ 1.030.000 o $ -)
@@ -38,6 +39,16 @@ export function construirPlantillaCuentaCobroCorporativa({
   const fechaLarga = metadata.fechaLarga || `${dia} de ${mesNombre} de ${anio}`;
   const fechaCorta = metadata.fechaCorta || `${dia}/${String(hoy.getMonth() + 1).padStart(2, "0")}/${anio}`;
   const numCobro = numeroCuenta || metadata.numeroCuenta || (hoy.getMonth() + 1);
+
+  // ── Datos dinámicos del proveedor ──────────────────────────────────────────
+  const nombreProveedorRaw = metadata?.proveedor || metadata?.empresa || "";
+  const { razonSocial: razonSocialProveedor, nit: nitProveedor } =
+    obtenerDatosProveedor(nombreProveedorRaw);
+  // Para el logo de la cabecera: primera palabra / primeras dos palabras formateadas
+  const logoLineas = razonSocialProveedor.split(/\s+/);
+  const logoLinea1 = logoLineas.slice(0, Math.ceil(logoLineas.length / 2)).join(" ");
+  const logoLinea2 = logoLineas.slice(Math.ceil(logoLineas.length / 2)).join(" ");
+  // ────────────────────────────────────────────────────────────────────────────
 
   // Normalizar registros
   const registros = servicios.map((s) => ({
@@ -86,8 +97,8 @@ export function construirPlantillaCuentaCobroCorporativa({
     <!-- 1. ENCABEZADO SUPERIOR CORPORATIVO (R&S SOLUCIONES / CUENTA DE COBRO / VERSIÓN) -->
     <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #000000; margin-bottom: 2px;">
       <tr>
-        <td style="width: 28%; border: 1.5px solid #000000; text-align: center; vertical-align: middle; padding: 6px; font-weight: 900; font-size: 15px; color: #135E6B; line-height: 1.15;">
-          R&amp;S<br/>SOLUCIONES
+        <td style="width: 28%; border: 1.5px solid #000000; text-align: center; vertical-align: middle; padding: 6px; font-weight: 900; font-size: 13px; color: #135E6B; line-height: 1.15;">
+          ${logoLinea1}${logoLinea2 ? `<br/>${logoLinea2}` : ""}
         </td>
         <td style="width: 44%; border: 1.5px solid #000000; text-align: center; vertical-align: middle; background-color: #E9F2F7; font-weight: 800; font-size: 16px; color: #0F2B48; letter-spacing: 0.6px;">
           CUENTA DE COBRO
@@ -138,10 +149,10 @@ export function construirPlantillaCuentaCobroCorporativa({
     <!-- 4. BLOQUE CENTRAL DE LA EMPRESA Y BENEFICIARIO -->
     <div style="text-align: center; margin-bottom: 10px; font-family: Arial, Helvetica, sans-serif;">
       <div style="font-size: 11.5px; font-weight: 800; color: #000000; line-height: 1.2;">
-        R&amp;S SOLUCIONES S.A.S.
+        ${razonSocialProveedor}
       </div>
       <div style="font-size: 9px; font-weight: 700; color: #333333; margin-bottom: 6px;">
-        NIT: 900.291.287-9
+        NIT: ${nitProveedor || "N/A"}
       </div>
 
       <div style="font-size: 10px; font-weight: 800; color: #000000; margin-bottom: 1px;">
