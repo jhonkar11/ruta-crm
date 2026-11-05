@@ -67,7 +67,7 @@ import {
 } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
 import { exportarCuentaCobroPDF } from "../../services/pdfExportService";
-import { obtenerDatosProveedor } from "../../utils/proveedoresData";
+import { obtenerDatosProveedor, guardarProveedorCustom } from "../../utils/proveedoresData";
 import { supabase } from "../../services/supabaseClient";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 import AutoResizeTextarea from "./AutoResizeTextarea";
@@ -247,6 +247,11 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [guardadoExitoso, setGuardadoExitoso] = useState(false);
   const [exportandoExcel, setExportandoExcel] = useState(false);
   const [exportandoPDF, setExportandoPDF] = useState(false);
+  const [numeroCuentaCobro, setNumeroCuentaCobro] = useState("");
+  // Modal NIT para proveedor desconocido
+  const [modalNITProveedor, setModalNITProveedor] = useState(null);
+  const [modalNITRazonSocial, setModalNITRazonSocial] = useState("");
+  const [modalNITValor, setModalNITValor] = useState("");
   const cuentaCobroContainerRef = useRef(null);
 
   // Detección en tiempo real de caso duplicado y autocompletado inteligente
@@ -948,7 +953,9 @@ const handleGenerarPlantilla = async () => {
       const buffer = await generarExcelCuentaCobro(listaAExportar, {
         nombre: "Jhon Alexander Vasquez Reveló",
         cedula: "10308105",
-        empresa: filtroProveedor || "R&S Soluciones"
+        empresa: filtroProveedor || "R&S Soluciones",
+        proveedor: filtroProveedor || "R&S Soluciones",
+        numeroCuenta: numeroCuentaCobro ? Number(numeroCuentaCobro) : undefined
       });
       const proveedorNombre = filtroProveedor ? filtroProveedor.replace(/[\/\\:*?"<>|]/g, "_") : "R&S Soluciones";
       const periodoTexto = mostrarTodos
@@ -962,6 +969,19 @@ const handleGenerarPlantilla = async () => {
       alert("Error al exportar el archivo Excel: " + err.message);
     } finally {
       setExportandoExcel(false);
+    }
+  };
+
+  // Helper: verifica si el proveedor activo tiene NIT; si no, muestra el modal de registro
+  const checkNITYExportar = (callbackExportar) => {
+    if (!filtroProveedor) { callbackExportar(); return; }
+    const datos = obtenerDatosProveedor(filtroProveedor);
+    if (datos.esDesconocido) {
+      setModalNITRazonSocial(filtroProveedor.toUpperCase());
+      setModalNITValor("");
+      setModalNITProveedor({ nombre: filtroProveedor });
+    } else {
+      callbackExportar();
     }
   };
 
@@ -1003,6 +1023,7 @@ const handleGenerarPlantilla = async () => {
       await exportarCuentaCobroPDF(serviciosFiltrados, {
         fileName,
         proveedor: filtroProveedor || "R&S Soluciones",
+        numeroCuenta: numeroCuentaCobro ? Number(numeroCuentaCobro) : undefined,
         metadata: { proveedor: filtroProveedor || "R&S Soluciones" },
         periodo: mostrarTodos
           ? "Consolidado Histórico"
@@ -3299,6 +3320,34 @@ const handleGenerarPlantilla = async () => {
                       <X size={12} /> Limpiar
                     </button>
                   )}
+                </div>
+
+                {/* ── Campo: N° de Cuenta de Cobro ── */}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 12, color: labelColor, fontWeight: 600, whiteSpace: "nowrap" }}>N° Cuenta:</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="999"
+                    placeholder={new Date().getMonth() + 1}
+                    value={numeroCuentaCobro}
+                    onChange={(e) => setNumeroCuentaCobro(e.target.value)}
+                    title="Número de cuenta de cobro que aparecerá en el PDF y Excel"
+                    style={{
+                      background: inputBg,
+                      border: numeroCuentaCobro
+                        ? (isDark ? "1.5px solid #a78bfa" : "1.5px solid #7c3aed")
+                        : inputBorder,
+                      color: numeroCuentaCobro ? (isDark ? "#c4b5fd" : "#5b21b6") : inputText,
+                      borderRadius: 8,
+                      padding: "6px 10px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      width: 72,
+                      outline: "none",
+                      textAlign: "center"
+                    }}
+                  />
                 </div>
 
                 {/* Selector de Año */}
@@ -6303,6 +6352,97 @@ const handleGenerarPlantilla = async () => {
           <option key={m} value={m} />
         ))}
       </datalist>
+
+      {{/* ═══ MODAL: Registrar NIT de proveedor desconocido ═══ */}}
+      {modalNITProveedor && (
+        <div
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setModalNITProveedor(null); }}
+        >
+          <div style={{
+            background: isDark ? "#1e293b" : "#ffffff",
+            border: isDark ? "1.5px solid rgba(167,139,250,0.4)" : "1.5px solid #7c3aed",
+            borderRadius: 16, padding: "28px 32px",
+            width: "100%", maxWidth: 480,
+            boxShadow: "0 24px 64px rgba(0,0,0,0.4)"
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: isDark ? "#c4b5fd" : "#5b21b6", marginBottom: 6 }}>
+              🏢 Registrar NIT del Proveedor
+            </div>
+            <div style={{ fontSize: 13, color: isDark ? "#94a3b8" : "#64748b", marginBottom: 20 }}>
+              El proveedor <strong style={{ color: isDark ? "#e2e8f0" : "#0f172a" }}>{modalNITProveedor.nombre}</strong> no tiene NIT registrado.
+              Ingresa sus datos para guardarlos localmente y usarlos en futuros documentos.
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#94a3b8" : "#475569", display: "block", marginBottom: 4 }}>Razón Social oficial</label>
+              <input
+                type="text"
+                value={modalNITRazonSocial}
+                onChange={(e) => setModalNITRazonSocial(e.target.value)}
+                placeholder={"ej. " + modalNITProveedor.nombre.toUpperCase() + " S.A.S."}
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  background: isDark ? "#0f172a" : "#f8fafc",
+                  border: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #cbd5e1",
+                  color: isDark ? "#e2e8f0" : "#0f172a",
+                  borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none"
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#94a3b8" : "#475569", display: "block", marginBottom: 4 }}>NIT (con dígito de verificación)</label>
+              <input
+                type="text"
+                value={modalNITValor}
+                onChange={(e) => setModalNITValor(e.target.value)}
+                placeholder="ej. 900.352.035-2"
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  background: isDark ? "#0f172a" : "#f8fafc",
+                  border: isDark ? "1.5px solid rgba(255,255,255,0.15)" : "1.5px solid #cbd5e1",
+                  color: isDark ? "#e2e8f0" : "#0f172a",
+                  borderRadius: 8, padding: "9px 12px", fontSize: 13, outline: "none"
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setModalNITProveedor(null)}
+                style={{
+                  background: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9",
+                  border: "none", color: isDark ? "#94a3b8" : "#475569",
+                  borderRadius: 10, padding: "10px 20px", fontSize: 13.5, fontWeight: 700, cursor: "pointer"
+                }}
+              >Cancelar</button>
+              <button
+                type="button"
+                onClick={() => {
+                  const rs = modalNITRazonSocial.trim() || modalNITProveedor.nombre.toUpperCase();
+                  const nit = modalNITValor.trim();
+                  guardarProveedorCustom(modalNITProveedor.nombre, rs, nit);
+                  setModalNITProveedor(null);
+                  setModalNITRazonSocial("");
+                  setModalNITValor("");
+                  alert("✅ Proveedor guardado:\n" + rs + "\nNIT: " + (nit || "(sin NIT)") + "\n\nEste NIT se usará en los próximos PDFs y Excels.");
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+                  border: "none", color: "#fff",
+                  borderRadius: 10, padding: "10px 24px", fontSize: 13.5, fontWeight: 700,
+                  cursor: "pointer", boxShadow: "0 4px 14px rgba(124,58,237,0.4)"
+                }}
+              >💾 Guardar NIT</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {{/* ═══ FIN MODAL NIT ═══ */}}
+
     </div>
   );
 }

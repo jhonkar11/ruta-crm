@@ -24,38 +24,68 @@ export const PROVEEDORES_MAPA = {
   "redeban":              { razonSocial: "REDEBAN MULTICOLOR S.A.",                    nit: "860.000.279-7" },
 };
 
+// ─── Clave de localStorage para proveedores personalizados ───────────────────
+const LS_KEY = "rutacrm_proveedores_custom";
+
+/**
+ * Lee los proveedores personalizados guardados en localStorage.
+ */
+export function leerProveedoresCustom() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+/**
+ * Guarda un nuevo proveedor personalizado en localStorage.
+ * @param {string} nombreProveedor
+ * @param {string} razonSocial
+ * @param {string} nit
+ */
+export function guardarProveedorCustom(nombreProveedor, razonSocial, nit) {
+  const custom = leerProveedoresCustom();
+  const clave = nombreProveedor.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  custom[clave] = { razonSocial: razonSocial || nombreProveedor.toUpperCase(), nit: nit || "" };
+  localStorage.setItem(LS_KEY, JSON.stringify(custom));
+}
+
 /**
  * Obtiene los datos del proveedor (razón social + NIT) según el nombre del proveedor activo.
- * Si no hay coincidencia, devuelve el nombre tal como llega en mayúsculas con NIT vacío.
- *
- * @param {string} nombreProveedor - Nombre del proveedor tal como aparece en el filtro.
- * @returns {{ razonSocial: string, nit: string }}
+ * Busca primero en localStorage (proveedores custom), luego en el mapa estático.
+ * @param {string} nombreProveedor
+ * @returns {{ razonSocial: string, nit: string, esDesconocido: boolean }}
  */
 export function obtenerDatosProveedor(nombreProveedor) {
-  const DEFAULT = { razonSocial: "R&S SOLUCIONES S.A.S.", nit: "900.291.287-9" };
+  const DEFAULT = { razonSocial: "R&S SOLUCIONES S.A.S.", nit: "900.291.287-9", esDesconocido: false };
   if (!nombreProveedor || nombreProveedor === "todos" || nombreProveedor === "General") return DEFAULT;
 
-  // Normalizar: minúsculas + quitar tildes
   const normalizar = (str) =>
-    str
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
+    str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 
   const clave = normalizar(nombreProveedor);
 
-  // Buscar coincidencia exacta primero
+  // 1. Buscar en proveedores custom (localStorage)
+  try {
+    const custom = leerProveedoresCustom();
+    for (const [key, val] of Object.entries(custom)) {
+      if (clave === key || clave.includes(key) || key.includes(clave))
+        return { ...val, esDesconocido: false };
+    }
+  } catch { /* SSR o localStorage no disponible */ }
+
+  // 2. Búsqueda exacta en mapa estático
   for (const [key, val] of Object.entries(PROVEEDORES_MAPA)) {
-    if (clave === normalizar(key)) return val;
+    if (clave === normalizar(key)) return { ...val, esDesconocido: false };
   }
 
-  // Buscar coincidencia por substring (clave contiene key o key contiene clave)
+  // 3. Búsqueda por substring en mapa estático
   for (const [key, val] of Object.entries(PROVEEDORES_MAPA)) {
     const keyN = normalizar(key);
-    if (clave.includes(keyN) || keyN.includes(clave)) return val;
+    if (clave.includes(keyN) || keyN.includes(clave)) return { ...val, esDesconocido: false };
   }
 
-  // Sin coincidencia: devolver el nombre tal como llega
-  return { razonSocial: nombreProveedor.toUpperCase(), nit: "" };
+  // 4. Sin coincidencia: marcar como desconocido
+  return { razonSocial: nombreProveedor.toUpperCase(), nit: "", esDesconocido: true };
 }

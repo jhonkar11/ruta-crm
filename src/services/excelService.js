@@ -6,6 +6,7 @@ import {
   normalizarFecha,
   normalizarMoneda
 } from "../utils/excelNormalizadores";
+import { obtenerDatosProveedor } from "../utils/proveedoresData";
 
 export { EMPRESA, celdaTexto, normalizarFecha, normalizarMoneda };
 
@@ -73,7 +74,10 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   // B1..D3: Logo / Texto R&S SOLUCIONES
   worksheet.mergeCells("B1:D3");
   const cellLogo = worksheet.getCell("B1");
-  cellLogo.value = "R&S\nSOLUCIONES";
+  const { razonSocial: rsLogo } = obtenerDatosProveedor(metadata.empresa || metadata.proveedor || "");
+  const logoPartes = rsLogo.split(/\s+/);
+  const mitadLogo = Math.ceil(logoPartes.length / 2);
+  cellLogo.value = logoPartes.slice(0, mitadLogo).join(" ") + "\n" + logoPartes.slice(mitadLogo).join(" ");
   cellLogo.font = { name: "Arial", size: 16, bold: true, color: { argb: "FF135E6B" } };
   cellLogo.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
   ["B1", "C1", "D1", "B2", "C2", "D2", "B3", "C3", "D3"].forEach((c) => {
@@ -177,16 +181,17 @@ export async function generarExcelCuentaCobro(servicios = [], metadata = {}) {
   cellNumCuentaVal.border = borderThin;
   worksheet.getCell("K7").border = borderThin;
 
-  // ── FILA 9: R&S SOLUCIONES S.A.S. / NIT ──
+  // ── FILA 9: Razón Social del proveedor (dinámica) ──
+  const { razonSocial: rsExcel, nit: nitExcel } = obtenerDatosProveedor(metadata.empresa || metadata.proveedor || "");
   worksheet.mergeCells("B9:K9");
   const cellEmpresa = worksheet.getCell("B9");
-  cellEmpresa.value = "R&S SOLUCIONES S.A.S.";
+  cellEmpresa.value = rsExcel;
   cellEmpresa.font = { name: "Arial", size: 12, bold: true, color: { argb: "FF000000" } };
   cellEmpresa.alignment = { horizontal: "center", vertical: "middle" };
 
   worksheet.mergeCells("B10:K10");
   const cellNit = worksheet.getCell("B10");
-  cellNit.value = "NIT: 900.291.287-9";
+  cellNit.value = nitExcel ? ("NIT: " + nitExcel) : "(Sin NIT registrado)";
   cellNit.font = { name: "Arial", size: 9.5, bold: true, color: { argb: "FF333333" } };
   cellNit.alignment = { horizontal: "center", vertical: "middle" };
 
