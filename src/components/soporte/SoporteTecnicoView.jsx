@@ -3543,7 +3543,7 @@ const handleGenerarPlantilla = async () => {
             ref={cuentaCobroContainerRef}
             id="cuenta-cobro-oficial-container"
             className="cuenta-cobro-oficial-print"
-            style={{ display: "flex", flexDirection: "column", gap: 20 }}
+            style={{ display: "flex", flexDirection: "column", gap: 14 }}
           >
             {/* Tarjeta de Resumen Oficial (C.C., Nombre y Suma en Letras) */}
             <div
@@ -3561,7 +3561,7 @@ const handleGenerarPlantilla = async () => {
                 <div style={{ fontSize: 13, color: isDark ? "rgba(255,255,255,0.6)" : "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                   Formato de Cuenta de Cobro Oficial · {mostrarTodos ? "Consolidado Histórico" : `${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}`}
                 </div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: textTitle, marginTop: 2 }}>
+                <div className="pdf-header-title" style={{ fontSize: 20, fontWeight: 800, color: textTitle, marginTop: 2 }}>
                   DEBE A: Jhon Alexander Vasquez Reveló
                 </div>
                 <div style={{ fontSize: 14, fontFamily: "'IBM Plex Mono', monospace", color: isDark ? "#38bdf8" : "#0284c7", marginTop: 2 }}>
@@ -3711,7 +3711,7 @@ const handleGenerarPlantilla = async () => {
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: textTitle }}>
                   Detalle de Servicios Inyectados ({serviciosFiltrados.length} registros {busquedaCasoCuenta ? `coincidentes con "${busquedaCasoCuenta}" ` : ""}{filtroProveedor ? `para "${filtroProveedor}" ` : ""}{mostrarTodos ? "totales" : `en ${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}`} a partir de fila 24)
                 </h3>
-                <span style={{ fontSize: 11.5, color: textSub }}>
+                <span className="no-pdf" style={{ fontSize: 11.5, color: textSub }}>
                   {busquedaCasoCuenta
                     ? `Filtrando en tiempo real por N° de Caso "${busquedaCasoCuenta}". La tabla y los subtotales se actualizan instantáneamente.`
                     : (mostrarTodos

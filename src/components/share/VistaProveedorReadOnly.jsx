@@ -406,7 +406,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           ref={cuentaCobroContainerRef}
           id="cuenta-cobro-oficial-container"
           className="cuenta-cobro-oficial-print"
-          style={{ display: "flex", flexDirection: "column", gap: 20 }}
+          style={{ display: "flex", flexDirection: "column", gap: 14 }}
         >
         {/* Resumen Oficial de Cuenta de Cobro */}
         <section
@@ -424,7 +424,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
               <div style={{ fontSize: 13, color: isDark ? "#94a3b8" : "#64748b", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Formato de Cuenta de Cobro Oficial · {periodoTexto}
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>
+              <div className="pdf-header-title" style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>
                 DEBE A: Jhon Alexander Vasquez Reveló
               </div>
               <div style={{ fontSize: 14, fontFamily: "'IBM Plex Mono', monospace", color: "#0284c7", marginTop: 2 }}>
