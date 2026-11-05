@@ -999,7 +999,7 @@ const handleGenerarPlantilla = async () => {
             .join("_")}_${filtroAnio}`;
       const fileName = `Cuenta_de_Cobro_${proveedorNombre}_${periodoTexto}.pdf`;
 
-      await exportarCuentaCobroPDF(cuentaCobroContainerRef.current, {
+      await exportarCuentaCobroPDF(serviciosFiltrados, {
         fileName,
         proveedor: filtroProveedor || "R&S Soluciones",
         periodo: mostrarTodos

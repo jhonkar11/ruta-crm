@@ -291,15 +291,14 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
   const handleDescargarPDF = async () => {
     if (serviciosFiltrados.length === 0) return;
-    if (!cuentaCobroContainerRef.current) return;
     try {
       setExportandoPDF(true);
       const nombreArchivo = `Cuenta_de_Cobro_${proveedorParam}_${periodoTexto.replace(/\s+/g, "_")}.pdf`;
-      await exportarCuentaCobroPDF(cuentaCobroContainerRef.current, {
+      await exportarCuentaCobroPDF(serviciosFiltrados, {
         fileName: nombreArchivo,
         periodo: periodoTexto,
         proveedor: proveedorParam !== "todos" ? proveedorParam : "General",
-        isDark
+        numeroCuenta: typeof filtroMeses === "object" && filtroMeses.size ? Array.from(filtroMeses)[0] : 5
       });
     } catch (err) {
       console.error("Error al exportar PDF:", err);
