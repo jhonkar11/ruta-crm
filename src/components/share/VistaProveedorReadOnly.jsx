@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   FileSpreadsheet,
   Download,
@@ -31,6 +31,7 @@ import {
 } from "../../services/soporteService";
 import { supabase } from "../../services/supabaseClient";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
+import { exportarCuentaCobroPDF } from "../../services/pdfExportService";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 
 const NOMBRES_MESES = [
@@ -148,6 +149,8 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     anioParam ? (anioParam === "todos" ? "todos" : Number(anioParam)) : "todos"
   );
   const [exportandoExcel, setExportandoExcel] = useState(false);
+  const [exportandoPDF, setExportandoPDF] = useState(false);
+  const cuentaCobroContainerRef = useRef(null);
   const [visorModal, setVisorModal] = useState(null); // Servicio seleccionado para ver plantilla e imagen
   const [copiadoPlantilla, setCopiadoPlantilla] = useState(false);
   const [imagenZoomModal, setImagenZoomModal] = useState(null); // { url, titulo }
@@ -286,6 +289,26 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
     }
   };
 
+  const handleDescargarPDF = async () => {
+    if (serviciosFiltrados.length === 0) return;
+    if (!cuentaCobroContainerRef.current) return;
+    try {
+      setExportandoPDF(true);
+      const nombreArchivo = `Cuenta_de_Cobro_${proveedorParam}_${periodoTexto.replace(/\s+/g, "_")}.pdf`;
+      await exportarCuentaCobroPDF(cuentaCobroContainerRef.current, {
+        fileName: nombreArchivo,
+        periodo: periodoTexto,
+        proveedor: proveedorParam !== "todos" ? proveedorParam : "General",
+        isDark
+      });
+    } catch (err) {
+      console.error("Error al exportar PDF:", err);
+      alert("Error al descargar PDF: " + err.message);
+    } finally {
+      setExportandoPDF(false);
+    }
+  };
+
   return (
     <div
       className="bg-white text-gray-900 min-h-screen"
@@ -378,8 +401,16 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
           </div>
         </header>
 
+        {/* CONTENEDOR EXCLUSIVO DE CUENTA DE COBRO OFICIAL (Para exportación nítida a PDF / Impresión) */}
+        <div
+          ref={cuentaCobroContainerRef}
+          id="cuenta-cobro-oficial-container"
+          className="cuenta-cobro-oficial-print"
+          style={{ display: "flex", flexDirection: "column", gap: 20 }}
+        >
         {/* Resumen Oficial de Cuenta de Cobro */}
         <section
+          className="pdf-section-card"
           style={{
             background: isDark ? "#0f172a" : "#ffffff",
             border: isDark ? "1.5px solid rgba(19, 94, 107, 0.8)" : "1.5px solid #cbd5e1",
@@ -401,31 +432,62 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
               </div>
             </div>
 
-            <button
-              type="button"
-              disabled={exportandoExcel || serviciosFiltrados.length === 0}
-              onClick={handleDescargarExcel}
-              style={{
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                border: "none",
-                color: "#ffffff",
-                borderRadius: 12,
-                padding: "12px 20px",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: exportandoExcel || serviciosFiltrados.length === 0 ? "not-allowed" : "pointer",
-                opacity: serviciosFiltrados.length === 0 ? 0.6 : 1,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                boxShadow: "0 4px 16px rgba(16, 185, 129, 0.35)"
-              }}
-            >
-              <Download size={17} />
-              <span>
-                {exportandoExcel ? "Generando..." : `Descargar Excel Oficial (.xlsx)`}
-              </span>
-            </button>
+            <div className="no-pdf no-print" data-html2pdf-ignore="true" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              {/* Botón Descargar Cuenta de Cobro (PDF) */}
+              <button
+                type="button"
+                disabled={exportandoPDF || serviciosFiltrados.length === 0}
+                onClick={handleDescargarPDF}
+                title="Descargar documento PDF oficial nítido y ajustado"
+                style={{
+                  background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  borderRadius: 12,
+                  padding: "12px 20px",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: exportandoPDF || serviciosFiltrados.length === 0 ? "not-allowed" : "pointer",
+                  opacity: serviciosFiltrados.length === 0 ? 0.6 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 16px rgba(225, 29, 72, 0.35)",
+                  transition: "all 0.2s"
+                }}
+              >
+                <FileText size={17} />
+                <span>
+                  {exportandoPDF ? "Generando PDF..." : "Descargar Cuenta de Cobro (PDF)"}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                disabled={exportandoExcel || serviciosFiltrados.length === 0}
+                onClick={handleDescargarExcel}
+                style={{
+                  background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+                  border: "none",
+                  color: "#ffffff",
+                  borderRadius: 12,
+                  padding: "12px 20px",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: exportandoExcel || serviciosFiltrados.length === 0 ? "not-allowed" : "pointer",
+                  opacity: serviciosFiltrados.length === 0 ? 0.6 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  boxShadow: "0 4px 16px rgba(16, 185, 129, 0.35)"
+                }}
+              >
+                <Download size={17} />
+                <span>
+                  {exportandoExcel ? "Generando..." : `Descargar Excel Oficial (.xlsx)`}
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Cuadro de Liquidación en Letras y Valores */}
@@ -470,6 +532,8 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
         {/* Barra de Filtros y Búsqueda */}
         <section
+          className="no-pdf no-print"
+          data-html2pdf-ignore="true"
           style={{
             background: isDark ? "#0f172a" : "#ffffff",
             border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0",
@@ -565,6 +629,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
 
         {/* Tabla de Servicios para Auditoría */}
         <section
+          className="pdf-section-card"
           style={{
             background: isDark ? "#0f172a" : "#ffffff",
             border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0",
@@ -777,6 +842,7 @@ export default function VistaProveedorReadOnly({ theme = "light" }) {
             </table>
           )}
         </section>
+        </div> {/* Fin cuenta-cobro-oficial-container */}
 
         {/* Pie de página con sello de seguridad */}
         <footer style={{ textAlign: "center", fontSize: 12, color: "#94a3b8", marginTop: 10 }}>

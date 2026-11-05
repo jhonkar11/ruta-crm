@@ -269,3 +269,107 @@ body.light-theme .glass-card:hover {
 @media (max-width: 420px) {
   .topbar-label-oculta-en-movil { display: none; }
 }
+
+/* ==========================================================================
+   ESTILOS OPTIMIZADOS PARA EXPORTACIÓN E IMPRESIÓN OFICIAL (CUENTAS DE COBRO)
+   ========================================================================== */
+@media print {
+  @page {
+    size: landscape;
+    margin: 8mm;
+  }
+
+  body, #root {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  /* Ocultar elementos de navegación y controles de interfaz */
+  nav,
+  aside,
+  header:not(.print-header),
+  .floating-bottom-nav,
+  .top-bar,
+  .no-print,
+  .no-pdf,
+  [data-html2pdf-ignore="true"],
+  button,
+  input,
+  select {
+    display: none !important;
+  }
+
+  /* Contenedor oficial de Cuenta de Cobro */
+  #cuenta-cobro-oficial-container,
+  .cuenta-cobro-oficial-print {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  .cuenta-cobro-oficial-print * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .pdf-section-card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 12px !important;
+    padding: 16px !important;
+  }
+
+  .cuenta-cobro-oficial-print table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    background: #ffffff !important;
+    font-size: 10pt !important;
+  }
+
+  .cuenta-cobro-oficial-print thead tr {
+    background: #135E6B !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .cuenta-cobro-oficial-print thead th {
+    background: #135E6B !important;
+    color: #ffffff !important;
+    border: 1px solid #0e454e !important;
+    padding: 6px 4px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .cuenta-cobro-oficial-print tbody tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .cuenta-cobro-oficial-print tbody td {
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    padding: 5px 4px !important;
+  }
+
+  .cuenta-cobro-oficial-print tr:nth-child(even) td {
+    background-color: #f8fafc !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .cuenta-cobro-oficial-print .pdf-subtotal-row td,
+  .cuenta-cobro-oficial-print .pdf-total-row td {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

@@ -66,6 +66,7 @@ import {
   deduplicarServicios
 } from "../../services/soporteService";
 import { generarExcelCuentaCobro, descargarExcelEnNavegador } from "../../services/excelService";
+import { exportarCuentaCobroPDF } from "../../services/pdfExportService";
 import { supabase } from "../../services/supabaseClient";
 import { numeroALetras, formatearMonedaCOP } from "../../utils/numeroALetras";
 import AutoResizeTextarea from "./AutoResizeTextarea";
@@ -244,6 +245,8 @@ export default function SoporteTecnicoView({ user, profile, theme = "light" }) {
   const [copiadoPlantilla, setCopiadoPlantilla] = useState(false);
   const [guardadoExitoso, setGuardadoExitoso] = useState(false);
   const [exportandoExcel, setExportandoExcel] = useState(false);
+  const [exportandoPDF, setExportandoPDF] = useState(false);
+  const cuentaCobroContainerRef = useRef(null);
 
   // Detección en tiempo real de caso duplicado y autocompletado inteligente
   const [casoDuplicadoEncontrado, setCasoDuplicadoEncontrado] = useState(null);
@@ -958,6 +961,60 @@ const handleGenerarPlantilla = async () => {
       alert("Error al exportar el archivo Excel: " + err.message);
     } finally {
       setExportandoExcel(false);
+    }
+  };
+
+  // 4.1 Descargar Cuenta de Cobro Oficial en formato PDF nítido y ajustado
+  const handleDescargarPDF = async () => {
+    if (serviciosFiltrados.length === 0) {
+      alert(
+        "No hay servicios para exportar a PDF con los filtros seleccionados (Mes: " +
+          (mostrarTodos
+            ? "Histórico"
+            : `${Array.from(filtroMeses)
+                .sort((a, b) => a - b)
+                .map((m) => NOMBRES_MESES[m - 1])
+                .join("_")} ${filtroAnio}`) +
+          (filtroProveedor ? `, Proveedor: ${filtroProveedor}` : "") +
+          ")."
+      );
+      return;
+    }
+
+    if (!cuentaCobroContainerRef.current) {
+      alert("No se encontró el contenedor de la cuenta de cobro oficial.");
+      return;
+    }
+
+    setExportandoPDF(true);
+    try {
+      const proveedorNombre = filtroProveedor
+        ? filtroProveedor.replace(/[\/\\:*?"<>|]/g, "_")
+        : "Oficial";
+      const periodoTexto = mostrarTodos
+        ? "Consolidado_Historico"
+        : `${Array.from(filtroMeses)
+            .sort((a, b) => a - b)
+            .map((m) => NOMBRES_MESES[m - 1])
+            .join("_")}_${filtroAnio}`;
+      const fileName = `Cuenta_de_Cobro_${proveedorNombre}_${periodoTexto}.pdf`;
+
+      await exportarCuentaCobroPDF(cuentaCobroContainerRef.current, {
+        fileName,
+        proveedor: filtroProveedor || "R&S Soluciones",
+        periodo: mostrarTodos
+          ? "Consolidado Histórico"
+          : `${Array.from(filtroMeses)
+              .sort((a, b) => a - b)
+              .map((m) => NOMBRES_MESES[m - 1])
+              .join(" + ")} ${filtroAnio}`,
+        isDark
+      });
+    } catch (err) {
+      console.error("Error al exportar cuenta de cobro a PDF:", err);
+      alert("Error al exportar la cuenta de cobro a PDF: " + (err.message || err));
+    } finally {
+      setExportandoPDF(false);
     }
   };
 
@@ -3481,8 +3538,16 @@ const handleGenerarPlantilla = async () => {
             </div>
           </div>
 
-          {/* Tarjeta de Resumen Oficial (C.C., Nombre y Suma en Letras) */}
+          {/* ── CONTENEDOR EXCLUSIVO DE CUENTA DE COBRO OFICIAL (Para exportación nítida a PDF / Imprimir) ── */}
           <div
+            ref={cuentaCobroContainerRef}
+            id="cuenta-cobro-oficial-container"
+            className="cuenta-cobro-oficial-print"
+            style={{ display: "flex", flexDirection: "column", gap: 20 }}
+          >
+            {/* Tarjeta de Resumen Oficial (C.C., Nombre y Suma en Letras) */}
+            <div
+              className="pdf-section-card"
             style={{
               background: cardBg,
               border: isDark ? "1.5px solid rgba(19, 94, 107, 0.8)" : "1.5px solid #cbd5e1",
@@ -3505,7 +3570,7 @@ const handleGenerarPlantilla = async () => {
               </div>
 
               {/* Acciones de Cuenta de Cobro */}
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="no-pdf no-print" data-html2pdf-ignore="true" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 {/* Botón Compartir Vista Proveedor (Modo Solo Lectura con Snapshot) */}
                 <button
                   type="button"
@@ -3529,6 +3594,35 @@ const handleGenerarPlantilla = async () => {
                 >
                   <Share2 size={17} />
                   <span>Compartir Cuenta de Cobro (Vista Proveedor)</span>
+                </button>
+
+                {/* Botón Descargar Cuenta de Cobro (PDF) */}
+                <button
+                  type="button"
+                  disabled={exportandoPDF || serviciosFiltrados.length === 0}
+                  onClick={handleDescargarPDF}
+                  title="Descargar documento PDF oficial nítido y ajustado"
+                  style={{
+                    background: "linear-gradient(135deg, #e11d48 0%, #be123c 100%)",
+                    border: "none",
+                    color: "#fff",
+                    borderRadius: 12,
+                    padding: "12px 20px",
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: exportandoPDF || serviciosFiltrados.length === 0 ? "not-allowed" : "pointer",
+                    opacity: serviciosFiltrados.length === 0 ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    boxShadow: "0 6px 20px rgba(225, 29, 72, 0.35)",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  <FileText size={18} />
+                  <span>
+                    {exportandoPDF ? "Generando PDF..." : "Descargar Cuenta de Cobro (PDF)"}
+                  </span>
                 </button>
 
                 {/* Botón Descargar Excel */}
@@ -3565,6 +3659,7 @@ const handleGenerarPlantilla = async () => {
 
             {/* Cuadro de Liquidación en Letras */}
             <div
+              className="pdf-settlement-box"
               style={{
                 background: isDark ? "rgba(19, 94, 107, 0.25)" : "#f0fdf4",
                 border: isDark ? "1.5px solid #135E6B" : "1.5px solid #86efac",
@@ -3601,6 +3696,7 @@ const handleGenerarPlantilla = async () => {
 
           {/* Tabla idéntica a la fila 24 del Excel oficial */}
           <div
+            className="pdf-section-card"
             style={{
               background: cardBg,
               border: cardBorder,
@@ -3623,7 +3719,7 @@ const handleGenerarPlantilla = async () => {
                         : `Mostrando exclusivamente los servicios de ${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1]).join(" + ")} ${filtroAnio}${filtroProveedor ? ` para la entidad "${filtroProveedor}"` : ""}`)}
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div className="no-pdf no-print" data-html2pdf-ignore="true" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 {/* Buscador Rápido por Número de Caso integrado en la tabla */}
                 <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                   <Search
@@ -3709,7 +3805,7 @@ const handleGenerarPlantilla = async () => {
             <div style={{ width: "100%", overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11.5, tableLayout: "auto" }}>
               <thead>
-                <tr style={{ background: "#135E6B", color: "#ffffff", textAlign: "center" }}>
+                <tr className="pdf-table-header" style={{ background: "#135E6B", color: "#ffffff", textAlign: "center" }}>
                   <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "11%", minWidth: 95 }}>N° de Caso</th>
                   <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "7%", minWidth: 72 }}>Solicitud</th>
                   <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "7%", minWidth: 72 }}>Atención</th>
@@ -3722,7 +3818,7 @@ const handleGenerarPlantilla = async () => {
                   <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "5%", minWidth: 50 }}>Viáticos</th>
                   <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "5%", minWidth: 50 }}>Materiales</th>
                   <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "7%", minWidth: 70 }}>Estado</th>
-                  <th style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "12%", minWidth: 105 }}>Acciones</th>
+                  <th className="no-pdf no-print" data-html2pdf-ignore="true" style={{ padding: "8px 4px", border: "1px solid rgba(255,255,255,0.2)", width: "12%", minWidth: 105 }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -3925,7 +4021,7 @@ const handleGenerarPlantilla = async () => {
                           </button>
                         </td>
 
-                        <td style={{ padding: "6px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
+                        <td className="no-pdf no-print" data-html2pdf-ignore="true" style={{ padding: "6px 3px", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #e2e8f0" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
                             {/* Botón de Visualización de Plantilla (Ojo) */}
                             <button
@@ -4026,7 +4122,7 @@ const handleGenerarPlantilla = async () => {
                 )}
 
                 {/* Fila de Subtotales de Liquidación: Acordados En servicio, Grupo Ava Viáticos, Materiales */}
-                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.45)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 700, textAlign: "center", fontSize: 11.5 }}>
+                <tr className="pdf-subtotal-row" style={{ background: isDark ? "rgba(19, 94, 107, 0.45)" : "#e2e8f0", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 700, textAlign: "center", fontSize: 11.5 }}>
                   <td colSpan={5} style={{ padding: "7px 4px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1", fontStyle: "italic", color: textSub }}>
                     Firma Digital Registrada en Sistema
                   </td>
@@ -4049,11 +4145,11 @@ const handleGenerarPlantilla = async () => {
                     {totalMateriales > 0 ? formatearMonedaCOP(totalMateriales) : "$ -"}
                   </td>
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
-                  <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
+                  <td className="no-pdf no-print" data-html2pdf-ignore="true" style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #cbd5e1" }} />
                 </tr>
 
                 {/* Fila de Total General */}
-                <tr style={{ background: isDark ? "rgba(19, 94, 107, 0.7)" : "#cbd5e1", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 900, textAlign: "right" }}>
+                <tr className="pdf-total-row" style={{ background: isDark ? "rgba(19, 94, 107, 0.7)" : "#cbd5e1", color: isDark ? "#ffffff" : "#0f172a", fontWeight: 900, textAlign: "right" }}>
                   <td colSpan={8} style={{ padding: "10px 8px", border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8", textAlign: "center", fontSize: 12 }}>
                     TOTAL CUENTA DE COBRO {filtroProveedor ? `[${filtroProveedor.toUpperCase()}] ` : ""}{mostrarTodos ? "HISTÓRICO" : `(${Array.from(filtroMeses).sort((a,b)=>a-b).map(m=>NOMBRES_MESES[m-1].toUpperCase()).join(" + ")} ${filtroAnio})`}
                   </td>
@@ -4061,7 +4157,7 @@ const handleGenerarPlantilla = async () => {
                     {formatearMonedaCOP(granTotal)}
                   </td>
                   <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8" }} />
-                  <td style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8" }} />
+                  <td className="no-pdf no-print" data-html2pdf-ignore="true" style={{ border: isDark ? "1px solid rgba(255,255,255,0.2)" : "1px solid #94a3b8" }} />
                 </tr>
               </tbody>
             </table>
@@ -4070,6 +4166,7 @@ const handleGenerarPlantilla = async () => {
 
           {/* Bloque Oficial de Firma, Identificación y Declaración Legal Art. 383 E.T. (R&S Soluciones S.A.S.) */}
           <div
+            className="pdf-section-card"
             style={{
               background: cardBg,
               border: cardBorder,
@@ -4085,8 +4182,8 @@ const handleGenerarPlantilla = async () => {
               {/* Sección de Firma */}
               <div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: textTitle, marginBottom: 8 }}>FIRMA:</div>
-                <div style={{ borderBottom: isDark ? "1.5px solid rgba(255,255,255,0.3)" : "1.5px solid #000000", width: 260, height: 40, display: "flex", alignItems: "flex-end", paddingBottom: 4 }}>
-                  <span style={{ fontFamily: "'Dancing Script', cursive, serif", fontSize: 20, color: isDark ? "#38bdf8" : "#0284c7" }}>
+                <div className="pdf-signature-line" style={{ borderBottom: isDark ? "1.5px solid rgba(255,255,255,0.3)" : "1.5px solid #000000", width: 260, height: 40, display: "flex", alignItems: "flex-end", paddingBottom: 4 }}>
+                  <span className="pdf-signature-text" style={{ fontFamily: "'Dancing Script', cursive, serif", fontSize: 20, color: isDark ? "#38bdf8" : "#0284c7" }}>
                     Jhon Alexander Vasquez
                   </span>
                 </div>
@@ -4107,6 +4204,7 @@ const handleGenerarPlantilla = async () => {
 
             {/* Texto Legal de Retención en la Fuente */}
             <div
+              className="pdf-legal-box"
               style={{
                 background: isDark ? "rgba(0,0,0,0.25)" : "#f8fafc",
                 border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid #cbd5e1",
@@ -4121,6 +4219,7 @@ const handleGenerarPlantilla = async () => {
               Yo, Jhon Alexander Vasquez Reveló identificado con CC numero: 10308105, con el fin de dar cumplimiento a las obligaciones establecidas en la ley 1819 de 2016 y del parágrafo 2 del artículo 383 del estatuto tributario, manifiesto bajo gravedad de juramento que: para efectos de la tabla de retención en la fuente establecida en el artículo 383 del estatuto tributario por la cual se aplica a los pagos o abonos en cuenta por concepto de ingresos por honorarios o compensación por servicios personales, NO he contratado o vinculado mas de un trabajador asociado a la actividad que desarrollo y no reúno ninguno de los requisitos para ser declarante de renta.
             </div>
           </div>
+          </div> {/* Fin cuenta-cobro-oficial-container */}
         </div>
       )}
 
