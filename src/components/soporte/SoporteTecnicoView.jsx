@@ -6353,7 +6353,7 @@ const handleGenerarPlantilla = async () => {
         ))}
       </datalist>
 
-      {{/* ═══ MODAL: Registrar NIT de proveedor desconocido ═══ */}}
+      {/* ═══ MODAL: Registrar NIT de proveedor desconocido ═══ */}
       {modalNITProveedor && (
         <div
           style={{
@@ -6441,7 +6441,7 @@ const handleGenerarPlantilla = async () => {
           </div>
         </div>
       )}
-      {{/* ═══ FIN MODAL NIT ═══ */}}
+      {/* ═══ FIN MODAL NIT ═══ */}
 
     </div>
   );

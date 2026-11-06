@@ -21,6 +21,7 @@ import SimuladorCredito from "./components/simulador/SimuladorCredito";
 import RegistrarAbonoModal from "./components/pagos/RegistrarAbonoModal";
 import RedesView from "./components/redes/RedesView";
 import SoporteTecnicoView from "./components/soporte/SoporteTecnicoView";
+import ErrorBoundary from "./components/ui/ErrorBoundary";
 import LandingInstitucional from "./components/landing/LandingInstitucional";
 import VisitantesView from "./components/visitantes/VisitantesView";
 import ModuloContable from "./components/contable/ModuloContable";
@@ -578,7 +579,9 @@ export default function App() {
           )}
 
           {view === "soporte" && (
+            <ErrorBoundary title="Error en el Módulo de Soporte Técnico">
             <SoporteTecnicoView user={user} profile={profile} theme={theme} />
+          </ErrorBoundary>
           )}
           {view === "redes" && (
             <RedesView theme={theme} />

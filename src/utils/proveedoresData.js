@@ -16,7 +16,6 @@ export const PROVEEDORES_MAPA = {
   "ibm":                  { razonSocial: "IBM DE COLOMBIA S.A.S.",                     nit: "860.000.070-1" },
   "lexmark":              { razonSocial: "LEXMARK COLOMBIA LTDA.",                     nit: "900.021.498-6" },
   "almacenes exito":      { razonSocial: "ALMACENES ÉXITO S.A.",                       nit: "860.029.740-4" },
-  "almacenes exito":      { razonSocial: "ALMACENES ÉXITO S.A.",                       nit: "860.029.740-4" },
   "exito":                { razonSocial: "ALMACENES ÉXITO S.A.",                       nit: "860.029.740-4" },
   "carvajal tecnologia":  { razonSocial: "CARVAJAL TECNOLOGÍA Y SERVICIOS S.A.S.",     nit: "805.001.153-8" },
   "carvajal":             { razonSocial: "CARVAJAL TECNOLOGÍA Y SERVICIOS S.A.S.",     nit: "805.001.153-8" },
@@ -32,9 +31,12 @@ const LS_KEY = "rutacrm_proveedores_custom";
  */
 export function leerProveedoresCustom() {
   try {
+    if (typeof window === "undefined" || !window.localStorage) return {};
     const raw = localStorage.getItem(LS_KEY);
     return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -44,11 +46,24 @@ export function leerProveedoresCustom() {
  * @param {string} nit
  */
 export function guardarProveedorCustom(nombreProveedor, razonSocial, nit) {
-  const custom = leerProveedoresCustom();
-  const clave = nombreProveedor.toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-  custom[clave] = { razonSocial: razonSocial || nombreProveedor.toUpperCase(), nit: nit || "" };
-  localStorage.setItem(LS_KEY, JSON.stringify(custom));
+  try {
+    if (typeof window === "undefined" || !window.localStorage) return;
+    const custom = leerProveedoresCustom();
+    const strNombre = String(nombreProveedor || "").trim();
+    if (!strNombre) return;
+    const clave = strNombre
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+    custom[clave] = {
+      razonSocial: (razonSocial || strNombre).toUpperCase(),
+      nit: String(nit || "").trim()
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(custom));
+  } catch (err) {
+    console.warn("No se pudo guardar proveedor custom en localStorage:", err);
+  }
 }
 
 /**
@@ -59,33 +74,55 @@ export function guardarProveedorCustom(nombreProveedor, razonSocial, nit) {
  */
 export function obtenerDatosProveedor(nombreProveedor) {
   const DEFAULT = { razonSocial: "R&S SOLUCIONES S.A.S.", nit: "900.291.287-9", esDesconocido: false };
-  if (!nombreProveedor || nombreProveedor === "todos" || nombreProveedor === "General") return DEFAULT;
+  if (!nombreProveedor) return DEFAULT;
 
-  const normalizar = (str) =>
-    str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const str = String(nombreProveedor).trim();
+  if (!str || str.toLowerCase() === "todos" || str.toLowerCase() === "general") {
+    return DEFAULT;
+  }
 
-  const clave = normalizar(nombreProveedor);
+  const normalizar = (text) =>
+    String(text || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
+  const clave = normalizar(str);
+  if (!clave) return DEFAULT;
 
   // 1. Buscar en proveedores custom (localStorage)
   try {
     const custom = leerProveedoresCustom();
     for (const [key, val] of Object.entries(custom)) {
-      if (clave === key || clave.includes(key) || key.includes(clave))
-        return { ...val, esDesconocido: false };
+      const keyNorm = normalizar(key);
+      if (clave === keyNorm || clave.includes(keyNorm) || keyNorm.includes(clave)) {
+        return {
+          razonSocial: val?.razonSocial || str.toUpperCase(),
+          nit: val?.nit || "",
+          esDesconocido: false
+        };
+      }
     }
-  } catch { /* SSR o localStorage no disponible */ }
+  } catch {
+    /* ignore */
+  }
 
   // 2. Búsqueda exacta en mapa estático
   for (const [key, val] of Object.entries(PROVEEDORES_MAPA)) {
-    if (clave === normalizar(key)) return { ...val, esDesconocido: false };
+    if (clave === normalizar(key)) {
+      return { ...val, esDesconocido: false };
+    }
   }
 
   // 3. Búsqueda por substring en mapa estático
   for (const [key, val] of Object.entries(PROVEEDORES_MAPA)) {
     const keyN = normalizar(key);
-    if (clave.includes(keyN) || keyN.includes(clave)) return { ...val, esDesconocido: false };
+    if (clave.includes(keyN) || keyN.includes(clave)) {
+      return { ...val, esDesconocido: false };
+    }
   }
 
   // 4. Sin coincidencia: marcar como desconocido
-  return { razonSocial: nombreProveedor.toUpperCase(), nit: "", esDesconocido: true };
+  return { razonSocial: str.toUpperCase(), nit: "", esDesconocido: true };
 }
